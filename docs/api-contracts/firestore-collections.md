@@ -744,7 +744,7 @@ La API externa de productos no se documenta en este archivo.
 Su contrato se documentará en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
 Relación con Firestore:

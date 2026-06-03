@@ -12,7 +12,7 @@ Este documento complementa:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/contracts/firestore-collections.md
+docs/api-contracts/firestore-collections.md
 ```
 
 ---

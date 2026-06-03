@@ -186,7 +186,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/contracts` | Contratos de Firestore, API externa y mock data. |
+| `docs/api-contracts` | Contratos de Firestore, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -211,10 +211,10 @@ docs/architecture/layers-explanation.md
 ### API contracts
 
 ```text
-docs/contracts/README.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
-docs/contracts/mock-data.md
+docs/api-contracts/README.md
+docs/api-contracts/firestore-collections.md
+docs/api-contracts/external-product-api.md
+docs/api-contracts/mock-data.md
 ```
 
 ### Testing
@@ -336,7 +336,7 @@ flutter build apk --debug
 Los datos de prueba están documentados en:
 
 ```text
-docs/contracts/mock-data.md
+docs/api-contracts/mock-data.md
 ```
 
 Incluyen:
@@ -371,7 +371,7 @@ La API externa no reemplaza el registro manual.
 Contrato documentado en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
 ---

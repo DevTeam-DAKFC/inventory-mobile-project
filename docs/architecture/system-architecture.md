@@ -12,8 +12,8 @@ Este documento se basa en:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
+docs/api-contracts/firestore-collections.md
+docs/api-contracts/external-product-api.md
 ```
 
 ---
@@ -588,7 +588,7 @@ Uso:
 Colecciones documentadas en:
 
 ```text
-docs/contracts/firestore-collections.md
+docs/api-contracts/firestore-collections.md
 ```
 
 ---
@@ -633,7 +633,7 @@ Open Food Facts API
 Contrato documentado en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
 Dio se usará solo para esta integración.

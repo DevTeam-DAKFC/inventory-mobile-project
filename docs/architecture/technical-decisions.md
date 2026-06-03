@@ -642,7 +642,7 @@ Las decisiones aquí registradas se consideran la base técnica oficial para los
 
 - `docs/architecture/data-model.md`
 - `docs/architecture/system-architecture.md`
-- `docs/contracts/firestore-collections.md`
-- `docs/contracts/external-product-api.md`
+- `docs/api-contracts/firestore-collections.md`
+- `docs/api-contracts/external-product-api.md`
 - `README.md`
 

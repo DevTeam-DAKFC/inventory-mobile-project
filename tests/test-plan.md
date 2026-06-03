@@ -739,7 +739,7 @@ Estos casos deben estar cubiertos por unit, widget, integration o pruebas manual
 Los datos de prueba principales están documentados en:
 
 ```text
-docs/contracts/mock-data.md
+docs/api-contracts/mock-data.md
 ```
 
 Se deben utilizar para:

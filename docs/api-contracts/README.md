@@ -248,7 +248,7 @@ Los documentos dentro de esta carpeta deben cumplir:
 Estructura esperada:
 
 ```text
-docs/contracts/
+docs/api-contracts/
 ├── README.md
 ├── firestore-collections.md
 ├── external-product-api.md

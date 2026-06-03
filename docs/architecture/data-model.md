@@ -634,7 +634,7 @@ Este documento define el modelo conceptual.
 El diseño específico de colecciones, documentos, rutas, ejemplos y consultas se documentará en:
 
 ```text
-docs/contracts/firestore-collections.md
+docs/api-contracts/firestore-collections.md
 ```
 
 Sin embargo, desde este modelo se adelantan las siguientes decisiones:
