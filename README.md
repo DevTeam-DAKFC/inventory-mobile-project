@@ -114,6 +114,7 @@ La solución propuesta es una aplicación móvil que permita centralizar y organ
 
 - Firebase será el backend principal.
 - No se construirá una API REST propia para el MVP.
+- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` define la superficie REST esperada por la aplicación móvil. Firebase es una implementación válida de ese contrato y los repositorios pueden intercambiarse entre Firebase y un backend REST compatible sin cambios en la UI.
 - La API externa se usará únicamente para autocompletar productos por código de barras.
 - La sucursal es una entidad obligatoria del dominio.
 - El stock se maneja por combinación `productId + branchId`.
@@ -186,7 +187,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/api-contracts` | Contratos de Firestore, API externa y mock data. |
+| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), contratos de Firestore, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -212,10 +213,13 @@ docs/architecture/layers-explanation.md
 
 ```text
 docs/api-contracts/README.md
+docs/api-contracts/openapi.inventory-api.yaml
 docs/api-contracts/firestore-collections.md
 docs/api-contracts/external-product-api.md
 docs/api-contracts/mock-data.md
 ```
+
+`openapi.inventory-api.yaml` describe el contrato REST backend-compatible esperado por la aplicación móvil. No implica que dicho backend esté implementado. `firestore-collections.md` documenta la implementación Firebase del mismo dominio, `external-product-api.md` describe la integración directa con Open Food Facts y `mock-data.md` contiene los datos de demostración y pruebas.
 
 ### Testing
 
@@ -457,6 +461,7 @@ test(movements): add stock validation tests
 
 - Estructura base del repositorio.
 - Documentación inicial de arquitectura.
+- Contrato OpenAPI backend-compatible (`openapi.inventory-api.yaml`).
 - Contratos de Firestore.
 - Contrato de API externa.
 - Mock data.
