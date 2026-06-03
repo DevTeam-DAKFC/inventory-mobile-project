@@ -4,12 +4,13 @@
 
 Esta carpeta contiene los contratos de datos e integración utilizados por la aplicación móvil Flutter.
 
-Aunque la carpeta se llama `api-contracts`, este proyecto no utiliza una API REST propia como backend principal. La aplicación usa Firebase como backend principal y consume una API externa únicamente para apoyar el registro de productos.
+La aplicación se diseña para ser independiente de un proveedor de backend específico. Por eso esta carpeta documenta tanto el contrato REST esperado por la app como las implementaciones concretas disponibles hoy.
 
-Por eso, los contratos documentados aquí se dividen en:
+Los documentos se dividen en:
 
-- Contratos de colecciones de Cloud Firestore.
-- Contrato de integración con API externa de productos.
+- Contrato REST backend-compatible (`openapi.inventory-api.yaml`).
+- Contratos de datos de Cloud Firestore como una implementación Firebase del mismo dominio.
+- Contrato de integración con la API externa de productos.
 - Datos de prueba o mock data para desarrollo, testing y demostración.
 
 ---
@@ -40,6 +41,21 @@ En su lugar, la app se comunicará con Firebase mediante sus SDKs oficiales y or
 ---
 
 ## 3. Documentos incluidos
+
+### `openapi.inventory-api.yaml`
+
+Es el contrato REST backend-compatible esperado por la aplicación móvil.
+
+Define:
+
+- Grupos de endpoints: Auth, Users, Branches, Products, Stock, InventoryMovements, ProductLookup, NotificationTokens e ImportBatches.
+- Esquemas compartidos para entidades, DTOs y errores.
+- Ejemplos de request y response.
+- Esquema de seguridad `bearerAuth` (JWT) aplicado de forma global, con `security: []` solo en los endpoints públicos de registro e inicio de sesión.
+
+La aplicación depende de repositorios, no directamente de un proveedor de backend específico. Esto permite implementar los repositorios contra Firebase, descritos en `firestore-collections.md`, o contra un backend REST compatible con este contrato, sin cambios en la UI ni en la capa de aplicación.
+
+---
 
 ### `firestore-collections.md`
 
@@ -219,14 +235,12 @@ Especialmente:
 
 Este proyecto no incluirá en el MVP:
 
-- OpenAPI completo para backend REST propio.
-- Swagger de endpoints internos.
+- Implementación de un backend REST propio que cumpla `openapi.inventory-api.yaml`.
 - Contratos de API .NET, Node.js o Laravel.
-- Endpoints personalizados de autenticación.
 - Endpoints personalizados de carga de imágenes.
 - Endpoints personalizados de notificaciones push.
 
-Estas decisiones se deben a que el sistema usa Firebase como backend principal.
+El contrato OpenAPI documenta la superficie REST que la aplicación espera de cualquier backend compatible, pero la implementación actual del backend sigue siendo Firebase.
 
 ---
 
@@ -250,6 +264,7 @@ Estructura esperada:
 ```text
 docs/api-contracts/
 ├── README.md
+├── openapi.inventory-api.yaml
 ├── firestore-collections.md
 ├── external-product-api.md
 └── mock-data.md
@@ -265,14 +280,15 @@ La documentación de contratos cubre las cuatro piezas esperadas para describir 
 
 | Pieza requerida | Archivo | Detalle |
 |---|---|---|
-| Endpoints | `external-product-api.md` | Endpoint HTTP real consumido por la aplicación contra Open Food Facts, con método, ruta y parámetros documentados. |
-| Contratos | `firestore-collections.md` y `external-product-api.md` | Contratos de datos para Cloud Firestore y contrato de integración con la API externa de productos. |
-| Requests / responses | `external-product-api.md` | Ejemplos de solicitud HTTP, respuesta exitosa, respuesta cuando el producto no se encuentra y modelo interno al que se mapea la respuesta. |
+| Endpoints | `openapi.inventory-api.yaml` | Contrato REST backend-compatible con los grupos Auth, Users, Branches, Products, Stock, InventoryMovements, ProductLookup, NotificationTokens e ImportBatches. |
+| Contratos | `openapi.inventory-api.yaml` y `firestore-collections.md` | Contrato REST esperado por la aplicación móvil y contrato de datos para Cloud Firestore como una implementación válida del mismo dominio. |
+| Requests / responses | `openapi.inventory-api.yaml` y `external-product-api.md` | Ejemplos de solicitud y respuesta para el contrato REST de la aplicación y para la integración directa con la API externa de productos. |
 | Mock data | `mock-data.md` | Datos de demostración para usuarios, sucursales, productos, stock, movimientos, importación CSV y casos de prueba para la API externa. |
 
 Notas de alcance:
 
-- Firebase y Cloud Firestore se documentan como contratos de datos, no como una API REST propia del sistema.
-- Open Food Facts es la única API externa HTTP que la aplicación consume y por eso es la que define endpoints, requests y responses.
+- `openapi.inventory-api.yaml` describe la superficie REST esperada por la aplicación móvil contra cualquier backend compatible. No implica que dicho backend esté implementado.
+- Firebase y Cloud Firestore se documentan como una implementación válida del mismo dominio, no como una API REST propia del sistema.
+- Open Food Facts es la única API externa HTTP que la aplicación consume directamente; ese contrato se mantiene en `external-product-api.md`.
 - Los ejemplos de `mock-data.md` se utilizan en desarrollo, pruebas manuales y demostraciones del producto.
 
