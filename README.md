@@ -237,7 +237,7 @@ docs/research/flutter-research.pdf
 
 ## 9. Instalación del proyecto
 
-> Estado actual: el repositorio contiene la estructura base y documentación inicial. El proyecto Flutter debe crearse dentro de la carpeta `app`.
+> Estado actual: el repositorio incluye el proyecto Flutter inicial dentro de la carpeta `app/`, junto con la documentación base. Las dependencias específicas del producto (Firebase, Riverpod, go_router, Dio, etc.) y la configuración de Firebase aún están pendientes.
 
 ### Requisitos
 
@@ -246,23 +246,13 @@ docs/research/flutter-research.pdf
 - Android Studio.
 - Android SDK.
 - Emulador Android o dispositivo físico.
-- Firebase project configurado.
+- Cuenta y proyecto Firebase disponibles para conectar más adelante.
 
 ### Verificar Flutter
 
 ```powershell
 flutter --version
 flutter doctor
-```
-
-### Crear proyecto Flutter dentro de `/app`
-
-Desde la raíz del repositorio:
-
-```powershell
-cd C:\dev\inventory-mobile-project
-
-flutter create --project-name inventory_mobile app
 ```
 
 ### Entrar al proyecto Flutter
@@ -275,6 +265,13 @@ cd .\app
 
 ```powershell
 flutter pub get
+```
+
+### Validar el proyecto
+
+```powershell
+flutter analyze
+flutter test
 ```
 
 ### Ejecutar aplicación
@@ -466,19 +463,19 @@ test(movements): add stock validation tests
 - Contrato de API externa.
 - Mock data.
 - Plan de pruebas.
+- Proyecto Flutter creado dentro de `app/`, con `flutter pub get`, `flutter analyze` y `flutter test` ejecutándose correctamente sobre el scaffold inicial.
 
 ### Pendiente
 
-- Crear proyecto Flutter dentro de `app`.
-- Configurar Firebase.
-- Configurar dependencias Flutter.
-- Implementar arquitectura base.
-- Implementar navegación.
-- Implementar módulos funcionales.
-- Crear GitHub Actions.
-- Completar documento técnico de investigación en PDF.
-- Preparar video técnico.
-- Preparar workshop.
+- Configurar dependencias base del producto (Firebase, Riverpod, go_router, Dio, entre otras).
+- Configurar Firebase para los entornos de desarrollo.
+- Implementar la estructura de capas descrita en `docs/architecture/layers-explanation.md`.
+- Implementar navegación según `docs/architecture/navigation-map.md`.
+- Implementar módulos funcionales según el alcance del MVP.
+- Crear el workflow de GitHub Actions en `.github/workflows/flutter-ci.yml`.
+- Completar el documento de investigación en PDF en `docs/research/`.
+- Preparar el video técnico.
+- Preparar la guía del workshop.
 
 ---
 
