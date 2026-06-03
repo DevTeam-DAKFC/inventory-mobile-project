@@ -19,7 +19,7 @@ docs/architecture/system-architecture.md
 
 ## 2. Principios de navegación
 
-La navegación debe ser clara, predecible y fácil de explicar durante la defensa técnica.
+La navegación debe ser clara, predecible y fácil de explicar durante revisiones técnicas.
 
 Principios:
 
@@ -924,7 +924,7 @@ El mapa de navegación se considera correcto si:
 - El historial permite llegar al detalle del movimiento.
 - Los roles pueden restringir pantallas sensibles.
 - No hay rutas duplicadas o ambiguas.
-- La navegación se puede explicar durante la defensa técnica.
+- La navegación se puede explicar durante revisiones técnicas.
 
 ---
 

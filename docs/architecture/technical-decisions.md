@@ -2,7 +2,7 @@
 
 ## 1. Propósito del documento
 
-Este documento registra las decisiones técnicas principales del proyecto. Su objetivo es mantener una guía común para el equipo durante el diseño, implementación, testing, documentación y defensa técnica.
+Este documento registra las decisiones técnicas principales del proyecto. Su objetivo es mantener una guía común para el equipo durante el diseño, implementación, testing, documentación y revisión técnica.
 
 Las decisiones aquí descritas deben mantenerse alineadas con el alcance definido en:
 
@@ -44,7 +44,7 @@ docs/architecture/project-scope.md
 
 ## DT-01: Usar Flutter y Dart
 
-Flutter será el framework principal del proyecto porque fue la tecnología asignada para el trabajo de investigación.
+Flutter será el framework principal del proyecto por su capacidad para desarrollar aplicaciones móviles con una sola base de código.
 
 La aplicación se desarrollará con una sola base de código y se enfocará inicialmente en Android, sin descartar compatibilidad futura con otras plataformas soportadas por Flutter.
 
@@ -91,7 +91,7 @@ Construir una API propia aumentaría significativamente el alcance del proyecto:
 - Requeriría despliegue.
 - Requeriría pruebas adicionales.
 - Requeriría documentación OpenAPI completa.
-- Desviaría esfuerzo del objetivo móvil del curso.
+- Desviaría esfuerzo del objetivo móvil del producto.
 
 ### Mejora futura
 
@@ -314,7 +314,7 @@ lib/
 
 ### Justificación
 
-Esta estructura facilita explicar la arquitectura en la defensa técnica y mantiene claras las capas del sistema.
+Esta estructura facilita explicar la arquitectura en revisiones técnicas y mantiene claras las capas del sistema.
 
 ### Nota
 
@@ -426,7 +426,7 @@ La transacción reduce el riesgo de inconsistencias cuando varios usuarios actua
 
 ### Limitación
 
-Para un entorno productivo, esta regla debería moverse a Cloud Functions o a un backend propio. Para el MVP académico, Firestore transactions desde la app son aceptables y mantienen el alcance controlado.
+Para un entorno productivo, esta regla debería moverse a Cloud Functions o a un backend propio. Para el MVP actual, Firestore transactions desde la app son aceptables y mantienen el alcance controlado.
 
 ---
 
@@ -591,7 +591,7 @@ flutter test
 
 ### Justificación
 
-El enunciado exige testing automatizado e integración continua, por lo que deben formar parte del flujo desde etapas tempranas.
+El proyecto requiere testing automatizado e integración continua, por lo que deben formar parte del flujo desde etapas tempranas.
 
 ---
 

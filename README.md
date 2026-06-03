@@ -2,7 +2,7 @@
 
 Aplicación móvil desarrollada con **Flutter** para la gestión de inventario multiusuario en una pequeña cadena de tiendas locales.
 
-El proyecto forma parte del curso **Diseño y Programación de Plataformas Móviles** y busca resolver una problemática de control de inventario entre sucursales, donde actualmente se utilizan registros manuales y hojas de cálculo que generan inconsistencias, pérdidas de productos y poca trazabilidad de movimientos.
+El sistema busca resolver una problemática de control de inventario entre sucursales, donde actualmente se utilizan registros manuales y hojas de cálculo que generan inconsistencias, pérdidas de productos y poca trazabilidad de movimientos.
 
 ---
 
@@ -10,7 +10,7 @@ El proyecto forma parte del curso **Diseño y Programación de Plataformas Móvi
 
 La aplicación permitirá que usuarios autenticados puedan gestionar productos, visualizar existencias por sucursal, registrar entradas y salidas de inventario, consultar historial de movimientos y recibir alertas relacionadas con bajo stock.
 
-El enfoque del proyecto es construir un **MVP académico-profesional**, de alcance controlado, pero con buena calidad técnica, documentación clara, pruebas automatizadas e integración continua.
+El enfoque del proyecto es construir un **MVP funcional y profesional**, de alcance controlado, pero con buena calidad técnica, documentación clara, pruebas automatizadas e integración continua.
 
 No se busca construir un sistema ERP completo. El alcance se centra en:
 
@@ -471,7 +471,7 @@ test(movements): add stock validation tests
 - Implementar navegación.
 - Implementar módulos funcionales.
 - Crear GitHub Actions.
-- Completar informe de investigación en PDF.
+- Completar documento técnico de investigación en PDF.
 - Preparar video técnico.
 - Preparar workshop.
 
@@ -515,8 +515,8 @@ El workshop deberá incluir:
 - Explicación de arquitectura.
 - Actividad práctica guiada.
 - Live coding.
-- Participación de la clase.
-- Defensa técnica individual.
+- Sesión de preguntas.
+- Revisión técnica del flujo implementado.
 
 Guía pendiente:
 
@@ -532,17 +532,16 @@ El uso de IA puede apoyar planificación, documentación, revisión y generació
 
 Sin embargo:
 
-- El equipo debe comprender todo el código entregado.
+- El equipo debe comprender todo el código del sistema.
 - Cada integrante debe poder explicar su parte.
 - Las decisiones técnicas deben ser justificables.
 - El código generado o asistido debe revisarse críticamente.
-- La IA no reemplaza el dominio técnico esperado del curso.
+- La IA no reemplaza el criterio técnico esperado del equipo.
 
 ---
 
 ## 22. Licencia
 
-Proyecto académico desarrollado para el curso Diseño y Programación de Plataformas Móviles.
+Proyecto de gestión de inventario desarrollado como solución móvil profesional.
 
 La licencia formal queda pendiente de definición por el equipo.
-
