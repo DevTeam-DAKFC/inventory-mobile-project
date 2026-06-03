@@ -257,3 +257,22 @@ docs/api-contracts/
 
 El archivo `mock-data.md` puede crearse después de definir los datos de demostración para pruebas, video y workshop.
 
+---
+
+## 11. Cobertura de documentación requerida
+
+La documentación de contratos cubre las cuatro piezas esperadas para describir cómo la aplicación se integra con sus fuentes de datos. La siguiente tabla mapea cada pieza al archivo donde se encuentra.
+
+| Pieza requerida | Archivo | Detalle |
+|---|---|---|
+| Endpoints | `external-product-api.md` | Endpoint HTTP real consumido por la aplicación contra Open Food Facts, con método, ruta y parámetros documentados. |
+| Contratos | `firestore-collections.md` y `external-product-api.md` | Contratos de datos para Cloud Firestore y contrato de integración con la API externa de productos. |
+| Requests / responses | `external-product-api.md` | Ejemplos de solicitud HTTP, respuesta exitosa, respuesta cuando el producto no se encuentra y modelo interno al que se mapea la respuesta. |
+| Mock data | `mock-data.md` | Datos de demostración para usuarios, sucursales, productos, stock, movimientos, importación CSV y casos de prueba para la API externa. |
+
+Notas de alcance:
+
+- Firebase y Cloud Firestore se documentan como contratos de datos, no como una API REST propia del sistema.
+- Open Food Facts es la única API externa HTTP que la aplicación consume y por eso es la que define endpoints, requests y responses.
+- Los ejemplos de `mock-data.md` se utilizan en desarrollo, pruebas manuales y demostraciones del producto.
+
