@@ -1478,6 +1478,479 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /product-lookup/{barcode}:
+    parameters:
+      - in: path
+        name: barcode
+        required: true
+        schema:
+          type: string
+        description: Barcode of the product to look up.
+    get:
+      tags:
+        - ProductLookup
+      summary: Look up product suggestion by barcode
+      description: |
+        Returns suggested product data for the given barcode. The backend
+        may proxy Open Food Facts or any other external provider, so the
+        upstream source is abstracted behind a single contract.
+
+        This endpoint does not create or persist a Product. The user must
+        review and confirm the suggested fields before creating the
+        product through `POST /products`.
+      responses:
+        '200':
+          description: Suggestion found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExternalProductSuggestion'
+              example:
+                barcode: '3017624010701'
+                name: Nutella
+                brand: Ferrero
+                category: Spreads
+                imageUrl: https://images.openfoodfacts.org/images/products/301/762/401/0701/front_en.400.jpg
+                source: open_food_facts
+        '400':
+          description: Invalid barcode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No suggestion found for the requested barcode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: product_not_found
+                  message: No suggestion was found for the requested barcode.
+                  details:
+                    - field: barcode
+                      message: Barcode not present in the upstream catalog.
+                  requestId: req_product_lookup_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Upstream provider unavailable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: service_unavailable
+                  message: The upstream product provider is currently unavailable.
+                  requestId: req_product_lookup_02
+
+  /notification-tokens:
+    post:
+      tags:
+        - NotificationTokens
+      summary: Register or upsert a device token
+      description: |
+        Registers a push notification token for the authenticated user. If
+        the device already has a token recorded, the existing record is
+        upserted so the same device does not accumulate duplicates.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NotificationTokenCreateRequest'
+            example:
+              token: fcm_device_token_admin_demo
+              platform: android
+      responses:
+        '201':
+          description: Token registered or updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationToken'
+              example:
+                id: token_001
+                userId: user_admin_001
+                token: fcm_device_token_admin_demo
+                platform: android
+                createdAt: '2026-06-02T20:00:00Z'
+                updatedAt: '2026-06-02T20:00:00Z'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /notification-tokens/{tokenId}:
+    parameters:
+      - in: path
+        name: tokenId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the notification token.
+    delete:
+      tags:
+        - NotificationTokens
+      summary: Remove a device token
+      description: |
+        Removes a push notification token. Used on logout or when the
+        client detects that the token has been invalidated by the platform.
+      responses:
+        '204':
+          description: Token removed.
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to remove this token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Token not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /import-batches:
+    get:
+      tags:
+        - ImportBatches
+      summary: List import batches
+      description: |
+        Read-only listing of previous product import batches.
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportStatus'
+          description: Filter by lifecycle status.
+        - in: query
+          name: importedBy
+          required: false
+          schema:
+            type: string
+          description: Filter by the user that started the batch.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of import batches.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ImportBatch'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list import batches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - ImportBatches
+      summary: Create an import batch
+      description: |
+        Creates a validation batch from parsed product import metadata.
+        Import is a complementary path for bulk-loading products; the
+        primary, always-available product creation path is the manual flow
+        through `POST /products`.
+
+        The actual CSV body is expected to be uploaded through a separate
+        multipart endpoint or signed-URL flow, which is out of scope for
+        this version of the contract. This payload carries the batch
+        metadata only; validation of the parsed rows is performed
+        server-side and surfaced through subsequent reads of the batch.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportBatchCreateRequest'
+            example:
+              fileName: inventory_initial.csv
+      responses:
+        '201':
+          description: Batch created. Rows are queued for validation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+              example:
+                id: import_001
+                fileName: inventory_initial.csv
+                importedBy: user_admin_001
+                status: pending
+                totalRows: 0
+                validRows: 0
+                invalidRows: 0
+                createdAt: '2026-06-02T20:00:00Z'
+                completedAt: null
+        '400':
+          description: Validation error on the request payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to create import batches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /import-batches/{importBatchId}:
+    parameters:
+      - in: path
+        name: importBatchId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the import batch.
+    get:
+      tags:
+        - ImportBatches
+      summary: Get import batch detail
+      description: |
+        Returns the import batch including row counts and per-row
+        validation errors detected so far.
+      responses:
+        '200':
+          description: Import batch detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+              example:
+                id: import_002
+                fileName: inventory_with_errors.csv
+                importedBy: user_admin_001
+                status: failed
+                totalRows: 4
+                validRows: 0
+                invalidRows: 4
+                errors:
+                  - row: 1
+                    field: name
+                    message: El nombre es obligatorio
+                  - row: 2
+                    field: sku
+                    message: El SKU es obligatorio
+                  - row: 3
+                    field: initialStock
+                    message: El stock inicial no puede ser negativo
+                  - row: 4
+                    field: branchName
+                    message: La sucursal no existe
+                createdAt: '2026-06-02T20:10:00Z'
+                completedAt: '2026-06-02T20:12:00Z'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this import batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Import batch not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /import-batches/{importBatchId}/confirm:
+    parameters:
+      - in: path
+        name: importBatchId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the import batch to confirm.
+    post:
+      tags:
+        - ImportBatches
+      summary: Confirm a validated import batch
+      description: |
+        Commits the validated rows of an import batch. If the batch has
+        invalid rows or is otherwise not in a confirmable state, the
+        request is rejected with HTTP 422 and the standard `ErrorResponse`
+        shape. If a confirmable batch contains rows with duplicate `sku`
+        or `barcode` against the current catalog, the request fails with
+        HTTP 409.
+
+        On success, the backend creates the products and may create
+        `incoming` inventory movements with reason `Initial import` to
+        seed the initial stock balances.
+      responses:
+        '200':
+          description: Import confirmed. Returns the updated batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatch'
+              example:
+                id: import_001
+                fileName: inventory_initial.csv
+                importedBy: user_admin_001
+                status: completed
+                totalRows: 4
+                validRows: 4
+                invalidRows: 0
+                createdAt: '2026-06-02T20:00:00Z'
+                completedAt: '2026-06-02T20:05:00Z'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to confirm this import batch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Import batch not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Duplicate sku or barcode during confirmation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: |
+            The batch cannot be confirmed because it contains invalid rows
+            or is in a state that does not allow confirmation. Possible
+            `error.code` values include `invalid_rows` and
+            `batch_not_confirmable`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: invalid_rows
+                  message: The batch contains invalid rows and cannot be confirmed.
+                  details:
+                    - field: row.1.name
+                      message: El nombre es obligatorio
+                    - field: row.3.initialStock
+                      message: El stock inicial no puede ser negativo
+                  requestId: req_import_confirm_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
