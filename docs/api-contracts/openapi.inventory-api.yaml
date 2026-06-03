@@ -1,0 +1,1211 @@
+openapi: 3.0.3
+
+info:
+  title: Inventory Mobile API
+  description: |
+    Backend-compatible REST contract for the inventory mobile application.
+
+    Purpose:
+    - This document describes the expected REST API surface that the mobile app
+      consumes when working against a backend compatible with this contract.
+    - It does not imply that the endpoints described here are already
+      implemented. They define the agreed shape of the integration.
+
+    Relationship with Firebase:
+    - Firebase remains a valid implementation option for authentication,
+      persistence, image and file storage and push notifications.
+    - This OpenAPI document and the Firestore data contract describe the same
+      domain from two angles: a REST surface and a Firebase data layout.
+    - The mobile app depends on repositories, not directly on a specific
+      backend provider. Repositories can be implemented either against
+      Firebase services or against a REST backend that follows this contract,
+      without changing the UI or the application layer.
+
+    Authentication:
+    - Authentication is mandatory for the application.
+    - User registration, login and current-user retrieval are MVP-critical
+      endpoints and will be defined under the Auth tag in later iterations of
+      this document.
+  version: 1.0.0
+
+servers:
+  - url: https://api.inventory.example.com
+    description: Production-like environment placeholder.
+  - url: http://localhost:8080
+    description: Local development environment.
+
+tags:
+  - name: Auth
+    description: Authentication and current-user retrieval. MVP-critical.
+  - name: Users
+    description: User profile, role and branch assignment management.
+  - name: Branches
+    description: Store branches that hold inventory.
+  - name: Products
+    description: Product catalog. Stock is not embedded in product records.
+  - name: Stock
+    description: Read-only balances of available quantity by product and branch.
+  - name: InventoryMovements
+    description: Write path for incoming and outgoing inventory movements.
+  - name: ProductLookup
+    description: External-product suggestion lookup, decoupled from the upstream provider.
+  - name: NotificationTokens
+    description: Device push notification token registration.
+  - name: ImportBatches
+    description: Optional CSV import lifecycle for bulk product loading.
+
+security:
+  - bearerAuth: []
+
+paths:
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: |
+        MVP-critical. Creates a new user account from a public registration
+        request. The response includes an access token so that the client
+        does not need to call `/auth/login` immediately after registering.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: User registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: conflict
+                  message: Email already registered.
+                  details:
+                    - field: email
+                      message: An account with this email already exists.
+                  requestId: req_register_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in with email and password
+      description: |
+        MVP-critical. Exchanges credentials for an access token and returns
+        the authenticated user profile.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Login successful.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: unauthorized
+                  message: Invalid email or password.
+                  requestId: req_login_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags:
+        - Auth
+      summary: Get current authenticated user
+      description: |
+        MVP-critical. Returns the profile of the authenticated user, derived
+        from the bearer token. The application uses this endpoint to
+        rehydrate the session after launch.
+      responses:
+        '200':
+          description: Current user profile.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Invalidate the current session
+      description: |
+        Invalidates the access token associated with the current session.
+        Whether the token is revoked server-side or only discarded by the
+        client depends on the backend implementation.
+      responses:
+        '204':
+          description: Session invalidated.
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: List users
+      description: |
+        Admin-oriented listing of users with optional filters. Non-admin
+        callers should use `GET /auth/me` to read their own profile.
+      parameters:
+        - in: query
+          name: role
+          required: false
+          schema:
+            $ref: '#/components/schemas/UserRole'
+          description: Filter by user role.
+        - in: query
+          name: branchId
+          required: false
+          schema:
+            type: string
+          description: Filter by branch assignment.
+        - in: query
+          name: isActive
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active status.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of users.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Users
+      summary: Create a user (admin-side)
+      description: |
+        Admin-driven user creation. Allows assigning `role` and `branchIds`
+        without exchanging a password. For public credentialed registration
+        use `POST /auth/register`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: User created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to create users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Email already registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}:
+    parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the user.
+    get:
+      tags:
+        - Users
+      summary: Get user by id
+      responses:
+        '200':
+          description: User detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Users
+      summary: Update user
+      description: |
+        Updates editable fields on a user profile. Only the fields included
+        in the request body are modified.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: User updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to update this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict updating user, such as a duplicate email.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /users/{userId}/deactivate:
+    parameters:
+      - in: path
+        name: userId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the user.
+    patch:
+      tags:
+        - Users
+      summary: Deactivate user
+      description: |
+        Soft-deactivates a user. The user record is preserved for traceability
+        of historical movements.
+      responses:
+        '204':
+          description: User deactivated.
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to deactivate this user.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+
+    UserRole:
+      type: string
+      enum:
+        - admin
+        - collaborator
+      description: Role of an authenticated user.
+
+    MovementType:
+      type: string
+      enum:
+        - incoming
+        - outgoing
+        - adjustment
+      description: |
+        Type of an inventory movement. Only `incoming` and `outgoing` are
+        required for the MVP. `adjustment` is optional and may be supported
+        in later iterations.
+
+    ImportStatus:
+      type: string
+      enum:
+        - pending
+        - validated
+        - completed
+        - failed
+      description: Lifecycle status of a product import batch.
+
+    PlatformType:
+      type: string
+      enum:
+        - android
+        - ios
+        - web
+        - unknown
+      description: Device platform reported for a push notification token.
+
+    User:
+      type: object
+      required:
+        - id
+        - name
+        - email
+        - role
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: user_admin_001
+        name:
+          type: string
+          example: María Rodríguez
+        email:
+          type: string
+          format: email
+          example: admin@inventario-demo.com
+        role:
+          $ref: '#/components/schemas/UserRole'
+        branchIds:
+          type: array
+          items:
+            type: string
+          example:
+            - branch_central
+            - branch_north
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+
+    Branch:
+      type: object
+      required:
+        - id
+        - name
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: branch_central
+        name:
+          type: string
+          example: Sucursal Central
+        address:
+          type: string
+          example: Centro de la ciudad
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+
+    Product:
+      type: object
+      description: |
+        Product in the catalog. Stock is not embedded in the product record.
+        Available quantity is represented by the Stock schema, scoped by
+        productId and branchId.
+      required:
+        - id
+        - name
+        - sku
+        - category
+        - minStock
+        - isActive
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: product_rice_001
+        name:
+          type: string
+          example: Arroz 80% 1kg
+        sku:
+          type: string
+          example: ARR-001
+        barcode:
+          type: string
+          nullable: true
+          example: '7441000000012'
+        category:
+          type: string
+          example: Abarrotes
+        description:
+          type: string
+          example: Bolsa de arroz 80% de 1 kilogramo.
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://example.com/images/arroz-1kg.jpg
+        minStock:
+          type: integer
+          minimum: 0
+          example: 10
+        isActive:
+          type: boolean
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+
+    Stock:
+      type: object
+      description: |
+        Available quantity of a product in a specific branch. A single Stock
+        record exists per `productId` and `branchId` combination.
+      required:
+        - id
+        - productId
+        - branchId
+        - availableQuantity
+        - updatedAt
+      properties:
+        id:
+          type: string
+          example: product_rice_001_branch_central
+        productId:
+          type: string
+          example: product_rice_001
+        branchId:
+          type: string
+          example: branch_central
+        availableQuantity:
+          type: integer
+          minimum: 0
+          example: 40
+        lastMovementId:
+          type: string
+          nullable: true
+          example: movement_001
+        lastMovementAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-06-02T20:15:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:15:00Z'
+
+    InventoryMovement:
+      type: object
+      description: |
+        Inventory movement record. Stock balances change only through
+        movements. `previousStock` and `resultingStock` capture the balance
+        before and after the movement was applied.
+      required:
+        - id
+        - productId
+        - branchId
+        - userId
+        - type
+        - quantity
+        - previousStock
+        - resultingStock
+        - reason
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: movement_001
+        productId:
+          type: string
+          example: product_rice_001
+        branchId:
+          type: string
+          example: branch_central
+        userId:
+          type: string
+          example: user_admin_001
+        type:
+          $ref: '#/components/schemas/MovementType'
+        quantity:
+          type: integer
+          minimum: 1
+          example: 40
+        previousStock:
+          type: integer
+          minimum: 0
+          example: 0
+        resultingStock:
+          type: integer
+          minimum: 0
+          example: 40
+        reason:
+          type: string
+          example: Initial import
+        notes:
+          type: string
+          example: Carga inicial de inventario.
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:15:00Z'
+
+    NotificationToken:
+      type: object
+      required:
+        - id
+        - userId
+        - token
+        - platform
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: token_001
+        userId:
+          type: string
+          example: user_admin_001
+        token:
+          type: string
+          example: fcm_device_token_admin_demo
+        platform:
+          $ref: '#/components/schemas/PlatformType'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+
+    ImportBatchError:
+      type: object
+      required:
+        - row
+        - field
+        - message
+      properties:
+        row:
+          type: integer
+          minimum: 1
+          example: 8
+        field:
+          type: string
+          example: initialStock
+        message:
+          type: string
+          example: Stock inicial no puede ser negativo.
+
+    ImportBatch:
+      type: object
+      description: |
+        Optional record of a CSV product import. Persisted only when the
+        product team decides to keep import history.
+      required:
+        - id
+        - fileName
+        - importedBy
+        - status
+        - totalRows
+        - validRows
+        - invalidRows
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: import_001
+        fileName:
+          type: string
+          example: inventory_initial.csv
+        importedBy:
+          type: string
+          example: user_admin_001
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        totalRows:
+          type: integer
+          minimum: 0
+          example: 4
+        validRows:
+          type: integer
+          minimum: 0
+          example: 4
+        invalidRows:
+          type: integer
+          minimum: 0
+          example: 0
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatchError'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-06-02T20:00:00Z'
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-06-02T20:05:00Z'
+
+    ExternalProductSuggestion:
+      type: object
+      description: |
+        Suggested product data returned by the external lookup endpoint.
+        The user must review and confirm these values before persisting them
+        as a Product.
+      required:
+        - barcode
+        - source
+      properties:
+        barcode:
+          type: string
+          example: '3017624010701'
+        name:
+          type: string
+          nullable: true
+          example: Nutella
+        brand:
+          type: string
+          nullable: true
+          example: Ferrero
+        category:
+          type: string
+          nullable: true
+          example: Spreads
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://images.openfoodfacts.org/images/products/301/762/401/0701/front_en.400.jpg
+        source:
+          type: string
+          example: open_food_facts
+
+    AuthRegisterRequest:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          example: Ana Gómez
+        email:
+          type: string
+          format: email
+          example: ana@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: a-strong-password
+        role:
+          $ref: '#/components/schemas/UserRole'
+        branchIds:
+          type: array
+          items:
+            type: string
+
+    AuthLoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: ana@example.com
+        password:
+          type: string
+          format: password
+          example: a-strong-password
+
+    AuthLoginResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Access token lifetime in seconds.
+          example: 3600
+        user:
+          $ref: '#/components/schemas/User'
+
+    UserCreateRequest:
+      type: object
+      required:
+        - name
+        - email
+        - role
+      properties:
+        name:
+          type: string
+          example: Carlos Pérez
+        email:
+          type: string
+          format: email
+          example: colaborador@inventario-demo.com
+        role:
+          $ref: '#/components/schemas/UserRole'
+        branchIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+          default: true
+
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          $ref: '#/components/schemas/UserRole'
+        branchIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+
+    BranchCreateRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: Sucursal Norte
+        address:
+          type: string
+          example: Zona norte
+        isActive:
+          type: boolean
+          default: true
+
+    BranchUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        isActive:
+          type: boolean
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - sku
+        - category
+        - minStock
+      properties:
+        name:
+          type: string
+          example: Frijoles negros 900g
+        sku:
+          type: string
+          example: FRJ-001
+        barcode:
+          type: string
+          nullable: true
+          example: '7441000000029'
+        category:
+          type: string
+          example: Abarrotes
+        description:
+          type: string
+          example: Bolsa de frijoles negros de 900 gramos.
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+          example: https://example.com/images/frijoles-negros.jpg
+        minStock:
+          type: integer
+          minimum: 0
+          example: 8
+        isActive:
+          type: boolean
+          default: true
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        sku:
+          type: string
+        barcode:
+          type: string
+          nullable: true
+        category:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+          format: uri
+          nullable: true
+        minStock:
+          type: integer
+          minimum: 0
+        isActive:
+          type: boolean
+
+    InventoryMovementCreateRequest:
+      type: object
+      description: |
+        Request to register an inventory movement. The server validates the
+        affected stock balance, rejects outgoing movements that exceed
+        `availableQuantity`, and atomically updates both the Stock record
+        and the InventoryMovement record.
+      required:
+        - productId
+        - branchId
+        - type
+        - quantity
+        - reason
+      properties:
+        productId:
+          type: string
+          example: product_rice_001
+        branchId:
+          type: string
+          example: branch_central
+        type:
+          $ref: '#/components/schemas/MovementType'
+        quantity:
+          type: integer
+          minimum: 1
+          example: 40
+        reason:
+          type: string
+          example: Initial import
+        notes:
+          type: string
+          example: Carga inicial de inventario.
+
+    NotificationTokenCreateRequest:
+      type: object
+      required:
+        - token
+        - platform
+      properties:
+        token:
+          type: string
+          example: fcm_device_token_admin_demo
+        platform:
+          $ref: '#/components/schemas/PlatformType'
+
+    ImportBatchCreateRequest:
+      type: object
+      description: |
+        Request to start a product import batch. The actual CSV content is
+        expected to be uploaded through a separate multipart endpoint or a
+        signed-URL flow; this payload carries the batch metadata.
+      required:
+        - fileName
+      properties:
+        fileName:
+          type: string
+          example: inventory_initial.csv
+
+    FieldError:
+      type: object
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          example: name
+        message:
+          type: string
+          example: Name is required.
+
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: validation_error
+        message:
+          type: string
+          description: Human-readable error message.
+          example: The request contains invalid fields.
+        details:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldError'
+        requestId:
+          type: string
+          example: req_123
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+      example:
+        error:
+          code: validation_error
+          message: The request contains invalid fields.
+          details:
+            - field: name
+              message: Name is required.
+          requestId: req_123
+
+    PaginatedResponse:
+      type: object
+      description: |
+        Generic envelope for paginated list responses. Endpoints that return
+        a paginated list extend this schema by overriding `items` with the
+        concrete element type.
+      required:
+        - items
+        - total
+        - page
+        - pageSize
+        - hasNextPage
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+        total:
+          type: integer
+          minimum: 0
+          example: 25
+        page:
+          type: integer
+          minimum: 1
+          example: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          example: 20
+        hasNextPage:
+          type: boolean
+          example: true
