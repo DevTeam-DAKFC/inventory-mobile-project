@@ -486,6 +486,998 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /branches:
+    get:
+      tags:
+        - Branches
+      summary: List branches
+      parameters:
+        - in: query
+          name: isActive
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active status.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of branches.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Branch'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list branches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Branches
+      summary: Create branch
+      description: Admin-driven branch creation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchCreateRequest'
+      responses:
+        '201':
+          description: Branch created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to create branches.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Branch name already exists.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /branches/{branchId}:
+    parameters:
+      - in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the branch.
+    get:
+      tags:
+        - Branches
+      summary: Get branch by id
+      responses:
+        '200':
+          description: Branch detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Branch not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Branches
+      summary: Update branch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BranchUpdateRequest'
+      responses:
+        '200':
+          description: Branch updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Branch'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to update this branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Branch not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict updating branch, such as a duplicate name.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /branches/{branchId}/deactivate:
+    parameters:
+      - in: path
+        name: branchId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the branch.
+    patch:
+      tags:
+        - Branches
+      summary: Deactivate branch
+      description: |
+        Soft-deactivates a branch. Existing stock and historical movements
+        are preserved for traceability. An inactive branch should not be
+        used to register new movements.
+      responses:
+        '204':
+          description: Branch deactivated.
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to deactivate this branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Branch not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products:
+    get:
+      tags:
+        - Products
+      summary: List products
+      description: |
+        Catalog listing of products with optional filters. Stock is not
+        embedded in the product record; use the Stock endpoints to read
+        availability by branch.
+      parameters:
+        - in: query
+          name: q
+          required: false
+          schema:
+            type: string
+          description: Free-text search across name, sku and barcode.
+        - in: query
+          name: category
+          required: false
+          schema:
+            type: string
+          description: Filter by product category.
+        - in: query
+          name: isActive
+          required: false
+          schema:
+            type: boolean
+          description: Filter by active status.
+        - in: query
+          name: lowStockOnly
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            If true, only include products that have at least one branch
+            where `availableQuantity` is at or below `minStock`.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of products.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list products.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Products
+      summary: Create product
+      description: |
+        Creates a product in the catalog. Covers manual registration as
+        well as confirmed values from the external product lookup. Stock
+        is not set through this endpoint; register an `incoming` inventory
+        movement to set the initial balance.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreateRequest'
+      responses:
+        '201':
+          description: Product created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to create products.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Duplicate sku or barcode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: conflict
+                  message: A product with this sku already exists.
+                  details:
+                    - field: sku
+                      message: sku must be unique within the catalog.
+                  requestId: req_product_create_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{productId}:
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the product.
+    get:
+      tags:
+        - Products
+      summary: Get product by id
+      responses:
+        '200':
+          description: Product detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - Products
+      summary: Update product
+      description: |
+        Updates editable fields on a product. Only the fields included in
+        the request body are modified. Stock balances cannot be modified
+        through this endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductUpdateRequest'
+      responses:
+        '200':
+          description: Product updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to update this product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Duplicate sku or barcode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /products/{productId}/deactivate:
+    parameters:
+      - in: path
+        name: productId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the product.
+    patch:
+      tags:
+        - Products
+      summary: Deactivate product
+      description: |
+        Soft-deactivates a product. Existing stock and historical movements
+        remain visible, but an inactive product must not be used to
+        register new movements.
+      responses:
+        '204':
+          description: Product deactivated.
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to deactivate this product.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stock:
+    get:
+      tags:
+        - Stock
+      summary: List stock balances
+      description: |
+        Read-only listing of stock balances. Stock is keyed by
+        `productId` and `branchId` and is not mutated through the Stock
+        endpoints; the only write path is `POST /inventory-movements`.
+      parameters:
+        - in: query
+          name: branchId
+          required: false
+          schema:
+            type: string
+          description: Filter by branch.
+        - in: query
+          name: productId
+          required: false
+          schema:
+            type: string
+          description: Filter by product.
+        - in: query
+          name: lowStockOnly
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: |
+            If true, only include stock records where `availableQuantity`
+            is at or below the associated product's `minStock`.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of stock records.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Stock'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list stock.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stock/lookup:
+    get:
+      tags:
+        - Stock
+      summary: Get stock by product and branch
+      description: |
+        Convenience lookup for the single stock record associated with a
+        given `productId` + `branchId` combination. Returns 404 when no
+        stock record exists for the combination.
+      parameters:
+        - in: query
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: Identifier of the product.
+        - in: query
+          name: branchId
+          required: true
+          schema:
+            type: string
+          description: Identifier of the branch.
+      responses:
+        '200':
+          description: Stock record for the requested product and branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+        '400':
+          description: Missing or invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this stock record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No stock record exists for the given product and branch.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stock/{stockId}:
+    parameters:
+      - in: path
+        name: stockId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the stock record.
+    get:
+      tags:
+        - Stock
+      summary: Get stock by id
+      responses:
+        '200':
+          description: Stock detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Stock'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this stock record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Stock record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory-movements:
+    get:
+      tags:
+        - InventoryMovements
+      summary: List inventory movements
+      description: |
+        Read-only listing of inventory movements, optionally filtered by
+        branch, product, type, user or date range.
+      parameters:
+        - in: query
+          name: branchId
+          required: false
+          schema:
+            type: string
+          description: Filter by branch.
+        - in: query
+          name: productId
+          required: false
+          schema:
+            type: string
+          description: Filter by product.
+        - in: query
+          name: type
+          required: false
+          schema:
+            $ref: '#/components/schemas/MovementType'
+          description: Filter by movement type.
+        - in: query
+          name: userId
+          required: false
+          schema:
+            type: string
+          description: Filter by user that registered the movement.
+        - in: query
+          name: from
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Inclusive lower bound for `createdAt`.
+        - in: query
+          name: to
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Inclusive upper bound for `createdAt`.
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number, starting at 1.
+        - in: query
+          name: pageSize
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page.
+      responses:
+        '200':
+          description: Paginated list of inventory movements.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InventoryMovement'
+        '400':
+          description: Invalid query parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to list movements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - InventoryMovements
+      summary: Register an inventory movement
+      description: |
+        Write path for stock changes. The backend performs the following
+        steps atomically:
+
+        1. Loads the product and validates that it exists and is active.
+        2. Loads the branch and validates that it exists and is active.
+        3. Loads the matching stock record by `productId` + `branchId`.
+        4. For `outgoing` movements, validates that `quantity` does not
+           exceed the current `availableQuantity`.
+        5. Computes the new balance.
+        6. Updates the Stock record and creates the InventoryMovement
+           record in a single transaction, so callers never observe a
+           partial state.
+
+        Domain rule failures are reported with HTTP 422 and the standard
+        `ErrorResponse` shape using one of the codes `insufficient_stock`,
+        `inactive_product` or `inactive_branch`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryMovementCreateRequest'
+            example:
+              productId: product_rice_001
+              branchId: branch_central
+              type: incoming
+              quantity: 40
+              reason: Initial import
+              notes: Carga inicial de inventario.
+      responses:
+        '201':
+          description: Movement registered and stock updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryMovement'
+              example:
+                id: movement_001
+                productId: product_rice_001
+                branchId: branch_central
+                userId: user_admin_001
+                type: incoming
+                quantity: 40
+                previousStock: 0
+                resultingStock: 40
+                reason: Initial import
+                notes: Carga inicial de inventario.
+                createdAt: '2026-06-02T20:15:00Z'
+        '400':
+          description: Validation error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to register this movement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Product, branch or stock record not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: |
+            Domain rule failure. Possible `error.code` values:
+            `insufficient_stock`, `inactive_product`, `inactive_branch`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: insufficient_stock
+                  message: The requested quantity exceeds the available stock.
+                  details:
+                    - field: quantity
+                      message: Requested 10 but only 4 available at the selected branch.
+                  requestId: req_movement_insufficient_01
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /inventory-movements/{movementId}:
+    parameters:
+      - in: path
+        name: movementId
+        required: true
+        schema:
+          type: string
+        description: Identifier of the inventory movement.
+    get:
+      tags:
+        - InventoryMovements
+      summary: Get inventory movement by id
+      responses:
+        '200':
+          description: Inventory movement detail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryMovement'
+        '401':
+          description: Missing or invalid access token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Caller is not allowed to read this movement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Inventory movement not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     bearerAuth:
