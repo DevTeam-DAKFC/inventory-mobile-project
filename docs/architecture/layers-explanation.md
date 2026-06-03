@@ -432,16 +432,19 @@ Para el MVP, no todos los flujos necesitan use cases. Se deben usar cuando ayude
 
 La capa `data/` contiene implementaciones concretas de acceso a datos.
 
-Aquí viven Firebase, Firestore, Firebase Storage, FCM, Dio, DTOs, mappers e implementaciones de repositorios.
+Aquí viven Firebase, clientes HTTP REST, APIs externas, almacenamiento local, mock data sources, DTOs, mappers e implementaciones de repositorios.
+
+Los data sources son intercambiables. Para una misma operación de dominio puede existir una implementación basada en Firebase, una basada en un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`, una basada en almacenamiento local y una basada en mock data, sin que los ViewModels ni la UI cambien.
 
 ## 14.2 Responsabilidades
 
 - Implementar contratos de `domain/repositories`.
-- Comunicarse con Firebase.
-- Consumir la API externa.
+- Comunicarse con Firebase, según la implementación actual del MVP.
+- Consumir un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`, cuando exista.
+- Consumir la API externa de productos.
 - Leer y escribir preferencias locales.
-- Convertir documentos Firestore a modelos de dominio.
-- Convertir respuestas externas a modelos internos.
+- Proveer mock data sources para pruebas y demostraciones.
+- Convertir documentos Firestore, respuestas REST o respuestas externas a modelos de dominio.
 - Manejar errores técnicos.
 
 ## 14.3 Estructura sugerida
@@ -450,8 +453,10 @@ Aquí viven Firebase, Firestore, Firebase Storage, FCM, Dio, DTOs, mappers e imp
 data/
 ├── datasources/
 │   ├── firebase/
+│   ├── rest/
 │   ├── external/
-│   └── local/
+│   ├── local/
+│   └── mock/
 ├── dto/
 ├── mappers/
 └── repositories/
@@ -489,6 +494,49 @@ FirebaseNotificationTokenDataSource
 ## 15.4 Regla
 
 Los data sources pueden conocer Firebase. Las capas superiores no.
+
+---
+
+## 15A. data/datasources/rest/
+
+## 15A.1 Propósito
+
+Contiene data sources que consumen un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`.
+
+Esta capa es opcional para el MVP. Existirá cuando se decida operar la aplicación contra un backend REST en lugar de, o además de, Firebase.
+
+## 15A.2 Data sources esperados
+
+```text
+RestApiAuthDataSource
+RestApiUserDataSource
+RestApiBranchDataSource
+RestApiProductDataSource
+RestApiStockDataSource
+RestApiInventoryMovementDataSource
+RestApiProductLookupDataSource
+RestApiNotificationTokenDataSource
+RestApiImportBatchDataSource
+```
+
+## 15A.3 Responsabilidades
+
+- Ejecutar requests HTTP definidos en el contrato OpenAPI.
+- Adjuntar el token bearer requerido por `bearerAuth`.
+- Parsear respuestas JSON hacia DTOs REST.
+- Mapear códigos de estado y `error.code` a errores controlados de la aplicación.
+- Respetar timeouts y políticas de reintentos definidos por la app.
+- Retornar resultados consumibles por los repositorios.
+
+## 15A.4 Cliente HTTP
+
+Se usará Dio o un cliente HTTP equivalente, alineado con DT-09.
+
+Dio no debe usarse para Firebase.
+
+## 15A.5 Regla
+
+Los data sources REST pueden conocer Dio, los DTOs REST y el contrato OpenAPI. Las capas superiores no.
 
 ---
 
@@ -545,6 +593,44 @@ No se debe prometer modo offline completo en el MVP.
 
 ---
 
+## 17A. data/datasources/mock/
+
+## 17A.1 Propósito
+
+Contiene implementaciones fake o en memoria de los data sources.
+
+Se utiliza para desarrollo temprano de UI, widget tests, pruebas de ViewModels y demostraciones cuando todavía no se cuenta con backend real o cuando no conviene depender de Firebase.
+
+## 17A.2 Data sources esperados
+
+```text
+MockAuthDataSource
+MockUserDataSource
+MockBranchDataSource
+MockProductDataSource
+MockStockDataSource
+MockInventoryMovementDataSource
+MockProductLookupDataSource
+MockNotificationTokenDataSource
+MockImportBatchDataSource
+```
+
+## 17A.3 Responsabilidades
+
+- Implementar los mismos contratos que los data sources reales (Firebase o REST).
+- Cargar datos iniciales alineados con `docs/api-contracts/mock-data.md`.
+- Mantener un estado en memoria consistente con las reglas del dominio.
+- Responder de forma determinista y rápida para tests y demos.
+- Permitir simular errores controlados como `insufficient_stock` o `product_not_found`.
+
+## 17A.4 Regla
+
+Los mock data sources deben respetar las reglas del dominio: una salida no puede dejar stock negativo, un producto inactivo no se puede usar en nuevos movimientos, los SKUs deben ser únicos.
+
+No deben filtrarse hacia producción; su empaquetado debe permanecer aislado del flujo de release.
+
+---
+
 ## 18. data/dto/
 
 ## 18.1 Propósito
@@ -557,6 +643,11 @@ Contiene objetos usados para representar datos externos o remotos.
 ProductFirestoreDto
 StockFirestoreDto
 InventoryMovementFirestoreDto
+ProductRestDto
+StockRestDto
+InventoryMovementRestDto
+UserRestDto
+BranchRestDto
 OpenFoodFactsProductDto
 ImportRowDto
 ```
@@ -885,8 +976,9 @@ firebase_auth
 cloud_firestore
 firebase_storage
 firebase_messaging
-dio
+dio o un cliente HTTP equivalente
 shared_preferences
+mock o fake data helpers para tests
 ```
 
 ---
@@ -925,17 +1017,23 @@ Los repositorios en `data/` implementan contratos definidos en `domain/`.
 
 ## 32. Ejemplo de flujo completo: registrar salida
 
+El flujo siempre cruza el repositorio. La implementación concreta del data source puede variar sin afectar la UI ni los ViewModels.
+
 ```text
 MovementFormScreen
 → MovementViewModel
 → InventoryMovementRepository
-→ FirebaseInventoryMovementDataSource
-→ Firestore transaction
-→ Stock actualizado
-→ InventoryMovement creado
+→ <data source concreto>
+→ persistencia y validación de stock
 → AppResult success/failure
 → UI muestra resultado
 ```
+
+El `<data source concreto>` puede ser, según el entorno:
+
+- `FirebaseInventoryMovementDataSource` — ejecuta una transacción de Firestore. Implementación actual del MVP.
+- `RestApiInventoryMovementDataSource` — ejecuta `POST /inventory-movements` según `docs/api-contracts/openapi.inventory-api.yaml`. Implementación futura cuando exista un backend REST compatible.
+- `MockInventoryMovementDataSource` — actualiza estado en memoria para pruebas y demostraciones.
 
 Responsabilidades:
 
@@ -943,9 +1041,9 @@ Responsabilidades:
 |---|---|
 | UI | Captura datos y muestra estado. |
 | ViewModel | Valida formulario y coordina operación. |
-| Repository | Ejecuta operación de dominio. |
-| Data Source | Ejecuta transacción en Firestore. |
-| Firestore | Persiste stock y movimiento. |
+| Repository | Ejecuta operación de dominio sobre un data source intercambiable. |
+| Data Source | Ejecuta la persistencia concreta (Firestore, REST o mock). |
+| Backend / Mock | Persiste stock y movimiento, o simula la persistencia para pruebas. |
 
 ---
 
