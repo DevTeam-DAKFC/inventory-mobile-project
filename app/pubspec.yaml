@@ -40,7 +40,6 @@ dependencies:
   dio: ^5.9.2
   shared_preferences: ^2.5.5
   image_picker: ^1.2.2
-  file_picker: ^11.0.2
   csv: ^8.0.0
 
 dev_dependencies:
