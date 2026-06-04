@@ -91,7 +91,7 @@ La solución propuesta es una aplicación móvil que permita centralizar y organ
 
 ## 4. Stack técnico
 
-Stack objetivo planificado:
+Stack objetivo planificado para el repositorio móvil:
 
 | Área | Tecnología |
 |---|---|
@@ -99,27 +99,28 @@ Stack objetivo planificado:
 | Lenguaje | Dart |
 | Arquitectura | MVVM |
 | Estado / DI | Riverpod |
-| Backend principal | ASP.NET Core Web API |
-| Base de datos | SQL Server |
-| Infraestructura backend | Docker / Docker Compose |
+| Backend externo | `inventory-backend` con ASP.NET Core Web API |
+| Persistencia backend | SQL Server en el repositorio backend |
+| Infraestructura backend | Docker / Docker Compose en `inventory-backend` |
 | Cliente HTTP en Flutter | Dio |
 | Notificaciones push | Firebase Cloud Messaging |
 | Almacenamiento de imágenes | Firebase Storage o almacenamiento de archivos gestionado por backend, decisión pendiente |
 | API externa | Open Food Facts API |
 | Almacenamiento local | Shared Preferences |
-| Testing | Flutter test, widget tests, integration tests |
-| CI/CD | GitHub Actions |
+| Testing móvil | Flutter test, widget tests, integration tests |
+| CI/CD móvil | GitHub Actions |
 
 ---
 
 ## 5. Decisiones técnicas principales
 
-- La aplicación Flutter consumirá una API REST usando Dio.
-- ASP.NET Core Web API expondrá los endpoints backend planificados.
-- SQL Server será la capa principal de persistencia.
-- Docker se utilizará para la infraestructura backend planificada.
+- Este repositorio contiene la aplicación Flutter, documentación móvil, pruebas móviles y contratos de API consumidos por la app.
+- El backend se mantiene en el repositorio separado `inventory-backend`.
+- La aplicación Flutter consumirá el backend externo mediante Dio / HttpClient.
+- SQL Server y Docker Compose pertenecen al repositorio backend.
+- Este repositorio no contiene código fuente ASP.NET Core, configuración SQL Server, migraciones EF Core ni pruebas backend.
 - Firebase se mantiene para Firebase Cloud Messaging y, opcionalmente, para almacenamiento de imágenes.
-- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` se mantiene como el contrato backend que deberá implementar la API.
+- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` se mantiene como referencia REST que la app móvil consumirá desde el backend externo.
 - La API externa se usará únicamente para autocompletar productos por código de barras.
 - La sucursal es una entidad obligatoria del dominio.
 - El stock se maneja por combinación `productId + branchId`.
@@ -143,8 +144,8 @@ UI
 → ViewModel
 → Repository
 → RestApiDataSource
-→ ASP.NET Core Web API
-→ SQL Server
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en el repositorio backend
 ```
 
 Principio base:
@@ -195,7 +196,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), esquema SQL Server planificado, API externa y mock data. |
+| `docs/api-contracts` | Contrato REST consumido por la app, referencia compartida de esquema backend, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -227,9 +228,9 @@ docs/api-contracts/external-product-api.md
 docs/api-contracts/mock-data.md
 ```
 
-`openapi.inventory-api.yaml` describe el contrato REST que el backend ASP.NET Core Web API deberá implementar. No implica que dicho backend esté implementado.
+`openapi.inventory-api.yaml` describe el contrato REST que la aplicación móvil consumirá desde el backend externo `inventory-backend`.
 
-`sqlserver-schema.md` describe el contrato de esquema SQL Server planificado para la persistencia detrás del backend. No implica que la base de datos, las migraciones o el backend ya existan.
+`sqlserver-schema.md` se conserva como referencia compartida con el repositorio backend. No implica que SQL Server, migraciones, Docker Compose o código backend existan dentro de `inventory-mobile-project`.
 
 `external-product-api.md` describe la integración con Open Food Facts y `mock-data.md` se mantiene útil para desarrollo, pruebas y demos.
 
@@ -249,7 +250,7 @@ docs/research/flutter-research.pdf
 
 ## 9. Instalación del proyecto
 
-> Estado actual: el repositorio incluye el proyecto Flutter inicial dentro de la carpeta `app/`, junto con la documentación base y el contrato OpenAPI. El backend ASP.NET Core Web API, la configuración de SQL Server con Docker Compose y la configuración de FCM aún están pendientes.
+> Estado actual: este repositorio incluye el proyecto Flutter dentro de `app/`, documentación móvil y contratos de API consumidos por la app. El backend ASP.NET Core Web API, SQL Server, Docker Compose, migraciones y pruebas backend pertenecen al repositorio separado `inventory-backend`.
 
 ### Requisitos
 
@@ -376,7 +377,7 @@ Usuario ingresa código de barras
 → App consulta API externa
 → API devuelve datos sugeridos
 → Usuario revisa y corrige
-→ Producto se guarda mediante la API REST backend
+→ Producto se guarda mediante la API REST del backend externo
 ```
 
 La API externa no reemplaza el registro manual.
@@ -403,7 +404,7 @@ Firebase Cloud Messaging
 Firebase Storage
 ```
 
-La persistencia principal será SQL Server a través del backend ASP.NET Core Web API. La estrategia final de autenticación se definirá dentro del diseño del backend.
+La persistencia principal se resolverá en el backend externo con SQL Server. La app móvil solo consumirá endpoints REST. La estrategia final de autenticación se integrará desde Flutter contra el backend cuando el contrato correspondiente esté disponible.
 
 ---
 
@@ -466,7 +467,7 @@ test(movements): add stock validation tests
 
 - Estructura base del repositorio.
 - Documentación inicial de arquitectura.
-- Contrato OpenAPI backend-compatible (`openapi.inventory-api.yaml`).
+- Contrato OpenAPI consumido por la app móvil (`openapi.inventory-api.yaml`).
 - Contrato de API externa.
 - Mock data.
 - Plan de pruebas.
@@ -474,14 +475,13 @@ test(movements): add stock validation tests
 
 ### Pendiente
 
-- Crear el scaffold del backend ASP.NET Core Web API.
-- Agregar la configuración de SQL Server con Docker Compose.
-- Implementar la persistencia backend con SQL Server.
-- Implementar los endpoints backend según `openapi.inventory-api.yaml`.
-- Conectar `RestApiDataSource` en Flutter usando Dio.
-- Configurar Firebase Cloud Messaging.
+- Configurar `RestApiDataSource` en Flutter usando Dio.
+- Configurar la base URL del backend externo.
+- Integrar autenticación contra el backend externo.
+- Integrar productos, stock y movimientos contra endpoints REST.
+- Configurar Firebase Cloud Messaging en la app cuando el backend soporte notificaciones.
 - Decidir la estrategia final de almacenamiento de imágenes.
-- Agregar el workflow de GitHub Actions.
+- Agregar el workflow de GitHub Actions para Flutter.
 - Configurar dependencias base del producto en Flutter (Riverpod, go_router, Dio, FCM, entre otras).
 - Implementar la estructura de capas descrita en `docs/architecture/layers-explanation.md`.
 - Implementar navegación según `docs/architecture/navigation-map.md`.
