@@ -4,7 +4,7 @@
 
 Este documento define el modelo de datos conceptual del sistema de gestión de inventario multiusuario.
 
-Su objetivo es establecer las entidades principales, sus campos, relaciones y reglas de negocio asociadas antes de pasar al diseño específico de Firestore.
+Su objetivo es establecer las entidades principales, sus campos, relaciones y reglas de negocio asociadas antes de pasar al diseño específico de persistencia.
 
 Este documento se basa en el alcance definido en:
 
@@ -80,7 +80,7 @@ Los usuarios pueden tener distintos niveles de acceso según su rol.
 
 | Campo | Tipo | Requerido | Descripción |
 |---|---|---:|---|
-| `id` | string | Sí | Identificador único del usuario. Corresponde al UID de Firebase Auth. |
+| `id` | string | Sí | Identificador único del usuario, asignado por el servicio de autenticación del backend planificado. |
 | `name` | string | Sí | Nombre visible del usuario. |
 | `email` | string | Sí | Correo electrónico del usuario. |
 | `role` | string | Sí | Rol del usuario: `admin` o `collaborator`. |
@@ -93,9 +93,9 @@ Los usuarios pueden tener distintos niveles de acceso según su rol.
 
 - Todo usuario debe estar autenticado.
 - Todo usuario debe tener un rol.
-- El rol se almacena en el documento de usuario en Firestore.
+- El rol se almacenará en SQL Server a través del backend ASP.NET Core Web API.
+- Flutter recibirá el rol y los datos de perfil mediante endpoints de autenticación o perfil.
 - El usuario puede estar asociado a una o varias sucursales.
-- Para el MVP no se usarán custom claims de Firebase Auth.
 
 ### Ejemplo conceptual
 
@@ -168,7 +168,7 @@ El producto contiene información descriptiva, pero no contiene stock directo. L
 | `barcode` | string | No | Código de barras, si aplica. |
 | `category` | string | Sí | Categoría del producto. |
 | `description` | string | No | Descripción del producto. |
-| `imageUrl` | string | No | URL de imagen almacenada en Firebase Storage o sugerida por API externa. |
+| `imageUrl` | string | No | URL o referencia de imagen del producto. Puede venir de Firebase Storage o de un flujo de almacenamiento gestionado por backend; la decisión final está pendiente. |
 | `minStock` | number | Sí | Cantidad mínima recomendada para activar alerta de bajo stock. |
 | `isActive` | bool | Sí | Indica si el producto está activo. |
 | `createdAt` | timestamp | Sí | Fecha de creación. |
@@ -348,7 +348,9 @@ Representa el token del dispositivo usado para Firebase Cloud Messaging.
 
 - Un usuario puede tener varios tokens si usa varios dispositivos.
 - El token puede actualizarse.
-- El MVP debe poder registrar el token para demostrar integración con FCM.
+- Flutter enviará el token FCM al backend ASP.NET Core Web API cuando exista el endpoint correspondiente.
+- El backend persistirá los tokens en SQL Server.
+- El backend podrá usar FCM para enviar notificaciones push.
 - El envío automático de push por bajo stock queda como mejora futura.
 
 ### Ejemplo conceptual
@@ -627,28 +629,27 @@ unknown
 
 ---
 
-## 14. Consideraciones sobre Firestore
+## 14. Consideraciones de persistencia
 
 Este documento define el modelo conceptual.
 
-El diseño específico de colecciones, documentos, rutas, ejemplos y consultas se documenta en:
+La persistencia principal planificada será SQL Server detrás del backend externo ASP.NET Core Web API. La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`.
+
+El contrato REST vigente se documenta en:
 
 ```text
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/firestore-collections.md
 ```
 
-`openapi.inventory-api.yaml` describe el contrato REST esperado por la aplicación móvil contra cualquier backend compatible. `firestore-collections.md` describe la implementación Firebase/Firestore actualmente prevista para el MVP. Ambos documentos representan el mismo modelo de dominio desde dos ángulos de implementación distintos.
+`openapi.inventory-api.yaml` describe el contrato REST que la aplicación móvil consumirá desde el backend externo.
 
 Sin embargo, desde este modelo se adelantan las siguientes decisiones:
 
-- `users` guardará perfiles y roles.
-- `branches` guardará sucursales.
-- `products` guardará catálogo de productos.
-- `stocks` guardará existencias por producto y sucursal.
-- `inventory_movements` guardará historial de movimientos.
-- `notification_tokens` guardará tokens FCM.
-- `import_batches` podrá guardar importaciones, si se implementa.
+- Usuarios, perfiles y roles se persistirán en SQL Server a través del backend externo.
+- Sucursales, productos, stock y movimientos se persistirán en SQL Server a través del backend externo.
+- `notification_tokens` representará tokens FCM enviados desde Flutter y almacenados por el backend.
+- `import_batches` podrá representar importaciones, si se implementa.
+- Firebase se mantiene para FCM y almacenamiento opcional de imágenes, no como persistencia principal.
 
 ---
 

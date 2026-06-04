@@ -70,6 +70,10 @@ Además, se documentarán casos de prueba manuales en:
 tests/manual-test-cases.md
 ```
 
+Las pruebas unitarias y widget tests no deben depender de un backend real por defecto. Deben usar `MockDataSource`, repositorios fake, providers falsos o clientes Dio mockeados.
+
+Las pruebas de integración móvil pueden apuntar al backend ASP.NET Core Web API externo cuando esté disponible. Las pruebas backend para validar persistencia, transacciones y reglas sobre SQL Server pertenecen a `inventory-backend`.
+
 ---
 
 ## 5. Unit tests
@@ -275,7 +279,7 @@ invalid state
 
 Los widget tests validan que los componentes y pantallas reaccionen correctamente ante distintos estados.
 
-No deben depender de Firebase real. Se deben usar mocks o providers falsos.
+No deben depender de un backend real por defecto. Se deben usar `MockDataSource`, repositorios fake, providers falsos o clientes Dio mockeados.
 
 ## 7.2 Pantallas prioritarias
 
@@ -432,6 +436,8 @@ Esta pantalla es complementaria si se implementa importación CSV.
 Los integration tests validan flujos completos o semi-completos de la aplicación.
 
 Deben enfocarse en los flujos principales del MVP.
+
+Por defecto, deben poder ejecutarse con mocks o fakes. Cuando el backend ASP.NET Core Web API externo esté disponible, algunos integration tests móviles podrán ejecutarse contra endpoints reales. Las pruebas específicas de persistencia y transacciones con SQL Server pertenecen a `inventory-backend`.
 
 ## 9.2 Flujos prioritarios
 
@@ -734,6 +740,18 @@ Estos casos deben estar cubiertos por unit, widget, integration o pruebas manual
 
 ---
 
+## 13.8 Notificaciones / FCM
+
+| Tipo | Prueba |
+|---|---|
+| Unit | Mapear token FCM |
+| Unit | Registrar token con repositorio fake |
+| Widget | NotificationsScreen loading/empty/error |
+| Integration pendiente | Enviar token al backend cuando esté disponible |
+| Manual | Verificar recepción FCM cuando esté configurado |
+
+---
+
 ## 14. Datos de prueba
 
 Los datos de prueba principales están documentados en:
@@ -745,11 +763,10 @@ docs/api-contracts/mock-data.md
 Se deben utilizar para:
 
 - Pruebas manuales.
-- Video técnico.
-- Workshop.
-- Demo de bajo stock.
-- Demo de salida insuficiente.
-- Demo de filtros.
+- Demos de producto.
+- Escenarios de bajo stock.
+- Escenarios de salida insuficiente.
+- Escenarios de filtros.
 
 ---
 
@@ -837,6 +854,9 @@ El plan se considera cumplido si:
 - GitHub Actions ejecuta pruebas automáticamente.
 - El equipo puede demostrar evidencia de validación.
 - Las pruebas pueden ejecutarse localmente.
+- Las pruebas unitarias y widget tests no dependen de un backend real por defecto.
+- Las pruebas backend y SQL Server pertenecen a `inventory-backend`.
+- El comportamiento FCM se valida cuando Firebase Messaging esté configurado.
 - Los fallos principales muestran mensajes claros en la app.
 
 ---
@@ -857,18 +877,20 @@ Mitigación:
 
 ---
 
-### 19.2 Depender de Firebase real en todas las pruebas
+### 19.2 Depender de servicios reales en todas las pruebas
 
 Riesgo:
 
 - Pruebas lentas.
 - Pruebas frágiles.
-- Fallos por red o configuración.
+- Fallos por red, backend pendiente o configuración.
 
 Mitigación:
 
-- Usar mocks para unit y widget tests.
-- Reservar Firebase real para validaciones manuales o integration tests específicos.
+- Usar `MockDataSource`, repositorios fake o clientes Dio mockeados para unit y widget tests.
+- Reservar backend real para integration tests específicos cuando ASP.NET Core Web API esté disponible.
+- Validar persistencia SQL Server y transacciones en pruebas backend dentro de `inventory-backend`.
+- Configurar pruebas FCM solo cuando Firebase Messaging esté listo.
 
 ---
 

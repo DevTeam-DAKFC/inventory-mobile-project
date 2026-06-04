@@ -1,18 +1,20 @@
-# inventory_mobile
+# Aplicación móvil de inventario
 
-A new Flutter project.
+Esta carpeta contiene la aplicación móvil Flutter del sistema de gestión de inventario.
 
-## Getting Started
+El backend vive fuera de esta carpeta y fuera de este repositorio móvil, en el repositorio separado `inventory-backend`. La aplicación consumirá la API REST externa expuesta por ASP.NET Core Web API usando Dio / HttpClient desde Flutter.
 
-This project is a starting point for a Flutter application.
+La persistencia principal con SQL Server pertenece al backend externo, por lo que la aplicación móvil no se conectará directamente a la base de datos. Esta carpeta no contiene estructura backend inicial, configuración Docker Compose, migraciones EF Core ni pruebas backend.
 
-A few resources to get you started if this is your first Flutter project:
+Firebase no será el backend principal de la aplicación. Se utilizará para Firebase Cloud Messaging en notificaciones push y, si el equipo lo decide, Firebase Storage para imágenes de productos.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Comandos locales
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Ejecutar estos comandos desde la carpeta `app/`:
 
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+flutter run
+```

@@ -17,14 +17,14 @@ docs/architecture/project-scope.md
 | ID | Decisión |
 |---|---|
 | DT-01 | Usar Flutter y Dart |
-| DT-02 | Usar Firebase como backend principal |
-| DT-03 | No implementar un backend REST propio para el MVP |
-| DT-04 | Usar Firebase Auth para autenticación |
-| DT-05 | Usar Cloud Firestore para persistencia |
-| DT-06 | Usar Firebase Storage para imágenes |
+| DT-02 | Usar ASP.NET Core Web API como backend principal |
+| DT-03 | Consumir un backend REST externo para el MVP |
+| DT-04 | Manejar autenticación desde el backend con JWT |
+| DT-05 | Usar SQL Server como persistencia principal |
+| DT-06 | Definir almacenamiento de imágenes entre Firebase Storage o flujo backend |
 | DT-07 | Usar Firebase Cloud Messaging para push notifications |
 | DT-08 | Usar una API externa para autocompletar productos |
-| DT-09 | Usar Dio para integraciones HTTP |
+| DT-09 | Usar Dio para comunicación HTTP con backend y APIs externas |
 | DT-10 | Usar MVVM como patrón de presentación |
 | DT-11 | Usar Riverpod para manejo de estado e inyección de dependencias |
 | DT-12 | Usar Repository Pattern |
@@ -32,14 +32,15 @@ docs/architecture/project-scope.md
 | DT-14 | Mantener Branch como entidad obligatoria |
 | DT-15 | Manejar stock por `productId + branchId` |
 | DT-16 | Cambiar stock únicamente mediante movimientos |
-| DT-17 | Usar Firestore transactions para registrar movimientos |
+| DT-17 | Manejar cambios de stock con transacciones en el backend |
 | DT-18 | Manejar dos roles: `admin` y `collaborator` |
 | DT-19 | Usar almacenamiento local limitado |
 | DT-20 | Permitir registro manual, asistido e importación CSV de productos |
 | DT-21 | Implementar estados de UI explícitos |
 | DT-22 | Centralizar validaciones |
 | DT-23 | Implementar testing automatizado y GitHub Actions |
-| DT-24 | Contrato API backend-swappable |
+| DT-24 | Contrato OpenAPI compartido con el backend ASP.NET Core |
+| DT-25 | Usar infraestructura backend basada en Docker |
 
 ---
 
@@ -51,86 +52,77 @@ La aplicación se desarrollará con una sola base de código y se enfocará inic
 
 ### Justificación
 
-- Cumple la tecnología asignada.
 - Permite construir interfaces móviles consistentes.
 - Facilita componentización y reutilización visual.
-- Tiene soporte para testing, navegación, estado, integración con Firebase y CI.
+- Tiene soporte para testing, navegación, estado, integración con servicios Firebase específicos y CI.
 
 ---
 
-## DT-02: Usar Firebase como backend principal
+## DT-02: Usar ASP.NET Core Web API como backend principal
 
-Firebase será el backend principal del sistema.
+ASP.NET Core Web API será el backend principal planificado del sistema y pertenecerá al repositorio separado `inventory-backend`.
 
-Servicios Firebase utilizados:
+La aplicación Flutter en `inventory-mobile-project` consumirá ese backend externo mediante Dio / HttpClient.
 
-| Servicio | Uso |
+Responsabilidades previstas:
+
+| Capa backend | Responsabilidad |
 |---|---|
-| Firebase Auth | Autenticación |
-| Cloud Firestore | Persistencia de datos |
-| Firebase Storage | Imágenes de productos |
-| Firebase Cloud Messaging | Notificaciones push |
+| Controllers | Recibir solicitudes HTTP, validar entrada básica y devolver respuestas REST. |
+| Services | Contener reglas de negocio, validaciones de dominio y coordinación de casos de uso. |
+| Repositories | Gestionar acceso a persistencia. |
+| SQL Server | Almacenar los datos principales del sistema a través del backend externo. |
+
+Esta decisión no implica que exista código backend dentro de `inventory-mobile-project`.
 
 ### Justificación
 
-Firebase permite cubrir autenticación, persistencia, archivos e infraestructura de notificaciones sin construir un backend propio desde cero. Esto mantiene el foco del proyecto en Flutter, arquitectura móvil, UX, validaciones, testing y documentación.
+Centralizar las reglas de negocio y la persistencia en un backend REST permite separar la aplicación móvil de la base de datos, controlar autenticación y autorización desde el servidor, y mantener una arquitectura más escalable para el producto.
 
 ---
 
-## DT-03: No implementar un backend REST propio para el MVP
+## DT-03: Consumir un backend REST externo para el MVP
 
-El MVP no incluirá una implementación propia de un backend REST desarrollada en .NET, Node.js, Laravel u otra tecnología backend.
+El MVP tendrá como dirección técnica consumir un backend REST con ASP.NET Core Web API desde el repositorio separado `inventory-backend`.
 
-La aplicación se comunicará directamente con Firebase mediante los SDKs oficiales y con una API externa específica para autocompletar productos.
+La aplicación Flutter consumirá endpoints del backend mediante Dio / HttpClient. El contrato OpenAPI existente seguirá siendo la referencia esperada para esa API.
 
-El contrato REST esperado para cualquier backend compatible ya está documentado en:
+Contrato esperado:
 
 ```text
 docs/api-contracts/openapi.inventory-api.yaml
 ```
 
-Este contrato describe la superficie esperada por la aplicación móvil. No implica que el backend REST exista; solo formaliza qué deberá exponer cuando se decida implementarlo.
+La implementación del backend corresponde a `inventory-backend`. Esta decisión no implica que el backend ya exista dentro de `inventory-mobile-project`.
 
 ### Justificación
 
-Construir un backend REST propio aumentaría significativamente el alcance del proyecto:
-
-- Requeriría despliegue de infraestructura propia.
-- Requeriría autenticación y autorización backend.
-- Requeriría pruebas de integración adicionales contra ese backend.
-- Desviaría esfuerzo del objetivo móvil del producto.
-
-La documentación OpenAPI ya existe como contrato, por lo que el equipo conserva la opción de implementar un backend compatible más adelante sin redefinir la API desde cero.
-
-### Mejora futura
-
-Una implementación propia compatible con `openapi.inventory-api.yaml` podría considerarse en una versión futura si el sistema necesitara reglas empresariales más avanzadas, integraciones externas complejas o administración centralizada del inventario.
+Un backend REST permite que Flutter no dependa directamente de la persistencia, facilita pruebas por contrato, centraliza reglas críticas de inventario y habilita una integración clara con SQL Server.
 
 ---
 
-## DT-04: Usar Firebase Auth para autenticación
+## DT-04: Manejar autenticación desde el backend con JWT
 
-La autenticación se implementará con Firebase Auth usando correo y contraseña.
+La autenticación será manejada por el backend externo ASP.NET Core Web API.
 
-La app permitirá:
+Dirección planificada:
 
-- Registro.
-- Inicio de sesión.
-- Cierre de sesión.
-- Persistencia de sesión.
-- Identificación del usuario actual.
+- El backend expondrá endpoints de autenticación.
+- El backend emitirá y validará tokens JWT.
+- Flutter consumirá los endpoints de autenticación mediante Dio.
+- Firebase Auth no será el proveedor principal de autenticación.
 
-No se gestionará un JWT propio dentro de la aplicación.
+La implementación de autenticación está pendiente y deberá alinearse con el contrato REST.
 
 ### Justificación
 
-Firebase Auth resuelve la autenticación de forma segura y reduce el trabajo de infraestructura.
+Manejar autenticación desde el backend permite controlar usuarios, roles, permisos y tokens dentro de la misma capa que protege los endpoints del sistema.
 
 ---
 
-## DT-05: Usar Cloud Firestore para persistencia
+## DT-05: Usar SQL Server como persistencia principal
 
-Cloud Firestore será la base de datos principal.
+SQL Server será la capa principal de persistencia detrás del backend externo.
 
 Se almacenarán datos como:
 
@@ -140,29 +132,30 @@ Se almacenarán datos como:
 - Stock.
 - Movimientos de inventario.
 - Tokens de notificación.
-- Información de importación, si aplica.
+- Lotes de importación, si se implementan.
+
+La documentación de esquema SQL Server pertenece a `inventory-backend`. La configuración real de SQL Server, las migraciones EF Core y la persistencia pertenecen al repositorio backend, no al repositorio móvil.
 
 ### Justificación
 
-Firestore permite persistencia en tiempo real, integración directa con Flutter/Firebase, consultas filtradas y estructura flexible para el alcance del proyecto.
+SQL Server permite manejar relaciones, consistencia transaccional, consultas estructuradas y reglas de integridad adecuadas para inventario multiusuario.
 
 ---
 
-## DT-06: Usar Firebase Storage para imágenes
+## DT-06: Definir almacenamiento de imágenes entre Firebase Storage o flujo backend
 
-Las imágenes de productos se almacenarán en Firebase Storage.
+El manejo de imágenes de productos sigue siendo requerido, pero la implementación final queda pendiente.
 
-Flujo general:
+Opciones válidas:
 
-1. El usuario selecciona una imagen.
-2. La app sube la imagen a Firebase Storage.
-3. Firebase Storage devuelve una URL de descarga.
-4. La URL se guarda en el documento del producto en Firestore.
-5. La app usa esa URL para mostrar la imagen en listados y detalles.
+- Usar Firebase Storage para subir y servir imágenes.
+- Usar un flujo gestionado por el backend para carga, almacenamiento y acceso a archivos.
+
+En ambos casos, `Product.imageUrl` se mantiene como la referencia persistida para mostrar la imagen en listados y detalles.
 
 ### Justificación
 
-Esto permite cumplir el requisito de manejo de imágenes o archivos sin crear un endpoint propio de carga de archivos.
+Mantener abierta la decisión permite elegir la opción más conveniente cuando se implemente el backend y se definan costos, seguridad, simplicidad operativa y responsabilidad de almacenamiento.
 
 ---
 
@@ -173,17 +166,19 @@ Firebase Cloud Messaging se usará para cumplir el requisito de notificaciones p
 Para el MVP:
 
 - La app registrará el token FCM del dispositivo.
-- El token se guardará asociado al usuario.
+- El backend ASP.NET Core en `inventory-backend` podrá guardar tokens de dispositivo asociados al usuario.
+- El backend externo podrá disparar notificaciones push cuando se implemente el emisor server-side.
 - Se podrá demostrar recepción de una push notification enviada desde Firebase Console.
+- Flutter recibirá notificaciones mediante Firebase Messaging.
 - La app podrá mostrar alertas locales o in-app cuando un producto quede en bajo stock.
 
 ### Limitación del MVP
 
-El envío automático de push notifications por bajo stock no será obligatorio en el MVP, porque requiere un emisor server-side como Cloud Functions.
+El envío automático de push notifications por bajo stock dependerá de implementar el emisor server-side desde el backend u otro servicio compatible.
 
 ### Mejora futura
 
-Implementar Cloud Functions para:
+Implementar un flujo server-side para:
 
 - Detectar bajo stock automáticamente.
 - Enviar notificaciones push a administradores.
@@ -200,7 +195,7 @@ Uso propuesto:
 - Buscar información por código de barras.
 - Obtener sugerencias de nombre, marca, categoría o imagen.
 - Presentar los datos al usuario para revisión.
-- Guardar el producto en Firestore solo después de confirmación del usuario.
+- Guardar el producto mediante la API REST del backend solo después de confirmación del usuario.
 
 ### Justificación
 
@@ -216,19 +211,18 @@ La API externa no reemplaza el registro manual. Si la API falla o no encuentra i
 
 Dio será el cliente HTTP de la aplicación para integraciones REST.
 
-Uso actual en el MVP:
+Uso planificado en el MVP:
 
-- Consumir la API externa de productos (Open Food Facts) desde `OpenFoodFactsDataSource`.
+- Consumir la API REST del backend externo ASP.NET Core desde `RestApiDataSource`.
+- Consumir la API externa de productos si se llama directamente desde Flutter, por ejemplo desde `OpenFoodFactsDataSource`.
 
-Uso futuro compatible con esta decisión:
+Dio no se usará para conectar directamente con SQL Server. La base de datos se consumirá únicamente a través del backend externo.
 
-- Implementar un `RestApiDataSource` que consuma el contrato definido en `docs/api-contracts/openapi.inventory-api.yaml`, cuando exista un backend REST compatible. Dio o un cliente HTTP equivalente cumplen ese rol.
-
-Firebase no se consumirá con Dio. Los SDKs oficiales de Firebase se encargan de Firestore, Firebase Auth, Firebase Storage y Firebase Cloud Messaging.
+Firebase no será el backend principal de datos. Los SDKs oficiales de Firebase se usarán solo para servicios Firebase que lo requieran, como Firebase Messaging y, si se decide, Firebase Storage.
 
 ### Justificación
 
-Mantener un único cliente HTTP para las integraciones REST simplifica configuración, manejo de errores, timeout y testing. Firebase mantiene su propio canal a través de los SDKs.
+Mantener un cliente HTTP central para integraciones REST simplifica configuración, manejo de errores, timeout, interceptores, tokens JWT y testing.
 
 ---
 
@@ -243,7 +237,7 @@ Screen / Widget
 → ViewModel / Controller
 → Repository
 → Data Source
-→ Firebase / API externa / almacenamiento local
+→ ASP.NET Core Web API / API externa / almacenamiento local
 ```
 
 ### Responsabilidades
@@ -253,7 +247,7 @@ Screen / Widget
 | View | Renderizar UI y capturar acciones |
 | ViewModel | Manejar estado, eventos y validaciones de pantalla |
 | Repository | Coordinar acceso a datos |
-| Data Source | Implementar comunicación con Firebase, API externa o almacenamiento local |
+| Data Source | Implementar comunicación con backend REST, API externa, Firebase Services o almacenamiento local |
 | Domain Model | Representar entidades del sistema |
 
 ---
@@ -283,7 +277,7 @@ Riverpod permite manejar estado de forma explícita, testeable y desacoplada del
 
 ## DT-12: Usar Repository Pattern
 
-Los ViewModels no accederán directamente a Firebase, Firestore, Storage, FCM ni APIs externas.
+Los ViewModels no accederán directamente al backend, SQL Server, Firebase, Storage, FCM ni APIs externas.
 
 Toda comunicación pasará por repositorios.
 
@@ -303,9 +297,9 @@ ImportRepository
 
 Los contratos de repositorios son agnósticos del backend. Cada repositorio coordina una o varias implementaciones intercambiables de data source:
 
-- `FirebaseDataSource` — implementación actual del MVP, basada en Firebase Auth, Cloud Firestore, Firebase Storage y Firebase Cloud Messaging.
-- `RestApiDataSource` — implementación futura compatible con `docs/api-contracts/openapi.inventory-api.yaml`.
+- `RestApiDataSource` — familia principal de data sources para datos del MVP, consumiendo el backend externo ASP.NET Core mediante Dio.
 - `MockDataSource` — implementación usada en pruebas, prototipos y demostraciones, alineada con los datos descritos en `docs/api-contracts/mock-data.md`.
+- `FirebaseDataSource` — implementación limitada a servicios Firebase, como FCM y almacenamiento opcional de imágenes; no se usará para persistencia de inventario.
 
 La UI y los ViewModels no deben cambiar cuando se intercambia la implementación del data source.
 
@@ -316,7 +310,7 @@ Repository Pattern permite:
 - Separar UI de infraestructura.
 - Facilitar testing mediante data sources mock.
 - Cambiar implementación interna sin afectar pantallas.
-- Permitir que el mismo contrato funcional sea servido por Firebase, por un backend REST compatible o por una capa de mock data.
+- Permitir que el mismo contrato funcional sea servido por el backend REST o por una capa de mock data.
 - Mantener una arquitectura defendible.
 
 ---
@@ -432,9 +426,9 @@ Esto garantiza trazabilidad y permite saber quién realizó cada cambio, cuándo
 
 ---
 
-## DT-17: Usar Firestore transactions para registrar movimientos
+## DT-17: Manejar cambios de stock con transacciones en el backend
 
-Cuando se registre una entrada o salida, la app usará una transacción de Firestore.
+Cuando se registre una entrada o salida, el backend externo deberá manejar el cambio de stock de forma transaccional.
 
 Flujo esperado:
 
@@ -442,17 +436,17 @@ Flujo esperado:
 2. Validar cantidad.
 3. Si es salida, validar que exista stock suficiente.
 4. Calcular nuevo stock.
-5. Actualizar documento de stock.
-6. Crear documento de movimiento.
-7. Guardar stock resultante en el movimiento.
+5. Actualizar `Stock`.
+6. Crear `InventoryMovement`.
+7. Confirmar ambas operaciones de forma atómica.
 
 ### Justificación
 
-La transacción reduce el riesgo de inconsistencias cuando varios usuarios actualizan el mismo stock.
+Una transacción de SQL Server o EF Core deberá garantizar esa consistencia dentro de `inventory-backend` cuando se implemente la persistencia backend.
 
 ### Limitación
 
-Para un entorno productivo, esta regla debería moverse a Cloud Functions o a un backend propio. Para el MVP actual, Firestore transactions desde la app son aceptables y mantienen el alcance controlado.
+La implementación de esta regla pertenece al backend externo y no forma parte del código de `inventory-mobile-project`.
 
 ---
 
@@ -482,20 +476,21 @@ Puede:
 
 ### Decisión
 
-El rol se almacenará en el documento del usuario en Firestore.
+Los roles se almacenarán en SQL Server a través del backend externo.
 
 Ejemplo:
 
 ```text
-users/{userId}
-- name
-- email
-- role
-- branchIds
-- createdAt
+Users
+- Id
+- Name
+- Email
+- Role
+- BranchIds
+- CreatedAt
 ```
 
-No se usarán custom claims en el MVP para evitar complejidad administrativa adicional.
+Flutter recibirá el rol y permisos del usuario mediante endpoints de autenticación o perfil.
 
 ---
 
@@ -514,7 +509,7 @@ Uso previsto:
 
 Se puede usar `shared_preferences` para preferencias simples.
 
-Firestore puede encargarse de la persistencia remota y su cache offline propia. No se promete modo offline completo ni resolución de conflictos.
+La persistencia remota será responsabilidad del backend. No se promete modo offline completo ni resolución de conflictos.
 
 ---
 
@@ -621,9 +616,9 @@ El proyecto requiere testing automatizado e integración continua, por lo que de
 
 ---
 
-## DT-24: Contrato API backend-swappable
+## DT-24: Contrato OpenAPI compartido con el backend ASP.NET Core
 
-El sistema documenta un contrato REST formal que cualquier backend compatible podría implementar. Ese contrato vive en:
+El sistema documenta un contrato REST formal compartido entre `inventory-mobile-project` y `inventory-backend`. Ese contrato vive en:
 
 ```text
 docs/api-contracts/openapi.inventory-api.yaml
@@ -633,21 +628,40 @@ Relación con la documentación de contratos:
 
 | Documento | Rol |
 |---|---|
-| `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST backend-compatible esperado por la aplicación móvil. |
-| `docs/api-contracts/firestore-collections.md` | Documenta la implementación Firebase/Firestore del mismo dominio. |
+| `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST que la app móvil consumirá y que el backend externo deberá implementar. |
 | `docs/api-contracts/external-product-api.md` | Documenta la integración directa con la API externa de productos (Open Food Facts). |
 | `docs/api-contracts/mock-data.md` | Aporta datos de demostración para desarrollo, pruebas y demostraciones del producto. |
 
 ### Reglas
 
-- Firebase sigue siendo la implementación principal del MVP.
-- El contrato OpenAPI no implica que el backend REST esté implementado.
-- Los repositorios definidos en DT-12 deben permitir intercambiar `FirebaseDataSource`, `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
+- Firebase no será la implementación principal de persistencia del MVP.
+- El contrato OpenAPI define la superficie REST compartida entre móvil y backend.
+- El contrato OpenAPI no implica que exista código backend en este repositorio.
+- La documentación de esquema SQL Server pertenece a `inventory-backend` y no implica que SQL Server, Docker Compose o migraciones existan en `inventory-mobile-project`.
+- Los repositorios definidos en DT-12 deben permitir usar `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
 - Las pantallas y ViewModels no dependen del proveedor de backend.
 
 ### Justificación
 
-Documentar el contrato esperado mantiene la arquitectura abierta para una migración futura sin obligar al equipo a implementar el backend ahora. También permite usar mock data sources en pruebas y demos sin cambiar el dominio.
+Documentar el contrato esperado mantiene alineada la implementación móvil con el backend externo. También permite usar mock data sources en pruebas y demos sin cambiar el dominio.
+
+---
+
+## DT-25: Usar infraestructura backend basada en Docker
+
+Docker / Docker Compose se usará para la infraestructura backend planificada en `inventory-backend`, especialmente para SQL Server.
+
+Dirección planificada:
+
+- Ejecutar SQL Server en Docker desde el repositorio backend.
+- Mantener la configuración reproducible mediante Docker Compose en `inventory-backend`.
+- Evaluar la contenedorización del backend ASP.NET Core desde el repositorio backend.
+
+`inventory-mobile-project` no debe contener `docker-compose.yml`, configuración SQL Server ni infraestructura Docker del backend.
+
+### Justificación
+
+Docker permite definir una base de datos local reproducible, reducir diferencias entre entornos y facilitar que el backend externo se ejecute con dependencias consistentes.
 
 ---
 
@@ -655,9 +669,6 @@ Documentar el contrato esperado mantiene la arquitectura abierta para una migrac
 
 Las siguientes decisiones quedan como mejoras futuras:
 
-- API REST propia.
-- Backend .NET/Node/Laravel.
-- Cloud Functions para lógica crítica.
 - Push automática por bajo stock.
 - Importación Excel `.xlsx` avanzada.
 - Modo offline completo.
@@ -673,7 +684,7 @@ Las siguientes decisiones quedan como mejoras futuras:
 El principio guía será:
 
 ```text
-La UI no debe conocer detalles de Firebase, Firestore, Storage, FCM ni APIs externas.
+La UI no debe conocer detalles del backend, SQL Server, Firebase, Storage, FCM ni APIs externas.
 ```
 
 La comunicación debe pasar por:
@@ -682,9 +693,12 @@ La comunicación debe pasar por:
 UI
 → ViewModel
 → Repository
-→ Data Source
-→ Firebase / API externa / almacenamiento local
+→ RestApiDataSource
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en el repositorio backend
 ```
+
+Firebase Services, APIs externas y almacenamiento local se consumen mediante data sources específicos cuando aplique.
 
 Esto asegura separación de responsabilidades, mantenibilidad y facilidad para defender el proyecto técnicamente.
 
@@ -699,7 +713,6 @@ Las decisiones aquí registradas se consideran la base técnica oficial para los
 - `docs/architecture/data-model.md`
 - `docs/architecture/system-architecture.md`
 - `docs/api-contracts/openapi.inventory-api.yaml`
-- `docs/api-contracts/firestore-collections.md`
 - `docs/api-contracts/external-product-api.md`
 - `README.md`
 

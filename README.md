@@ -91,30 +91,36 @@ La solución propuesta es una aplicación móvil que permita centralizar y organ
 
 ## 4. Stack técnico
 
+Stack objetivo planificado para el repositorio móvil:
+
 | Área | Tecnología |
 |---|---|
 | Framework móvil | Flutter |
 | Lenguaje | Dart |
 | Arquitectura | MVVM |
 | Estado / DI | Riverpod |
-| Backend principal | Firebase |
-| Autenticación | Firebase Auth |
-| Base de datos | Cloud Firestore |
-| Imágenes | Firebase Storage |
-| Notificaciones | Firebase Cloud Messaging |
+| Backend externo | `inventory-backend` con ASP.NET Core Web API |
+| Persistencia backend | SQL Server en el repositorio backend |
+| Infraestructura backend | Docker / Docker Compose en `inventory-backend` |
+| Cliente HTTP en Flutter | Dio |
+| Notificaciones push | Firebase Cloud Messaging |
+| Almacenamiento de imágenes | Firebase Storage o almacenamiento de archivos gestionado por backend, decisión pendiente |
 | API externa | Open Food Facts API |
-| HTTP client | Dio |
 | Almacenamiento local | Shared Preferences |
-| Testing | Flutter test, widget tests, integration tests |
-| CI/CD | GitHub Actions |
+| Testing móvil | Flutter test, widget tests, integration tests |
+| CI/CD móvil | GitHub Actions |
 
 ---
 
 ## 5. Decisiones técnicas principales
 
-- Firebase será el backend principal.
-- No se construirá una API REST propia para el MVP.
-- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` define la superficie REST esperada por la aplicación móvil. Firebase es una implementación válida de ese contrato y los repositorios pueden intercambiarse entre Firebase y un backend REST compatible sin cambios en la UI.
+- Este repositorio contiene la aplicación Flutter, documentación móvil, pruebas móviles y contratos de API consumidos por la app.
+- El backend se mantiene en el repositorio separado `inventory-backend`.
+- La aplicación Flutter consumirá el backend externo mediante Dio / HttpClient.
+- SQL Server y Docker Compose pertenecen al repositorio backend.
+- Este repositorio no contiene código fuente ASP.NET Core, configuración SQL Server, migraciones EF Core ni pruebas backend.
+- Firebase se mantiene para Firebase Cloud Messaging y, opcionalmente, para almacenamiento de imágenes.
+- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` se mantiene como referencia REST que la app móvil consumirá desde el backend externo.
 - La API externa se usará únicamente para autocompletar productos por código de barras.
 - La sucursal es una entidad obligatoria del dominio.
 - El stock se maneja por combinación `productId + branchId`.
@@ -122,7 +128,7 @@ La solución propuesta es una aplicación móvil que permita centralizar y organ
 - El stock cambia mediante movimientos de inventario.
 - Los movimientos son la fuente de trazabilidad.
 - Riverpod se usará para estado e inyección de dependencias.
-- La UI no accederá directamente a Firebase ni a APIs externas.
+- La UI no accederá directamente al backend, Firebase, APIs externas ni almacenamiento local.
 - El acceso a datos pasará por repositorios y data sources.
 
 ---
@@ -137,15 +143,18 @@ Flujo general:
 UI
 → ViewModel
 → Repository
-→ Data Source
-→ Firebase / API externa / almacenamiento local
+→ RestApiDataSource
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en el repositorio backend
 ```
 
 Principio base:
 
 ```text
-La UI no debe conocer detalles de Firebase, Firestore, Storage, FCM, Dio ni almacenamiento local.
+La UI no debe conocer detalles del backend, SQL Server, Firebase, Storage, FCM, Dio ni almacenamiento local.
 ```
+
+El almacenamiento local se mantiene para preferencias y estado local liviano. La búsqueda externa de productos seguirá soportada para autocompletar información por código de barras. Firebase se usará para notificaciones push mediante FCM y, si el equipo lo decide, para almacenamiento de imágenes.
 
 Estructura esperada dentro de `app/lib`:
 
@@ -187,7 +196,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), contratos de Firestore, API externa y mock data. |
+| `docs/api-contracts` | Contrato REST consumido por la app, referencia compartida de esquema backend, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -214,12 +223,15 @@ docs/architecture/layers-explanation.md
 ```text
 docs/api-contracts/README.md
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/firestore-collections.md
 docs/api-contracts/external-product-api.md
 docs/api-contracts/mock-data.md
 ```
 
-`openapi.inventory-api.yaml` describe el contrato REST backend-compatible esperado por la aplicación móvil. No implica que dicho backend esté implementado. `firestore-collections.md` documenta la implementación Firebase del mismo dominio, `external-product-api.md` describe la integración directa con Open Food Facts y `mock-data.md` contiene los datos de demostración y pruebas.
+`openapi.inventory-api.yaml` describe el contrato REST que la aplicación móvil consumirá desde el backend externo `inventory-backend`.
+
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`. No implica que SQL Server, migraciones, Docker Compose o código backend existan dentro de `inventory-mobile-project`.
+
+`external-product-api.md` describe la integración con Open Food Facts y `mock-data.md` se mantiene útil para desarrollo, pruebas y demos.
 
 ### Testing
 
@@ -237,7 +249,7 @@ docs/research/flutter-research.pdf
 
 ## 9. Instalación del proyecto
 
-> Estado actual: el repositorio incluye el proyecto Flutter inicial dentro de la carpeta `app/`, junto con la documentación base. Las dependencias específicas del producto (Firebase, Riverpod, go_router, Dio, etc.) y la configuración de Firebase aún están pendientes.
+> Estado actual: este repositorio incluye el proyecto Flutter dentro de `app/`, documentación móvil y contratos de API consumidos por la app. El backend ASP.NET Core Web API, SQL Server, Docker Compose, migraciones y pruebas backend pertenecen al repositorio separado `inventory-backend`.
 
 ### Requisitos
 
@@ -246,7 +258,7 @@ docs/research/flutter-research.pdf
 - Android Studio.
 - Android SDK.
 - Emulador Android o dispositivo físico.
-- Cuenta y proyecto Firebase disponibles para conectar más adelante.
+- Cuenta y proyecto Firebase disponibles para configurar FCM y, si se decide, Firebase Storage más adelante.
 
 ### Verificar Flutter
 
@@ -364,7 +376,7 @@ Usuario ingresa código de barras
 → App consulta API externa
 → API devuelve datos sugeridos
 → Usuario revisa y corrige
-→ Producto se guarda en Firestore
+→ Producto se guarda mediante la API REST del backend externo
 ```
 
 La API externa no reemplaza el registro manual.
@@ -377,25 +389,21 @@ docs/api-contracts/external-product-api.md
 
 ---
 
-## 14. Firebase
+## 14. Servicios Firebase
 
-Firebase se utilizará para:
+Firebase se mantiene como parte del stack para servicios específicos:
 
-- Autenticación.
-- Persistencia.
-- Imágenes.
-- Notificaciones.
+- Firebase Cloud Messaging para notificaciones push.
+- Firebase Storage como opción de almacenamiento de imágenes, pendiente de decisión final.
 
-Servicios esperados:
+Servicios contemplados:
 
 ```text
-Firebase Auth
-Cloud Firestore
-Firebase Storage
 Firebase Cloud Messaging
+Firebase Storage
 ```
 
-La configuración específica de Firebase se agregará durante la implementación del proyecto Flutter.
+La persistencia principal se resolverá en el backend externo con SQL Server. La app móvil solo consumirá endpoints REST. La estrategia final de autenticación se integrará desde Flutter contra el backend cuando el contrato correspondiente esté disponible.
 
 ---
 
@@ -458,8 +466,7 @@ test(movements): add stock validation tests
 
 - Estructura base del repositorio.
 - Documentación inicial de arquitectura.
-- Contrato OpenAPI backend-compatible (`openapi.inventory-api.yaml`).
-- Contratos de Firestore.
+- Contrato OpenAPI consumido por la app móvil (`openapi.inventory-api.yaml`).
 - Contrato de API externa.
 - Mock data.
 - Plan de pruebas.
@@ -467,12 +474,17 @@ test(movements): add stock validation tests
 
 ### Pendiente
 
-- Configurar dependencias base del producto (Firebase, Riverpod, go_router, Dio, entre otras).
-- Configurar Firebase para los entornos de desarrollo.
+- Configurar `RestApiDataSource` en Flutter usando Dio.
+- Configurar la base URL del backend externo.
+- Integrar autenticación contra el backend externo.
+- Integrar productos, stock y movimientos contra endpoints REST.
+- Configurar Firebase Cloud Messaging en la app cuando el backend soporte notificaciones.
+- Decidir la estrategia final de almacenamiento de imágenes.
+- Agregar el workflow de GitHub Actions para Flutter.
+- Configurar dependencias base del producto en Flutter (Riverpod, go_router, Dio, FCM, entre otras).
 - Implementar la estructura de capas descrita en `docs/architecture/layers-explanation.md`.
 - Implementar navegación según `docs/architecture/navigation-map.md`.
 - Implementar módulos funcionales según el alcance del MVP.
-- Crear el workflow de GitHub Actions en `.github/workflows/flutter-ci.yml`.
 - Completar el documento de investigación en PDF en `docs/research/`.
 - Preparar el video técnico.
 - Preparar la guía del workshop.

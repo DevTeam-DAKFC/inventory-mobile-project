@@ -3,28 +3,26 @@ openapi: 3.0.3
 info:
   title: Inventory Mobile API
   description: |
-    Backend-compatible REST contract for the inventory mobile application.
+    Este archivo OpenAPI define el contrato REST esperado para la aplicacion
+    movil de inventario.
 
-    Purpose:
-    - This document describes the expected REST API surface that the mobile app
-      consumes when working against a backend compatible with this contract.
-    - It does not imply that the endpoints described here are already
-      implemented. They define the agreed shape of the integration.
+    Direccion planificada:
+    - La implementacion prevista del backend es ASP.NET Core Web API.
+    - Flutter consumira esta API usando Dio / HttpClient.
+    - SQL Server sera la capa de persistencia planificada detras del backend.
+    - Docker y Docker Compose se usaran para la infraestructura del backend.
 
-    Relationship with Firebase:
-    - Firebase remains a valid implementation option for authentication,
-      persistence, image and file storage and push notifications.
-    - This OpenAPI document and the Firestore data contract describe the same
-      domain from two angles: a REST surface and a Firebase data layout.
-    - The mobile app depends on repositories, not directly on a specific
-      backend provider. Repositories can be implemented either against
-      Firebase services or against a REST backend that follows this contract,
-      without changing the UI or the application layer.
+    Estado:
+    - Este contrato no implica que el backend, SQL Server o Docker Compose ya
+      esten implementados o configurados.
+    - Los endpoints, esquemas y ejemplos describen la forma esperada de la
+      integracion cuando el backend este disponible.
 
-    Authentication:
-    - Authentication is mandatory for the application.
-    - User registration, login and current-user retrieval are MVP-critical
-      endpoints defined under the Auth tag in this document.
+    Relacion con Firebase:
+    - Firebase no es la capa principal de persistencia del sistema.
+    - Firebase sigue siendo relevante para Firebase Cloud Messaging (FCM).
+    - Firebase Storage puede usarse opcionalmente para imagenes de productos si
+      el equipo decide adoptarlo.
   version: 1.0.0
 
 servers:

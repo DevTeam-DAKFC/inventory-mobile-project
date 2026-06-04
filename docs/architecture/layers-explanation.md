@@ -1,10 +1,10 @@
-# Layers Explanation - Sistema de Gestión de Inventario Multiusuario
+# Layers Explanation - Sistema de Gestion de Inventario Multiusuario
 
-## 1. Propósito del documento
+## 1. Proposito del documento
 
-Este documento explica las capas internas de la aplicación Flutter y la responsabilidad de cada una.
+Este documento explica las capas internas de la aplicacion Flutter y la responsabilidad de cada una.
 
-Su objetivo es que el equipo mantenga una estructura consistente durante el desarrollo, evitando que la lógica de negocio, la UI, Firebase, la API externa y el almacenamiento local queden mezclados.
+Su objetivo es mantener una estructura consistente durante el desarrollo, evitando que la logica de negocio, la UI, el backend REST, Firebase, la API externa y el almacenamiento local queden mezclados.
 
 Este documento complementa:
 
@@ -20,29 +20,32 @@ docs/architecture/navigation-map.md
 
 ## 2. Principio base
 
-La aplicación debe mantener separación clara de responsabilidades.
+La aplicacion debe mantener separacion clara de responsabilidades.
 
-El flujo general será:
+El flujo principal de datos de aplicacion sera:
 
 ```text
 UI
-→ ViewModel
+→ ViewModel / State
 → Repository
-→ Data Source
-→ Firebase / API externa / almacenamiento local
+→ RestApiDataSource
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
+
+El backend ASP.NET Core Web API, SQL Server, EF Core, migraciones y la configuracion Docker / Docker Compose pertenecen al repositorio separado `inventory-backend`. Flutter no debe conectarse directamente a SQL Server.
 
 Regla principal:
 
 ```text
-La UI no debe acceder directamente a Firebase, Firestore, Firebase Storage, FCM, Dio ni almacenamiento local.
+La UI no debe acceder directamente al backend, SQL Server, Firebase, Storage, FCM, Dio ni almacenamiento local.
 ```
 
 ---
 
 ## 3. Estructura general de capas
 
-La app usará una estructura `layer-first` simplificada:
+La app usara una estructura `layer-first` simplificada:
 
 ```text
 lib/
@@ -55,23 +58,23 @@ lib/
 └── ui/
 ```
 
-Esta estructura permite explicar claramente dónde vive cada responsabilidad.
+Esta estructura permite explicar claramente donde vive cada responsabilidad.
 
 ---
 
 ## 4. app/
 
-## 4.1 Propósito
+## 4.1 Proposito
 
-La capa `app/` contiene la configuración inicial de la aplicación.
+La capa `app/` contiene la configuracion inicial de la aplicacion.
 
 ## 4.2 Responsabilidades
 
-- Inicializar Firebase.
+- Inicializar servicios requeridos.
 - Configurar providers globales.
 - Configurar tema visual.
-- Configurar navegación principal.
-- Exponer el widget raíz de la aplicación.
+- Configurar navegacion principal.
+- Exponer el widget raiz de la aplicacion.
 
 ## 4.3 Archivos sugeridos
 
@@ -82,38 +85,38 @@ app/
 └── theme.dart
 ```
 
-## 4.4 Qué sí debe contener
+## 4.4 Que si debe contener
 
-- Configuración global.
-- Inicialización de servicios.
-- Configuración de `MaterialApp`.
-- Configuración del router.
-- Configuración del tema.
+- Configuracion global.
+- Inicializacion de servicios.
+- Configuracion de `MaterialApp`.
+- Configuracion del router.
+- Configuracion del tema.
 
-## 4.5 Qué no debe contener
+## 4.5 Que no debe contener
 
-- Lógica de negocio.
-- Lógica de productos.
-- Lógica de movimientos.
-- Consultas directas a Firestore.
-- Código específico de pantallas complejas.
+- Logica de negocio.
+- Logica de productos.
+- Logica de movimientos.
+- Consultas directas al backend o a SQL Server.
+- Codigo especifico de pantallas complejas.
 
 ---
 
 ## 5. core/
 
-## 5.1 Propósito
+## 5.1 Proposito
 
-La capa `core/` contiene elementos compartidos por toda la aplicación.
+La capa `core/` contiene elementos compartidos por toda la aplicacion.
 
 Debe incluir utilidades, validadores, errores, resultados, widgets reutilizables y helpers comunes.
 
 ## 5.2 Responsabilidades
 
 - Definir errores comunes.
-- Definir resultado estándar de operaciones.
+- Definir resultado estandar de operaciones.
 - Centralizar validaciones reutilizables.
-- Incluir widgets genéricos.
+- Incluir widgets genericos.
 - Manejar preferencias locales simples.
 - Incluir constantes globales.
 
@@ -134,9 +137,9 @@ core/
 
 ## 6. core/result/
 
-## 6.1 Propósito
+## 6.1 Proposito
 
-Define una forma estándar de representar éxito o fallo en operaciones.
+Define una forma estandar de representar exito o fallo en operaciones.
 
 ## 6.2 Ejemplo conceptual
 
@@ -161,15 +164,15 @@ Failure(product_not_found)
 
 ## 6.4 Beneficio
 
-Evita que la UI dependa directamente de excepciones técnicas de Firebase, Dio u otros servicios.
+Evita que la UI dependa directamente de excepciones tecnicas del backend, Dio, Firebase u otros servicios.
 
 ---
 
 ## 7. core/errors/
 
-## 7.1 Propósito
+## 7.1 Proposito
 
-Centraliza errores comunes de la aplicación.
+Centraliza errores comunes de la aplicacion.
 
 ## 7.2 Errores esperados
 
@@ -177,7 +180,7 @@ Centraliza errores comunes de la aplicación.
 AuthError
 ValidationError
 NetworkError
-FirestoreError
+BackendError
 StorageError
 StockError
 ImportError
@@ -186,20 +189,20 @@ ExternalApiError
 
 ## 7.3 Uso esperado
 
-Los errores técnicos deben mapearse a mensajes comprensibles para el usuario.
+Los errores tecnicos deben mapearse a mensajes comprensibles para el usuario.
 
 Ejemplo:
 
 ```text
-Firestore permission-denied
-→ No tiene permisos para realizar esta acción.
+Backend error insufficient_stock
+→ No hay stock suficiente para realizar esta accion.
 ```
 
 ---
 
 ## 8. core/validation/
 
-## 8.1 Propósito
+## 8.1 Proposito
 
 Contiene validaciones reutilizables.
 
@@ -218,17 +221,17 @@ BranchValidators
 ### AuthValidators
 
 - Email requerido.
-- Email con formato válido.
-- Contraseña requerida.
-- Longitud mínima de contraseña.
+- Email con formato valido.
+- Contrasena requerida.
+- Longitud minima de contrasena.
 
 ### ProductValidators
 
 - Nombre requerido.
 - SKU requerido.
-- Categoría requerida.
-- Stock mínimo mayor o igual a cero.
-- Código de barras válido, si aplica.
+- Categoria requerida.
+- Stock minimo mayor o igual a cero.
+- Codigo de barras valido, si aplica.
 
 ### MovementValidators
 
@@ -241,7 +244,7 @@ BranchValidators
 ### ImportValidators
 
 - Archivo requerido.
-- Formato CSV válido.
+- Formato CSV valido.
 - Columnas requeridas.
 - Stock inicial no negativo.
 - Sucursal existente.
@@ -249,15 +252,15 @@ BranchValidators
 
 ## 8.4 Beneficio
 
-Permite probar reglas con unit tests y evita duplicar lógica en formularios.
+Permite probar reglas con unit tests y evita duplicar logica en formularios.
 
 ---
 
 ## 9. core/widgets/
 
-## 9.1 Propósito
+## 9.1 Proposito
 
-Contiene widgets reutilizables que no pertenecen a un módulo específico.
+Contiene widgets reutilizables que no pertenecen a un modulo especifico.
 
 ## 9.2 Widgets esperados
 
@@ -275,7 +278,7 @@ FilterChips
 
 ## 9.3 Regla
 
-Los widgets compartidos no deben contener lógica de negocio.
+Los widgets compartidos no deben contener logica de negocio.
 
 Ejemplo correcto:
 
@@ -286,18 +289,18 @@ EmptyStateView(title, message, actionLabel, onAction)
 Ejemplo incorrecto:
 
 ```text
-EmptyProductsView que consulta Firestore directamente.
+EmptyProductsView que llama a ProductRepository directamente.
 ```
 
 ---
 
 ## 10. domain/
 
-## 10.1 Propósito
+## 10.1 Proposito
 
-La capa `domain/` representa el núcleo conceptual de la aplicación.
+La capa `domain/` representa el nucleo conceptual de la aplicacion.
 
-Debe estar libre de detalles técnicos de Firebase, Dio, Storage, FCM o Flutter UI.
+Debe estar libre de detalles tecnicos del backend, SQL Server, Dio, Firebase, Storage, FCM o Flutter UI.
 
 ## 10.2 Responsabilidades
 
@@ -319,7 +322,7 @@ domain/
 
 ## 11. domain/models/
 
-## 11.1 Propósito
+## 11.1 Proposito
 
 Define las entidades principales del sistema.
 
@@ -338,7 +341,7 @@ ExternalProductSuggestion
 
 ## 11.3 Regla
 
-Los modelos de dominio no deben depender de Firestore ni de DTOs externos.
+Los modelos de dominio no deben depender de DTOs REST, DTOs externos ni paquetes de infraestructura.
 
 Ejemplo correcto:
 
@@ -357,14 +360,14 @@ Product
 Ejemplo incorrecto:
 
 ```text
-Product que importa DocumentSnapshot de Firestore.
+Product que importa Response, JsonDocument, DocumentSnapshot u objetos de UI.
 ```
 
 ---
 
 ## 12. domain/repositories/
 
-## 12.1 Propósito
+## 12.1 Proposito
 
 Define contratos abstractos de acceso a datos.
 
@@ -384,7 +387,7 @@ ImportRepository
 
 ## 12.3 Regla
 
-Los contratos no deben decir cómo se obtiene la información. Solo definen qué operación necesita la app.
+Los contratos no deben decir como se obtiene la informacion. Solo definen que operacion necesita la app.
 
 Ejemplo:
 
@@ -400,16 +403,16 @@ ProductRepository
 No debe incluir detalles como:
 
 ```text
-FirebaseFirestore.instance.collection(...)
+Dio().get('/products')
 ```
 
 ---
 
 ## 13. domain/usecases/
 
-## 13.1 Propósito
+## 13.1 Proposito
 
-Contiene operaciones de negocio que coordinan más de un repositorio o encapsulan reglas importantes.
+Contiene operaciones de negocio que coordinan mas de un repositorio o encapsulan reglas importantes.
 
 ## 13.2 Casos de uso posibles
 
@@ -422,41 +425,45 @@ SearchProductByBarcodeUseCase
 
 ## 13.3 Nota
 
-Para el MVP, no todos los flujos necesitan use cases. Se deben usar cuando ayuden a mantener limpia la lógica.
+Para el MVP, no todos los flujos necesitan use cases. Se deben usar cuando ayuden a mantener limpia la logica.
 
 ---
 
 ## 14. data/
 
-## 14.1 Propósito
+## 14.1 Proposito
 
 La capa `data/` contiene implementaciones concretas de acceso a datos.
 
-Aquí viven Firebase, clientes HTTP REST, APIs externas, almacenamiento local, mock data sources, DTOs, mappers e implementaciones de repositorios.
+Aqui viven clientes HTTP REST, data sources externos, almacenamiento local, integraciones Firebase especificas, mock data sources, DTOs, mappers e implementaciones de repositorios.
 
-Los data sources son intercambiables. Para una misma operación de dominio puede existir una implementación basada en Firebase, una basada en un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`, una basada en almacenamiento local y una basada en mock data, sin que los ViewModels ni la UI cambien.
+`RestApiDataSource` sera la familia principal de data sources para datos de aplicacion del MVP. Consume el backend externo ASP.NET Core Web API de `inventory-backend` usando Dio / HttpClient y el contrato compartido `docs/api-contracts/openapi.inventory-api.yaml`.
+
+SQL Server esta detras del backend externo. Flutter no debe acceder directamente a SQL Server ni usar paquetes cliente de SQL Server. Entidades EF Core, migraciones, repositorios SQL y Docker Compose pertenecen a `inventory-backend`.
 
 ## 14.2 Responsabilidades
 
 - Implementar contratos de `domain/repositories`.
-- Comunicarse con Firebase, según la implementación actual del MVP.
-- Consumir un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`, cuando exista.
-- Consumir la API externa de productos.
+- Consumir el backend externo ASP.NET Core Web API mediante `RestApiDataSource`.
+- Usar Dio / HttpClient para integraciones HTTP.
+- Consumir la API externa de productos si se decide consumo directo desde Flutter.
 - Leer y escribir preferencias locales.
-- Proveer mock data sources para pruebas y demostraciones.
-- Convertir documentos Firestore, respuestas REST o respuestas externas a modelos de dominio.
-- Manejar errores técnicos.
+- Proveer `MockDataSource` para pruebas, demos y trabajo temprano de UI.
+- Integrarse con Firebase solo para servicios especificos, como FCM o Storage opcional.
+- Convertir DTOs REST, respuestas externas o datos locales a modelos de dominio.
+- Manejar errores tecnicos.
+- Convertir respuestas de error del backend en `AppException` o fallos de `AppResult`.
 
 ## 14.3 Estructura sugerida
 
 ```text
 data/
 ├── datasources/
-│   ├── firebase/
 │   ├── rest/
+│   ├── mock/
 │   ├── external/
 │   ├── local/
-│   └── mock/
+│   └── firebase/
 ├── dto/
 ├── mappers/
 └── repositories/
@@ -464,54 +471,24 @@ data/
 
 ---
 
-## 15. data/datasources/firebase/
+## 15. data/datasources/rest/
 
-## 15.1 Propósito
+## 15.1 Proposito
 
-Contiene data sources que se comunican con Firebase.
+Contiene la familia principal de data sources para datos de aplicacion del MVP.
+
+Consume el backend externo ASP.NET Core Web API mediante Dio / HttpClient y sigue el contrato compartido definido en:
+
+```text
+docs/api-contracts/openapi.inventory-api.yaml
+```
 
 ## 15.2 Data sources esperados
 
 ```text
-FirebaseAuthDataSource
-FirebaseUserDataSource
-FirebaseBranchDataSource
-FirebaseProductDataSource
-FirebaseStockDataSource
-FirebaseInventoryMovementDataSource
-FirebaseStorageDataSource
-FirebaseNotificationTokenDataSource
-```
-
-## 15.3 Responsabilidades
-
-- Leer y escribir documentos Firestore.
-- Ejecutar transacciones de movimientos.
-- Subir imágenes a Firebase Storage.
-- Obtener usuario autenticado.
-- Registrar tokens FCM.
-
-## 15.4 Regla
-
-Los data sources pueden conocer Firebase. Las capas superiores no.
-
----
-
-## 15A. data/datasources/rest/
-
-## 15A.1 Propósito
-
-Contiene data sources que consumen un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`.
-
-Esta capa es opcional para el MVP. Existirá cuando se decida operar la aplicación contra un backend REST en lugar de, o además de, Firebase.
-
-## 15A.2 Data sources esperados
-
-```text
 RestApiAuthDataSource
-RestApiUserDataSource
-RestApiBranchDataSource
 RestApiProductDataSource
+RestApiBranchDataSource
 RestApiStockDataSource
 RestApiInventoryMovementDataSource
 RestApiProductLookupDataSource
@@ -519,89 +496,38 @@ RestApiNotificationTokenDataSource
 RestApiImportBatchDataSource
 ```
 
-## 15A.3 Responsabilidades
+## 15.3 Responsabilidades
 
 - Ejecutar requests HTTP definidos en el contrato OpenAPI.
-- Adjuntar el token bearer requerido por `bearerAuth`.
+- Adjuntar el token bearer requerido cuando aplique.
 - Parsear respuestas JSON hacia DTOs REST.
-- Mapear códigos de estado y `error.code` a errores controlados de la aplicación.
-- Respetar timeouts y políticas de reintentos definidos por la app.
+- Mapear DTOs REST hacia modelos de dominio.
+- Convertir codigos de estado y errores del backend a `AppException` o fallos de `AppResult`.
+- Respetar timeouts y politicas de reintentos definidos por la app.
 - Retornar resultados consumibles por los repositorios.
+- Ocultar detalles HTTP a ViewModels y UI.
 
-## 15A.4 Cliente HTTP
+## 15.4 Cliente HTTP
 
-Se usará Dio o un cliente HTTP equivalente, alineado con DT-09.
+Se usara Dio o un cliente HTTP equivalente, alineado con la decision tecnica del proyecto.
 
-Dio no debe usarse para Firebase.
+Dio no debe usarse para conectar directamente a SQL Server. La configuracion SQL Server y las migraciones EF Core pertenecen a `inventory-backend`.
 
-## 15A.5 Regla
+## 15.5 Regla
 
-Los data sources REST pueden conocer Dio, los DTOs REST y el contrato OpenAPI. Las capas superiores no.
-
----
-
-## 16. data/datasources/external/
-
-## 16.1 Propósito
-
-Contiene data sources para APIs externas.
-
-## 16.2 Data source esperado
-
-```text
-OpenFoodFactsDataSource
-```
-
-## 16.3 Responsabilidades
-
-- Ejecutar request HTTP.
-- Manejar timeout.
-- Parsear JSON externo.
-- Retornar DTO o modelo intermedio.
-- Mapear errores de red.
-
-## 16.4 Regla
-
-Dio o el cliente HTTP solo debe usarse aquí.
-
-No debe usarse Dio para Firestore ni Firebase.
+Los data sources REST pueden conocer Dio, DTOs REST y el contrato OpenAPI. Las capas superiores no.
 
 ---
 
-## 17. data/datasources/local/
+## 16. data/datasources/mock/
 
-## 17.1 Propósito
-
-Contiene data sources para almacenamiento local limitado.
-
-## 17.2 Data source esperado
-
-```text
-LocalPreferencesDataSource
-```
-
-## 17.3 Responsabilidades
-
-- Guardar última sucursal seleccionada.
-- Guardar preferencia de tema.
-- Guardar filtros recientes.
-- Leer preferencias al iniciar la app.
-
-## 17.4 Regla
-
-No se debe prometer modo offline completo en el MVP.
-
----
-
-## 17A. data/datasources/mock/
-
-## 17A.1 Propósito
+## 16.1 Proposito
 
 Contiene implementaciones fake o en memoria de los data sources.
 
-Se utiliza para desarrollo temprano de UI, widget tests, pruebas de ViewModels y demostraciones cuando todavía no se cuenta con backend real o cuando no conviene depender de Firebase.
+Se utiliza para desarrollo temprano de UI, widget tests, pruebas de ViewModels y demos cuando todavia no se cuenta con backend real o cuando no conviene depender de la red.
 
-## 17A.2 Data sources esperados
+## 16.2 Data sources esperados
 
 ```text
 MockAuthDataSource
@@ -615,60 +541,145 @@ MockNotificationTokenDataSource
 MockImportBatchDataSource
 ```
 
-## 17A.3 Responsabilidades
+## 16.3 Responsabilidades
 
-- Implementar los mismos contratos que los data sources reales (Firebase o REST).
+- Implementar los mismos contratos que los data sources reales.
 - Cargar datos iniciales alineados con `docs/api-contracts/mock-data.md`.
 - Mantener un estado en memoria consistente con las reglas del dominio.
-- Responder de forma determinista y rápida para tests y demos.
+- Responder de forma determinista y rapida para tests y demos.
 - Permitir simular errores controlados como `insufficient_stock` o `product_not_found`.
 
-## 17A.4 Regla
+## 16.4 Regla
 
-Los mock data sources deben respetar las reglas del dominio: una salida no puede dejar stock negativo, un producto inactivo no se puede usar en nuevos movimientos, los SKUs deben ser únicos.
+Los mock data sources deben respetar las reglas del dominio: una salida no puede dejar stock negativo, un producto inactivo no se puede usar en nuevos movimientos y los SKUs deben ser unicos.
 
-No deben filtrarse hacia producción; su empaquetado debe permanecer aislado del flujo de release.
+No deben filtrarse hacia produccion; su empaquetado debe permanecer aislado del flujo de release.
 
 ---
 
-## 18. data/dto/
+## 17. data/datasources/external/
 
-## 18.1 Propósito
+## 17.1 Proposito
+
+Contiene data sources para APIs externas.
+
+## 17.2 Data source esperado
+
+```text
+OpenFoodFactsDataSource
+```
+
+## 17.3 Responsabilidades
+
+- Ejecutar request HTTP contra Open Food Facts si se decide consumo directo desde Flutter.
+- Manejar timeout.
+- Parsear JSON externo.
+- Retornar DTO o modelo intermedio.
+- Mapear errores de red.
+
+## 17.4 Regla
+
+Open Food Facts puede consumirse directamente desde Flutter o mediante proxy backend. Si se consume directo, esta carpeta no se convierte en persistencia de inventario.
+
+---
+
+## 18. data/datasources/local/
+
+## 18.1 Proposito
+
+Contiene data sources para almacenamiento local limitado.
+
+## 18.2 Data source esperado
+
+```text
+LocalPreferencesDataSource
+```
+
+## 18.3 Responsabilidades
+
+- Guardar ultima sucursal seleccionada.
+- Guardar preferencia de tema.
+- Guardar filtros recientes.
+- Leer preferencias al iniciar la app.
+
+## 18.4 Regla
+
+No se debe prometer modo offline completo en el MVP.
+
+---
+
+## 19. data/datasources/firebase/
+
+## 19.1 Proposito
+
+Contiene data sources para integraciones Firebase especificas.
+
+No representa la persistencia de inventario del MVP.
+
+## 19.2 Data sources esperados
+
+```text
+FirebaseMessagingDataSource
+FirebaseStorageDataSource
+```
+
+## 19.3 Responsabilidades
+
+- Obtener token FCM.
+- Recibir notificaciones push mediante Firebase Messaging.
+- Integrarse con Firebase Storage si se decide usarlo para imagenes de productos.
+- Devolver referencias o URLs de imagen para que se persistan mediante el backend.
+
+## 19.4 Regla
+
+FirebaseDataSource solo debe cubrir FCM y Storage opcional. No debe describirse ni implementarse como persistencia de inventario.
+
+---
+
+## 20. data/dto/
+
+## 20.1 Proposito
 
 Contiene objetos usados para representar datos externos o remotos.
 
-## 18.2 DTOs esperados
+## 20.2 DTOs esperados
 
 ```text
-ProductFirestoreDto
-StockFirestoreDto
-InventoryMovementFirestoreDto
+AuthSessionRestDto
+UserRestDto
+BranchRestDto
 ProductRestDto
 StockRestDto
 InventoryMovementRestDto
-UserRestDto
-BranchRestDto
+NotificationTokenRestDto
+ImportBatchRestDto
+ExternalProductSuggestionRestDto
 OpenFoodFactsProductDto
 ImportRowDto
 ```
 
-## 18.3 Regla
+## 20.3 Regla
 
-Los DTOs pueden adaptarse al formato de Firebase o APIs externas.
+Los DTOs REST son la familia principal para datos de aplicacion consumidos por Flutter.
+
+Los DTOs de Open Food Facts se mantienen para la API externa.
+
+Flutter no consume DTOs de SQL Server. SQL Server queda detras del backend; Flutter consume respuestas de API.
 
 Los modelos de dominio deben mantenerse limpios.
 
 ---
 
-## 19. data/mappers/
+## 21. data/mappers/
 
-## 19.1 Propósito
+## 21.1 Proposito
 
-Convierte DTOs o documentos remotos hacia modelos de dominio y viceversa.
+Convierte DTOs o datos remotos hacia modelos de dominio y viceversa.
 
-## 19.2 Mappers esperados
+## 21.2 Mappers esperados
 
 ```text
+AuthMapper
 ProductMapper
 StockMapper
 InventoryMovementMapper
@@ -678,7 +689,12 @@ ExternalProductMapper
 ImportMapper
 ```
 
-## 19.3 Ejemplo conceptual
+## 21.3 Ejemplo conceptual
+
+```text
+ProductRestDto
+→ Product
+```
 
 ```text
 OpenFoodFactsProductDto
@@ -686,20 +702,15 @@ OpenFoodFactsProductDto
 → Product form suggestion
 ```
 
-```text
-Firestore Product document
-→ Product
-```
-
 ---
 
-## 20. data/repositories/
+## 22. data/repositories/
 
-## 20.1 Propósito
+## 22.1 Proposito
 
 Contiene las implementaciones concretas de los contratos definidos en `domain/repositories`.
 
-## 20.2 Repositorios esperados
+## 22.2 Repositorios esperados
 
 ```text
 AuthRepositoryImpl
@@ -712,22 +723,29 @@ ProductLookupRepositoryImpl
 ImportRepositoryImpl
 ```
 
-## 20.3 Responsabilidades
+## 22.3 Responsabilidades
 
+- Exponer operaciones orientadas al dominio.
 - Coordinar data sources.
-- Mapear errores técnicos a `AppResult`.
-- Aplicar reglas simples de coordinación.
+- Depender de `RestApiDataSource` para datos principales del MVP.
+- Permitir inyectar `MockDataSource` para pruebas y demos.
+- Ocultar servicios Firebase detras de repositorios o servicios dedicados cuando se usen FCM o Storage.
+- Mapear errores tecnicos a `AppResult`.
 - Ocultar detalles de infraestructura al ViewModel.
+
+## 22.4 Regla
+
+Los repositorios no deben filtrar DTOs REST, detalles HTTP, errores crudos de Dio ni referencias Firebase hacia UI o ViewModels.
 
 ---
 
-## 21. ui/
+## 23. ui/
 
-## 21.1 Propósito
+## 23.1 Proposito
 
-Contiene pantallas, ViewModels y componentes específicos de cada módulo visual.
+Contiene pantallas, ViewModels y componentes especificos de cada modulo visual.
 
-## 21.2 Estructura sugerida
+## 23.2 Estructura sugerida
 
 ```text
 ui/
@@ -744,16 +762,16 @@ ui/
 
 ---
 
-## 22. ui/auth/
+## 24. ui/auth/
 
-## 22.1 Responsabilidades
+## 24.1 Responsabilidades
 
 - Login.
 - Registro.
 - Logout.
-- Estado de autenticación.
+- Estado de autenticacion.
 
-## 22.2 Archivos esperados
+## 24.2 Archivos esperados
 
 ```text
 login_screen.dart
@@ -764,19 +782,19 @@ auth_state.dart
 
 ---
 
-## 23. ui/products/
+## 25. ui/products/
 
-## 23.1 Responsabilidades
+## 25.1 Responsabilidades
 
 - Listar productos.
 - Crear producto.
 - Editar producto.
 - Ver detalle.
-- Buscar por código de barras.
+- Buscar por codigo de barras.
 - Asociar imagen.
-- Acceder a importación CSV.
+- Acceder a importacion CSV.
 
-## 23.2 Archivos esperados
+## 25.2 Archivos esperados
 
 ```text
 products_screen.dart
@@ -790,9 +808,9 @@ product_state.dart
 
 ---
 
-## 24. ui/stock/
+## 26. ui/stock/
 
-## 24.1 Responsabilidades
+## 26.1 Responsabilidades
 
 - Mostrar stock por sucursal.
 - Mostrar productos bajo stock.
@@ -800,7 +818,7 @@ product_state.dart
 - Abrir detalle de producto.
 - Registrar movimiento.
 
-## 24.2 Archivos esperados
+## 26.2 Archivos esperados
 
 ```text
 stock_screen.dart
@@ -811,9 +829,9 @@ low_stock_card.dart
 
 ---
 
-## 25. ui/movements/
+## 27. ui/movements/
 
-## 25.1 Responsabilidades
+## 27.1 Responsabilidades
 
 - Registrar entradas.
 - Registrar salidas.
@@ -821,7 +839,7 @@ low_stock_card.dart
 - Mostrar resultado del movimiento.
 - Activar alerta de bajo stock si aplica.
 
-## 25.2 Archivos esperados
+## 27.2 Archivos esperados
 
 ```text
 movement_form_screen.dart
@@ -832,15 +850,15 @@ movement_type_selector.dart
 
 ---
 
-## 26. ui/history/
+## 28. ui/history/
 
-## 26.1 Responsabilidades
+## 28.1 Responsabilidades
 
 - Listar movimientos.
 - Filtrar por producto, sucursal, tipo, fecha o usuario.
 - Mostrar detalle de movimiento.
 
-## 26.2 Archivos esperados
+## 28.2 Archivos esperados
 
 ```text
 history_screen.dart
@@ -852,17 +870,17 @@ movement_card.dart
 
 ---
 
-## 27. ui/import/
+## 29. ui/import/
 
-## 27.1 Responsabilidades
+## 29.1 Responsabilidades
 
 - Seleccionar archivo CSV.
 - Parsear archivo.
 - Mostrar vista previa.
 - Mostrar errores.
-- Confirmar importación.
+- Confirmar importacion.
 
-## 27.2 Archivos esperados
+## 29.2 Archivos esperados
 
 ```text
 import_products_screen.dart
@@ -872,26 +890,26 @@ import_preview_table.dart
 import_error_list.dart
 ```
 
-## 27.3 Nota
+## 29.3 Nota
 
-La importación CSV es complementaria. Si el tiempo no alcanza, puede quedar documentada como mejora posterior.
+La importacion CSV es complementaria. Si el tiempo no alcanza, puede quedar documentada como mejora posterior.
 
 ---
 
-## 28. navigation/
+## 30. navigation/
 
-## 28.1 Propósito
+## 30.1 Proposito
 
-Centraliza la navegación de la app.
+Centraliza la navegacion de la app.
 
-## 28.2 Responsabilidades
+## 30.2 Responsabilidades
 
 - Definir rutas.
 - Proteger rutas privadas.
-- Redirigir según estado de autenticación.
+- Redirigir segun estado de autenticacion.
 - Aplicar restricciones por rol cuando corresponda.
 
-## 28.3 Archivos esperados
+## 30.3 Archivos esperados
 
 ```text
 app_router.dart
@@ -901,21 +919,35 @@ route_guard.dart
 
 ---
 
-## 29. notifications/
+## 31. notifications/
 
-## 29.1 Propósito
+## 31.1 Proposito
 
 Contiene servicios de notificaciones.
 
-## 29.2 Responsabilidades
+## 31.2 Responsabilidades
 
 - Solicitar permisos.
 - Obtener FCM token.
-- Guardar token en Firestore.
-- Manejar mensajes entrantes.
+- Enviar token al backend externo ASP.NET Core Web API mediante Dio.
+- Permitir que el backend externo almacene el token en SQL Server cuando exista el endpoint.
+- Recibir push mediante Firebase Messaging.
 - Mostrar notificaciones locales o alertas in-app.
 
-## 29.3 Archivos esperados
+## 31.3 Flujo esperado
+
+```text
+Flutter obtiene FCM token
+→ NotificationRepository
+→ RestApiNotificationTokenDataSource
+→ POST /notification-tokens
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
+→ Backend puede usar FCM para enviar notificaciones
+→ Flutter recibe push mediante Firebase Messaging
+```
+
+## 31.4 Archivos esperados
 
 ```text
 fcm_service.dart
@@ -925,9 +957,9 @@ local_notification_service.dart
 
 ---
 
-## 30. Dependencias permitidas por capa
+## 32. Dependencias permitidas por capa
 
-## 30.1 UI puede depender de
+## 32.1 UI puede depender de
 
 ```text
 domain
@@ -940,15 +972,15 @@ Flutter widgets
 No debe depender directamente de:
 
 ```text
-cloud_firestore
-firebase_auth
-firebase_storage
 dio
+firebase_messaging
+firebase_storage
+SQL Server client packages
 ```
 
 ---
 
-## 30.2 Domain puede depender de
+## 32.2 Domain puede depender de
 
 ```text
 Dart core
@@ -960,41 +992,46 @@ No debe depender de:
 Flutter UI
 Firebase
 Dio
-Firestore
 Storage
 FCM
 ```
 
 ---
 
-## 30.3 Data puede depender de
+## 32.3 Data puede depender de
 
 ```text
 domain
 core
-firebase_auth
-cloud_firestore
-firebase_storage
-firebase_messaging
-dio o un cliente HTTP equivalente
+Dio o un cliente HTTP equivalente
 shared_preferences
+firebase_messaging para FCM
+firebase_storage si se decide Storage
 mock o fake data helpers para tests
+```
+
+No debe depender de:
+
+```text
+Flutter UI widgets
+Screens
+SQL Server client packages desde Flutter
 ```
 
 ---
 
-## 30.4 Core puede depender de
+## 32.4 Core puede depender de
 
 ```text
 Dart core
 Flutter widgets para widgets compartidos
 ```
 
-Debe evitar depender de módulos específicos de negocio.
+Debe evitar depender de modulos especificos de negocio.
 
 ---
 
-## 31. Flujo de dependencia esperado
+## 33. Flujo de dependencia esperado
 
 ```text
 ui
@@ -1015,119 +1052,137 @@ Los repositorios en `data/` implementan contratos definidos en `domain/`.
 
 ---
 
-## 32. Ejemplo de flujo completo: registrar salida
+## 34. Ejemplo de flujo completo: registrar salida
 
-El flujo siempre cruza el repositorio. La implementación concreta del data source puede variar sin afectar la UI ni los ViewModels.
+El flujo siempre cruza el repositorio. La implementacion concreta del data source puede variar sin afectar la UI ni los ViewModels.
 
 ```text
 MovementFormScreen
 → MovementViewModel
 → InventoryMovementRepository
-→ <data source concreto>
-→ persistencia y validación de stock
+→ RestApiInventoryMovementDataSource
+→ POST /inventory-movements
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server transaction en inventory-backend
+→ Movement + updated stock state
 → AppResult success/failure
 → UI muestra resultado
 ```
-
-El `<data source concreto>` puede ser, según el entorno:
-
-- `FirebaseInventoryMovementDataSource` — ejecuta una transacción de Firestore. Implementación actual del MVP.
-- `RestApiInventoryMovementDataSource` — ejecuta `POST /inventory-movements` según `docs/api-contracts/openapi.inventory-api.yaml`. Implementación futura cuando exista un backend REST compatible.
-- `MockInventoryMovementDataSource` — actualiza estado en memoria para pruebas y demostraciones.
 
 Responsabilidades:
 
 | Capa | Responsabilidad |
 |---|---|
 | UI | Captura datos y muestra estado. |
-| ViewModel | Valida formulario y coordina operación. |
-| Repository | Ejecuta operación de dominio sobre un data source intercambiable. |
-| Data Source | Ejecuta la persistencia concreta (Firestore, REST o mock). |
-| Backend / Mock | Persiste stock y movimiento, o simula la persistencia para pruebas. |
+| ViewModel | Valida formulario y coordina operacion. |
+| Repository | Ejecuta operacion de dominio sobre `RestApiInventoryMovementDataSource` o un mock en pruebas. |
+| RestApiDataSource | Envia `POST /inventory-movements`, mapea respuesta y convierte errores backend. |
+| inventory-backend / ASP.NET Core Web API | Ejecuta reglas de negocio y coordina la transaccion. |
+| SQL Server en inventory-backend | Persiste stock y movimiento de forma transaccional. |
 
 ---
 
-## 33. Criterios de aceptación de capas
+## 35. Criterios de aceptacion de capas
 
 La estructura de capas se considera correcta si:
 
-- La UI no llama directamente a Firebase.
+- La UI no llama directamente al backend.
 - La UI no llama directamente a Dio.
-- Los ViewModels no conocen detalles de Firestore.
+- La UI no accede directamente a Firebase.
+- Los ViewModels no conocen detalles HTTP, SQL Server, FCM ni Storage.
 - Los repositorios devuelven resultados controlados.
+- Los repositorios dependen de data sources y no de detalles de UI.
+- `RestApiDataSource` es el camino principal para datos de aplicacion.
+- `MockDataSource` permite pruebas y demos.
+- `FirebaseDataSource` queda limitado a FCM y Storage opcional.
 - Los data sources encapsulan infraestructura.
-- Los modelos de dominio no importan paquetes de Firebase.
-- Las validaciones reutilizables están fuera de las pantallas.
-- La navegación está centralizada.
-- Los widgets compartidos no contienen lógica de negocio.
-- El sistema puede probar reglas sin depender de UI.
+- Los modelos de dominio no importan paquetes de infraestructura.
+- Las validaciones reutilizables estan fuera de las pantallas.
+- La navegacion esta centralizada.
+- Los widgets compartidos no contienen logica de negocio.
+- El sistema puede probar reglas sin depender de UI ni de un backend real.
 
 ---
 
-## 34. Riesgos de incumplimiento
+## 36. Riesgos de incumplimiento
 
-### 34.1 UI conectada directamente a Firebase
+### 36.1 UI conectada directamente a infraestructura
 
 Riesgo:
 
-- Difícil de testear.
-- Difícil de mantener.
+- Dificil de testear.
+- Dificil de mantener.
 - Mezcla responsabilidades.
 
-Mitigación:
+Mitigacion:
 
 - Usar repositorios y data sources.
 
 ---
 
-### 34.2 Lógica duplicada en pantallas
+### 36.2 Logica duplicada en pantallas
 
 Riesgo:
 
 - Validaciones inconsistentes.
-- Más errores.
+- Mas errores.
 - Mayor dificultad de cambios.
 
-Mitigación:
+Mitigacion:
 
 - Centralizar validadores en `core/validation`.
 
 ---
 
-### 34.3 Modelos mezclados con DTOs
+### 36.3 Modelos mezclados con DTOs
 
 Riesgo:
 
-- El dominio queda acoplado a Firestore.
+- El dominio queda acoplado al contrato remoto.
 - Cambiar estructura de datos afecta toda la app.
 
-Mitigación:
+Mitigacion:
 
 - Usar DTOs y mappers.
 
 ---
 
-### 34.4 Módulos sin patrón común
+### 36.4 Modulos sin patron comun
 
 Riesgo:
 
 - Cada integrante implementa diferente.
-- La app se vuelve difícil de integrar.
+- La app se vuelve dificil de integrar.
 
-Mitigación:
+Mitigacion:
 
-- Seguir estructura común por módulo.
+- Seguir estructura comun por modulo.
 
 ---
 
-## 35. Estado del documento
+## 37. Estado del documento
+
+Pendiente de implementacion en `inventory-mobile-project`:
+
+- Conexion de Flutter con `RestApiDataSource` mediante Dio.
+- Configuracion de base URL del backend externo.
+- Integracion movil con autenticacion, productos, stock, movimientos e historial.
+- Configuracion FCM del lado movil.
+- Pruebas Flutter con `MockDataSource`, fakes o clientes Dio controlados.
+- Decision final de almacenamiento de imagenes desde la app.
+
+Responsabilidades de `inventory-backend`:
+
+- Implementacion ASP.NET Core Web API.
+- Endpoints backend segun `docs/api-contracts/openapi.inventory-api.yaml`.
+- SQL Server, EF Core, migraciones, Docker Compose y pruebas backend.
 
 Este documento debe actualizarse si cambian:
 
 - La estructura de carpetas.
-- El patrón de arquitectura.
+- El patron de arquitectura.
 - La estrategia de repositorios.
-- La forma de consumir Firebase.
-- La integración con API externa.
-- La estructura de UI por módulos.
-
+- La forma de consumir el backend.
+- El enfoque de Firebase.
+- La integracion con API externa.
+- La estructura de UI por modulos.

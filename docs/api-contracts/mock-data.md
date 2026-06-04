@@ -2,7 +2,7 @@
 
 ## 1. Propósito del documento
 
-Este documento define datos de prueba para desarrollo, testing, video técnico y workshop.
+Este documento define datos de prueba para desarrollo, testing y demos del producto.
 
 El objetivo es que el equipo utilice una base común de usuarios, sucursales, productos, stock y movimientos al momento de probar la aplicación y demostrar sus funcionalidades.
 
@@ -11,8 +11,10 @@ Este archivo complementa:
 ```text
 docs/architecture/project-scope.md
 docs/architecture/data-model.md
-docs/api-contracts/firestore-collections.md
+docs/api-contracts/openapi.inventory-api.yaml
 ```
+
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`.
 
 ---
 
@@ -20,12 +22,12 @@ docs/api-contracts/firestore-collections.md
 
 Estos datos pueden utilizarse para:
 
-- Poblar Firestore durante desarrollo.
+- Alimentar `MockDataSource` durante desarrollo, pruebas y demos.
+- Sembrar datos de prueba en `inventory-backend` cuando el backend ASP.NET Core Web API implemente la persistencia SQL Server.
+- Apoyar ejemplos del contrato `openapi.inventory-api.yaml`.
 - Probar pantallas con información realista.
 - Preparar capturas para documentación.
-- Grabar el video técnico.
 - Ejecutar casos de prueba manuales.
-- Guiar el workshop de live coding.
 
 Los datos son ficticios y pueden ajustarse según las necesidades del equipo.
 
@@ -643,6 +645,6 @@ Este archivo debe actualizarse cuando cambien:
 - Las sucursales demo.
 - Los productos demo.
 - Las reglas de importación.
-- Los flujos que se mostrarán en el video.
-- Los escenarios del workshop.
+- Los flujos que se mostrarán en demos.
+- Los escenarios de prueba del producto.
 

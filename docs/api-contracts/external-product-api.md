@@ -4,7 +4,7 @@
 
 Este documento define el contrato de integración con la API externa utilizada por la aplicación para apoyar el registro de productos.
 
-El proyecto usa Firebase como backend principal. Por eso, esta API externa no reemplaza Firestore ni funciona como base de datos del sistema. Su función es ayudar al usuario a autocompletar información de productos, principalmente mediante código de barras.
+La API externa no reemplaza al backend ASP.NET Core Web API externo ni a la persistencia SQL Server gestionada en `inventory-backend`. Su función es ayudar al usuario a autocompletar información de productos, principalmente mediante código de barras.
 
 Este documento complementa:
 
@@ -12,7 +12,6 @@ Este documento complementa:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/api-contracts/firestore-collections.md
 ```
 
 ---
@@ -29,7 +28,7 @@ Crear producto
 → App consulta API externa
 → API devuelve datos sugeridos
 → Usuario revisa y corrige
-→ Usuario guarda producto en Firestore
+→ Usuario guarda producto mediante el backend planificado
 ```
 
 La API externa es una ayuda para reducir digitación manual, no una fuente obligatoria ni única para registrar productos.
@@ -53,7 +52,7 @@ Se selecciona esta API porque:
 - Es pública.
 - Tiene endpoint por código de barras.
 - Devuelve respuestas en JSON.
-- No requiere construir backend propio.
+- Puede consumirse desde Flutter o mediante un endpoint proxy del backend planificado.
 - Encaja con inventario de productos de tiendas locales.
 - Permite cumplir el requisito de consumo de APIs externas.
 - Puede usarse como apoyo para autocompletar productos.
@@ -236,7 +235,7 @@ Product Form Screen
 7. Usuario revisa los campos.
 8. Usuario corrige o completa datos faltantes.
 9. Usuario guarda el producto.
-10. ProductRepository guarda el producto en Firestore.
+10. ProductRepository guarda el producto mediante el backend ASP.NET Core Web API cuando esté disponible.
 ```
 
 ---
@@ -352,9 +351,9 @@ Failure(unexpected_error)
 
 Se usará Dio o un cliente HTTP equivalente.
 
-Dio se usará solo para esta API externa.
+Dio / HttpClient se usará para consumir el backend ASP.NET Core Web API planificado y también puede usarse para esta API externa.
 
-No se usará Dio para Firestore, Firebase Auth, Firebase Storage ni Firebase Cloud Messaging.
+No se usará Dio para conectar directamente con SQL Server. Firebase se mantiene separado para Firebase Cloud Messaging y, si se decide usarlo, Firebase Storage.
 
 ---
 
@@ -383,7 +382,7 @@ API externa
 → datos sugeridos
 → usuario revisa
 → usuario confirma
-→ Firestore guarda Product
+→ backend planificado guarda Product
 ```
 
 El sistema no debe crear productos automáticamente solo porque la API devolvió un resultado.
@@ -428,9 +427,9 @@ API de búsqueda de productos por UPC/EAN. Puede tener mejor cobertura en alguno
 
 API comercial de búsqueda de códigos de barras. Puede devolver datos amplios, pero normalmente requiere API key.
 
-### Backend propio
+### Endpoint proxy del backend
 
-No se selecciona como solución principal porque una API propia no cuenta como API externa y aumentaría el alcance del proyecto.
+El backend ASP.NET Core Web API planificado puede exponer un endpoint proxy para consultar productos externos y mantener el consumo desde Flutter alineado con el contrato REST. Esta opción no cambia el comportamiento de Open Food Facts ni reemplaza el registro manual.
 
 ---
 
@@ -445,7 +444,7 @@ La integración con API externa se considera lista cuando:
 - Si el producto no existe, se permite registro manual.
 - Si ocurre un error, se muestra mensaje claro.
 - El usuario puede editar los datos sugeridos antes de guardar.
-- El producto confirmado se guarda en Firestore.
+- El producto confirmado se guarda mediante el backend planificado cuando esté disponible.
 - Dio o cliente HTTP está aislado en data source/repository.
 - La UI no consume la API directamente.
 
@@ -458,7 +457,7 @@ Para demostrar esta funcionalidad, se deberá incluir:
 - Captura o video de búsqueda por código de barras.
 - Captura de producto encontrado.
 - Captura de producto no encontrado o error controlado.
-- Evidencia de que el producto se guarda en Firestore después de confirmación.
+- Evidencia de que el producto confirmado se envía al flujo de guardado del backend planificado o al mock correspondiente durante desarrollo.
 - Validación de que el registro manual sigue funcionando.
 
 ---
