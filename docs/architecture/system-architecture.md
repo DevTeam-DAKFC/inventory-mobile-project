@@ -2,9 +2,9 @@
 
 ## 1. Proposito del documento
 
-Este documento describe la arquitectura general del sistema de gestion de inventario multiusuario desarrollado con Flutter.
+Este documento describe la arquitectura general del sistema de gestion de inventario multiusuario desarrollado con Flutter en `inventory-mobile-project`.
 
-Su objetivo es explicar como se organizan los componentes principales, como se comunican las capas internas, como se integra el backend planificado y como se mantienen aisladas las fuentes externas de datos.
+Su objetivo es explicar como se organizan los componentes principales, como se comunican las capas internas, como se consume el backend externo y como se mantienen aisladas las fuentes externas de datos.
 
 Este documento se basa en:
 
@@ -17,7 +17,7 @@ docs/api-contracts/sqlserver-schema.md
 docs/api-contracts/external-product-api.md
 ```
 
-`docs/api-contracts/sqlserver-schema.md` define el contrato de esquema SQL Server planificado para la persistencia detrás del backend.
+`docs/api-contracts/sqlserver-schema.md` se conserva como referencia compartida con `inventory-backend` para el esquema SQL Server. No implica que SQL Server, Docker Compose, EF Core o migraciones vivan en este repositorio movil.
 
 ---
 
@@ -44,13 +44,13 @@ La direccion de arquitectura planificada es:
 ```text
 Flutter
 → Dio / HttpClient
-→ ASP.NET Core Web API
-→ SQL Server
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
 
-El backend ASP.NET Core Web API expondra endpoints REST consumidos por Flutter mediante Dio / HttpClient. SQL Server sera la capa principal de persistencia detras del backend. Docker / Docker Compose dara soporte a la infraestructura backend, especialmente para SQL Server en desarrollo local.
+El backend ASP.NET Core Web API pertenece al repositorio separado `inventory-backend` y expondra endpoints REST consumidos por Flutter mediante Dio / HttpClient. SQL Server y Docker Compose tambien pertenecen a `inventory-backend`.
 
-El backend, la configuracion Docker y SQL Server todavia estan pendientes. Este documento describe la arquitectura objetivo sin asumir que esos componentes ya existen.
+`inventory-mobile-project` no contiene codigo fuente backend, configuracion SQL Server, Docker Compose, EF Core, migraciones ni pruebas backend.
 
 Firebase no sera el backend principal ni la base de datos principal. Se mantiene para:
 
@@ -65,7 +65,7 @@ docs/api-contracts/openapi.inventory-api.yaml
 
 Los datos de demostracion descritos en `docs/api-contracts/mock-data.md` se utilizan en desarrollo, pruebas y demos, y permiten alimentar implementaciones mock de los data sources.
 
-El contrato de persistencia planificado vive en `docs/api-contracts/sqlserver-schema.md`. No implica que SQL Server, migraciones o backend ya existan.
+El contrato de persistencia planificado vive en `docs/api-contracts/sqlserver-schema.md` como referencia compartida. No implica que SQL Server, Docker Compose, migraciones o backend existan en `inventory-mobile-project`.
 
 La UI y los ViewModels no deben depender directamente del backend, SQL Server, Firebase, un cliente REST ni cualquier otra fuente concreta de datos.
 
@@ -87,8 +87,8 @@ flowchart TD
     Repo --> LocalDS[Local Storage DataSource]
 
     RestDS --> Dio[Dio / HttpClient]
-    Dio --> Api[ASP.NET Core Web API planificado]
-    Api --> Sql[(SQL Server planificado)]
+    Dio --> Api[inventory-backend / ASP.NET Core Web API]
+    Api --> Sql[(SQL Server en inventory-backend)]
 
     Api -. proxy opcional .-> ProductAPI[Open Food Facts]
     ExternalDS -. opcion directa .-> ProductAPI
@@ -100,7 +100,7 @@ flowchart TD
     MockDS --> MockSet[Mock data set]
 ```
 
-El flujo principal de datos del MVP sera `RestApiDataSource → ASP.NET Core Web API → SQL Server`. `MockDataSource` se mantiene para pruebas, demos y trabajo temprano de UI. `FirebaseDataSource` solo debe aplicarse a servicios Firebase, como FCM u opcion de Storage, no a persistencia de inventario.
+El flujo principal de datos del MVP sera `RestApiDataSource → inventory-backend / ASP.NET Core Web API → SQL Server en inventory-backend`. `MockDataSource` se mantiene para pruebas, demos y trabajo temprano de UI. `FirebaseDataSource` solo debe aplicarse a servicios Firebase, como FCM u opcion de Storage, no a persistencia de inventario.
 
 ---
 
@@ -119,8 +119,8 @@ UI
 → ViewModel
 → Repository
 → RestApiDataSource
-→ ASP.NET Core Web API
-→ SQL Server
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
 
 Esto permite mantener separacion de responsabilidades, mejorar la mantenibilidad y facilitar pruebas.
@@ -159,7 +159,7 @@ Los contratos de repositorio definidos en `domain/repositories/` son la frontera
 
 Implementaciones previstas:
 
-- `RestApiDataSource` — familia principal de data sources para datos del MVP. Consume el backend ASP.NET Core Web API mediante Dio.
+- `RestApiDataSource` — familia principal de data sources para datos del MVP. Consume el backend externo ASP.NET Core Web API mediante Dio.
 - `MockDataSource` — implementacion en memoria alineada con `docs/api-contracts/mock-data.md`. Soporta pruebas unitarias, widget tests, desarrollo temprano de UI y demos.
 - `FirebaseDataSource` — implementacion limitada a servicios Firebase, como FCM y Storage opcional. No debe usarse para persistencia de inventario.
 
@@ -294,7 +294,7 @@ La carpeta `data/` contiene implementaciones concretas de acceso a datos.
 Responsabilidades:
 
 - Implementar repositorios.
-- Consumir el backend ASP.NET Core Web API mediante Dio.
+- Consumir el backend externo ASP.NET Core Web API mediante Dio.
 - Consumir API externa si aplica.
 - Integrarse con servicios Firebase especificos.
 - Leer almacenamiento local.
@@ -373,8 +373,8 @@ sequenceDiagram
     participant VM as AuthViewModel
     participant R as AuthRepository
     participant DS as RestApiAuthDataSource
-    participant API as ASP.NET Core Web API
-    participant SQL as SQL Server
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Ingresa email y contrasena
     UI->>VM: login(email, password)
@@ -404,8 +404,8 @@ sequenceDiagram
     participant VM as ProductFormViewModel
     participant R as ProductRepository
     participant DS as RestApiProductDataSource
-    participant API as ASP.NET Core Web API
-    participant SQL as SQL Server
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Llena formulario
     UI->>VM: submitProduct(form)
@@ -432,7 +432,7 @@ sequenceDiagram
     participant VM as ProductFormViewModel
     participant R as ProductLookupRepository
     participant DS as ProductLookupDataSource
-    participant API as ASP.NET Core Web API
+    participant API as inventory-backend / ASP.NET Core Web API
     participant EXT as Open Food Facts
 
     U->>UI: Ingresa codigo de barras
@@ -448,7 +448,7 @@ sequenceDiagram
     VM-->>UI: muestra datos sugeridos
 ```
 
-El backend puede actuar como proxy de Open Food Facts. Si se decide consumo directo desde Flutter, `OpenFoodFactsDataSource` sera una opcion de implementacion, no el camino de persistencia de inventario.
+El backend externo puede actuar como proxy de Open Food Facts. Si se decide consumo directo desde Flutter, `OpenFoodFactsDataSource` sera una opcion de implementacion movil, no el camino de persistencia de inventario.
 
 ---
 
@@ -461,8 +461,8 @@ sequenceDiagram
     participant VM as MovementViewModel
     participant R as InventoryMovementRepository
     participant DS as RestApiInventoryMovementDataSource
-    participant API as ASP.NET Core Web API
-    participant SQL as SQL Server
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Ingresa producto, sucursal, tipo y cantidad
     UI->>VM: submitMovement(form)
@@ -502,8 +502,8 @@ sequenceDiagram
     participant VM as ImportViewModel
     participant R as ImportRepository
     participant DS as RestApiImportDataSource
-    participant API as ASP.NET Core Web API
-    participant SQL as SQL Server
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Selecciona archivo CSV
     UI->>VM: parseCsv(file)
@@ -537,8 +537,8 @@ sequenceDiagram
     participant VM as HistoryViewModel
     participant R as InventoryMovementRepository
     participant DS as RestApiInventoryMovementDataSource
-    participant API as ASP.NET Core Web API
-    participant SQL as SQL Server
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     UI->>VM: loadHistory(filters)
     VM->>R: getHistory(filters)
@@ -562,8 +562,8 @@ flowchart TD
     Permission --> Token[Obtener FCM token]
     Token --> Repo[NotificationRepository]
     Repo --> RestDS[RestApiNotificationTokenDataSource]
-    RestDS --> Api[ASP.NET Core Web API]
-    Api --> Sql[(SQL Server)]
+    RestDS --> Api[inventory-backend / ASP.NET Core Web API]
+    Api --> Sql[(SQL Server en inventory-backend)]
     Api -. usa FCM si hay emisor server-side .-> FCM[Firebase Cloud Messaging]
 
     Movement[Movimiento de inventario] --> LowStock{Bajo stock}
@@ -576,8 +576,8 @@ flowchart TD
 Para el MVP:
 
 - Flutter obtiene el token FCM.
-- Flutter envia el token al backend mediante Dio.
-- El backend almacena el token en SQL Server cuando se implemente.
+- Flutter envia el token al backend externo mediante Dio.
+- El backend externo almacena el token en SQL Server cuando se implemente.
 - Flutter puede recibir push mediante Firebase Messaging.
 - Se puede mostrar alerta local o in-app por bajo stock.
 
@@ -599,7 +599,7 @@ Uso:
 - Recibir push.
 - Preparar infraestructura para notificaciones futuras.
 
-El token FCM se enviara al backend mediante Dio para que pueda almacenarse en SQL Server cuando se implemente el endpoint correspondiente.
+El token FCM se enviara al backend externo mediante Dio para que pueda almacenarse en SQL Server desde `inventory-backend` cuando se implemente el endpoint correspondiente.
 
 ---
 
@@ -631,11 +631,11 @@ Contrato documentado en:
 docs/api-contracts/external-product-api.md
 ```
 
-El backend puede enrutar la busqueda mediante el endpoint `GET /product-lookup/{barcode}` definido en `docs/api-contracts/openapi.inventory-api.yaml`. En ese caso, el backend actua como proxy del proveedor externo.
+El backend externo puede enrutar la busqueda mediante el endpoint `GET /product-lookup/{barcode}` definido en `docs/api-contracts/openapi.inventory-api.yaml`. En ese caso, el backend actua como proxy del proveedor externo.
 
 Tambien puede existir consumo directo desde Flutter mediante `OpenFoodFactsDataSource`, si se decide por simplicidad. Esa opcion no reemplaza al backend como camino de persistencia.
 
-Dio se usa para el backend y para integraciones HTTP. Dio nunca se usa para conectar directamente a SQL Server.
+Dio se usa para consumir el backend externo y para integraciones HTTP. Dio nunca se usa para conectar directamente a SQL Server.
 
 ---
 
@@ -734,7 +734,7 @@ Para:
 - Validar stock insuficiente.
 - Consultar historial.
 
-Las pruebas de integracion backend deberan validar eventualmente endpoints del ASP.NET Core Web API cuando el backend exista.
+Las pruebas de integracion backend pertenecen a `inventory-backend`. En `inventory-mobile-project`, las pruebas Flutter deben usar mocks, fakes o clientes Dio controlados por defecto.
 
 ---
 
@@ -780,7 +780,7 @@ Registrar movimientos desde la app sin transaccion backend generaria riesgo de i
 
 Mitigacion:
 
-Centralizar los cambios de stock en el backend con transacciones SQL Server o EF Core.
+Centralizar los cambios de stock en `inventory-backend` con transacciones SQL Server o EF Core.
 
 ---
 
@@ -836,14 +836,20 @@ La arquitectura se considera correcta si:
 
 ## 25. Estado del documento
 
-Pendiente de implementacion:
+Pendiente de implementacion en `inventory-mobile-project`:
 
-- Scaffold del backend ASP.NET Core Web API.
-- Configuracion SQL Server con Docker Compose.
-- Endpoints backend segun `docs/api-contracts/openapi.inventory-api.yaml`.
 - Conexion de Flutter con `RestApiDataSource` mediante Dio.
-- Configuracion FCM.
-- Decision final de almacenamiento de imagenes.
+- Configuracion de base URL del backend externo.
+- Integracion movil con autenticacion, productos, stock, movimientos e historial.
+- Configuracion FCM del lado movil.
+- Pruebas Flutter con `MockDataSource`, fakes o clientes Dio controlados.
+- Decision final de almacenamiento de imagenes desde la app.
+
+Responsabilidades de `inventory-backend`:
+
+- Implementacion ASP.NET Core Web API.
+- Endpoints backend segun `docs/api-contracts/openapi.inventory-api.yaml`.
+- SQL Server, EF Core, migraciones, Docker Compose y pruebas backend.
 
 Este documento debe actualizarse si cambian:
 
