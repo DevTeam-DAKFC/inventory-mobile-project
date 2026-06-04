@@ -1,10 +1,12 @@
-# Project Scope - Sistema de Gestión de Inventario Multiusuario
+# Alcance del proyecto - Sistema de Gestión de Inventario Multiusuario
 
 ## 1. Propósito del documento
 
 Este documento define el alcance inicial del proyecto, las funcionalidades incluidas en el MVP, las funcionalidades fuera de alcance, los roles principales, las entidades base y las reglas de negocio que deben guiar el desarrollo.
 
 Su objetivo es alinear al equipo antes de iniciar la implementación, evitando que el proyecto crezca de forma desordenada o que cada integrante interprete la solución de manera distinta.
+
+Este alcance corresponde al repositorio móvil `inventory-mobile-project`: aplicación Flutter, documentación móvil, integración mediante Dio / HttpClient y pruebas Flutter. La implementación backend vive en el repositorio separado `inventory-backend`.
 
 ---
 
@@ -30,6 +32,8 @@ Se desarrollará una aplicación móvil en Flutter para gestionar el inventario 
 
 La aplicación permitirá que usuarios autenticados puedan consultar productos, visualizar stock por sucursal, registrar entradas y salidas de inventario, revisar el historial de movimientos y buscar o filtrar información relevante.
 
+El backend ASP.NET Core Web API, SQL Server, Docker Compose, EF Core y las pruebas backend pertenecen a `inventory-backend`. Este repositorio móvil solo consumirá el backend externo mediante Dio / HttpClient.
+
 El proyecto no busca ser un sistema empresarial completo tipo ERP. El enfoque será construir un MVP funcional y profesional, de alcance controlado, pero con buena calidad técnica, visual y documental.
 
 ---
@@ -42,8 +46,8 @@ Desarrollar una aplicación móvil en Flutter para gestionar el inventario multi
 
 ## 5. Objetivos específicos
 
-- Implementar autenticación de usuarios.
-- Gestionar productos mediante operaciones CRUD.
+- Implementar la UI de autenticación e integrarla con el backend externo.
+- Gestionar productos desde la UI móvil mediante endpoints REST.
 - Representar sucursales como parte del inventario.
 - Visualizar existencias por producto y sucursal.
 - Registrar entradas de inventario.
@@ -56,7 +60,8 @@ Desarrollar una aplicación móvil en Flutter para gestionar el inventario multi
 - Consumir una API externa para apoyar el registro de productos.
 - Permitir registro manual de productos como flujo principal.
 - Contemplar importación de productos desde archivo CSV como funcionalidad complementaria.
-- Implementar alertas o notificaciones relacionadas con bajo stock.
+- Implementar alertas o notificaciones relacionadas con bajo stock desde la app móvil.
+- Configurar recepción de FCM desde el lado móvil.
 - Aplicar una arquitectura modular, mantenible y clara.
 - Incluir pruebas automatizadas e integración continua.
 - Documentar decisiones técnicas, arquitectura, modelo de datos y flujo de trabajo.
@@ -95,7 +100,7 @@ La aplicación permitirá:
 - Mantener sesión activa.
 - Diferenciar usuarios según rol.
 
-La autenticación se implementará desde el backend ASP.NET Core Web API planificado. Esta definición no implica que el backend ya exista.
+La aplicación móvil implementará la UI de autenticación y consumirá los endpoints del backend externo mediante Dio / HttpClient. La implementación de esos endpoints pertenece a `inventory-backend`.
 
 ---
 
@@ -256,7 +261,7 @@ La aplicación permitirá asociar imágenes a productos.
 
 Las imágenes ayudarán a identificar productos de forma visual, especialmente en listados y pantallas de detalle.
 
-La gestión de imágenes podrá implementarse mediante Firebase Storage si el equipo decide usarlo, o mediante un flujo de almacenamiento gestionado por el backend planificado.
+La gestión de imágenes podrá integrarse desde la app con Firebase Storage si el equipo decide usarlo, o con un flujo de almacenamiento gestionado por el backend externo.
 
 ---
 
@@ -299,7 +304,7 @@ Para el MVP:
 - Se mostrará alerta visual o notificación local cuando un producto quede por debajo del stock mínimo.
 - Se podrá demostrar recepción de notificación push usando Firebase Cloud Messaging cuando esté configurado.
 
-El envío automático de push notifications por bajo stock desde el backend planificado quedará como mejora futura.
+El envío automático de push notifications por bajo stock desde el backend externo quedará como mejora futura. Este repositorio se enfoca en la recepción y configuración móvil de FCM.
 
 ---
 
@@ -642,15 +647,15 @@ La arquitectura base será:
 - MVVM.
 - Riverpod para manejo de estado e inyección de dependencias.
 - Repository Pattern para separar la UI del acceso a datos.
-- ASP.NET Core Web API como backend planificado.
-- SQL Server como capa de persistencia planificada detrás del backend.
-- Docker / Docker Compose como infraestructura backend planificada.
+- ASP.NET Core Web API como backend externo en `inventory-backend`.
+- SQL Server como capa de persistencia planificada detrás del backend externo.
+- Docker / Docker Compose como infraestructura del repositorio backend.
 - Firebase Cloud Messaging para notificaciones push.
 - Firebase Storage como opción para imágenes de productos, si el equipo decide usarlo.
-- Cliente HTTP, como Dio / HttpClient, para consumir el backend planificado y la API externa de productos.
+- Cliente HTTP, como Dio / HttpClient, para consumir el backend externo y la API externa de productos.
 - Lectura de archivos CSV como funcionalidad complementaria de carga inicial de inventario.
 
-Esta decisión permite mantener una arquitectura clara entre la aplicación móvil, el backend planificado, la persistencia y los servicios complementarios.
+Esta decisión mantiene una separación clara entre `inventory-mobile-project`, el backend externo, la persistencia y los servicios complementarios.
 
 ---
 

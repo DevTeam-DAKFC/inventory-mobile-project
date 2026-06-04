@@ -18,7 +18,7 @@ docs/architecture/project-scope.md
 |---|---|
 | DT-01 | Usar Flutter y Dart |
 | DT-02 | Usar ASP.NET Core Web API como backend principal |
-| DT-03 | Implementar un backend REST para el MVP |
+| DT-03 | Consumir un backend REST externo para el MVP |
 | DT-04 | Manejar autenticación desde el backend con JWT |
 | DT-05 | Usar SQL Server como persistencia principal |
 | DT-06 | Definir almacenamiento de imágenes entre Firebase Storage o flujo backend |
@@ -39,7 +39,7 @@ docs/architecture/project-scope.md
 | DT-21 | Implementar estados de UI explícitos |
 | DT-22 | Centralizar validaciones |
 | DT-23 | Implementar testing automatizado y GitHub Actions |
-| DT-24 | Contrato OpenAPI para el backend ASP.NET Core |
+| DT-24 | Contrato OpenAPI compartido con el backend ASP.NET Core |
 | DT-25 | Usar infraestructura backend basada en Docker |
 
 ---
@@ -60,9 +60,9 @@ La aplicación se desarrollará con una sola base de código y se enfocará inic
 
 ## DT-02: Usar ASP.NET Core Web API como backend principal
 
-ASP.NET Core Web API será el backend principal planificado del sistema.
+ASP.NET Core Web API será el backend principal planificado del sistema y pertenecerá al repositorio separado `inventory-backend`.
 
-El backend expondrá endpoints REST que serán consumidos por la aplicación Flutter mediante Dio / HttpClient.
+La aplicación Flutter en `inventory-mobile-project` consumirá ese backend externo mediante Dio / HttpClient.
 
 Responsabilidades previstas:
 
@@ -71,9 +71,9 @@ Responsabilidades previstas:
 | Controllers | Recibir solicitudes HTTP, validar entrada básica y devolver respuestas REST. |
 | Services | Contener reglas de negocio, validaciones de dominio y coordinación de casos de uso. |
 | Repositories | Gestionar acceso a persistencia. |
-| SQL Server | Almacenar los datos principales del sistema a través del backend. |
+| SQL Server | Almacenar los datos principales del sistema a través del backend externo. |
 
-El backend está planificado y todavía no está implementado.
+Esta decisión no implica que exista código backend dentro de `inventory-mobile-project`.
 
 ### Justificación
 
@@ -81,9 +81,9 @@ Centralizar las reglas de negocio y la persistencia en un backend REST permite s
 
 ---
 
-## DT-03: Implementar un backend REST para el MVP
+## DT-03: Consumir un backend REST externo para el MVP
 
-El MVP tendrá como dirección técnica implementar un backend REST con ASP.NET Core Web API.
+El MVP tendrá como dirección técnica consumir un backend REST con ASP.NET Core Web API desde el repositorio separado `inventory-backend`.
 
 La aplicación Flutter consumirá endpoints del backend mediante Dio / HttpClient. El contrato OpenAPI existente seguirá siendo la referencia esperada para esa API.
 
@@ -93,7 +93,7 @@ Contrato esperado:
 docs/api-contracts/openapi.inventory-api.yaml
 ```
 
-La implementación del backend está pendiente. Esta decisión no implica que el backend ya exista.
+La implementación del backend corresponde a `inventory-backend`. Esta decisión no implica que el backend ya exista dentro de `inventory-mobile-project`.
 
 ### Justificación
 
@@ -103,7 +103,7 @@ Un backend REST permite que Flutter no dependa directamente de la persistencia, 
 
 ## DT-04: Manejar autenticación desde el backend con JWT
 
-La autenticación será manejada por el backend ASP.NET Core Web API.
+La autenticación será manejada por el backend externo ASP.NET Core Web API.
 
 Dirección planificada:
 
@@ -122,7 +122,7 @@ Manejar autenticación desde el backend permite controlar usuarios, roles, permi
 
 ## DT-05: Usar SQL Server como persistencia principal
 
-SQL Server será la capa principal de persistencia del sistema.
+SQL Server será la capa principal de persistencia detrás del backend externo.
 
 Se almacenarán datos como:
 
@@ -134,7 +134,7 @@ Se almacenarán datos como:
 - Tokens de notificación.
 - Lotes de importación, si se implementan.
 
-El contrato de esquema planificado vive en `docs/api-contracts/sqlserver-schema.md`; la configuración de SQL Server sigue pendiente y deberá realizarse detrás del backend ASP.NET Core Web API.
+El contrato de esquema planificado vive en `docs/api-contracts/sqlserver-schema.md` como referencia compartida. La configuración real de SQL Server, las migraciones EF Core y la persistencia pertenecen a `inventory-backend`, no al repositorio móvil.
 
 ### Justificación
 
@@ -166,8 +166,8 @@ Firebase Cloud Messaging se usará para cumplir el requisito de notificaciones p
 Para el MVP:
 
 - La app registrará el token FCM del dispositivo.
-- El backend ASP.NET Core podrá guardar tokens de dispositivo asociados al usuario.
-- El backend podrá disparar notificaciones push cuando se implemente el emisor server-side.
+- El backend ASP.NET Core en `inventory-backend` podrá guardar tokens de dispositivo asociados al usuario.
+- El backend externo podrá disparar notificaciones push cuando se implemente el emisor server-side.
 - Se podrá demostrar recepción de una push notification enviada desde Firebase Console.
 - Flutter recibirá notificaciones mediante Firebase Messaging.
 - La app podrá mostrar alertas locales o in-app cuando un producto quede en bajo stock.
@@ -213,10 +213,10 @@ Dio será el cliente HTTP de la aplicación para integraciones REST.
 
 Uso planificado en el MVP:
 
-- Consumir la API REST del backend ASP.NET Core desde `RestApiDataSource`.
+- Consumir la API REST del backend externo ASP.NET Core desde `RestApiDataSource`.
 - Consumir la API externa de productos si se llama directamente desde Flutter, por ejemplo desde `OpenFoodFactsDataSource`.
 
-Dio no se usará para conectar directamente con SQL Server. La base de datos se consumirá únicamente a través del backend.
+Dio no se usará para conectar directamente con SQL Server. La base de datos se consumirá únicamente a través del backend externo.
 
 Firebase no será el backend principal de datos. Los SDKs oficiales de Firebase se usarán solo para servicios Firebase que lo requieran, como Firebase Messaging y, si se decide, Firebase Storage.
 
@@ -297,7 +297,7 @@ ImportRepository
 
 Los contratos de repositorios son agnósticos del backend. Cada repositorio coordina una o varias implementaciones intercambiables de data source:
 
-- `RestApiDataSource` — familia principal de data sources para datos del MVP, consumiendo el backend ASP.NET Core mediante Dio.
+- `RestApiDataSource` — familia principal de data sources para datos del MVP, consumiendo el backend externo ASP.NET Core mediante Dio.
 - `MockDataSource` — implementación usada en pruebas, prototipos y demostraciones, alineada con los datos descritos en `docs/api-contracts/mock-data.md`.
 - `FirebaseDataSource` — implementación limitada a servicios Firebase, como FCM y almacenamiento opcional de imágenes; no se usará para persistencia de inventario.
 
@@ -428,7 +428,7 @@ Esto garantiza trazabilidad y permite saber quién realizó cada cambio, cuándo
 
 ## DT-17: Manejar cambios de stock con transacciones en el backend
 
-Cuando se registre una entrada o salida, el backend deberá manejar el cambio de stock de forma transaccional.
+Cuando se registre una entrada o salida, el backend externo deberá manejar el cambio de stock de forma transaccional.
 
 Flujo esperado:
 
@@ -442,11 +442,11 @@ Flujo esperado:
 
 ### Justificación
 
-Una transacción de SQL Server o EF Core debe garantizar que el stock y el movimiento de inventario permanezcan consistentes cuando varios usuarios actualicen inventario.
+Una transacción de SQL Server o EF Core deberá garantizar esa consistencia dentro de `inventory-backend` cuando se implemente la persistencia backend.
 
 ### Limitación
 
-La implementación de esta regla está pendiente junto con el backend y la persistencia SQL Server.
+La implementación de esta regla pertenece al backend externo y no forma parte del código de `inventory-mobile-project`.
 
 ---
 
@@ -476,7 +476,7 @@ Puede:
 
 ### Decisión
 
-Los roles se almacenarán en SQL Server a través del backend.
+Los roles se almacenarán en SQL Server a través del backend externo.
 
 Ejemplo:
 
@@ -616,9 +616,9 @@ El proyecto requiere testing automatizado e integración continua, por lo que de
 
 ---
 
-## DT-24: Contrato OpenAPI para el backend ASP.NET Core
+## DT-24: Contrato OpenAPI compartido con el backend ASP.NET Core
 
-El sistema documenta un contrato REST formal que el backend ASP.NET Core Web API deberá implementar. Ese contrato vive en:
+El sistema documenta un contrato REST formal compartido entre `inventory-mobile-project` y `inventory-backend`. Ese contrato vive en:
 
 ```text
 docs/api-contracts/openapi.inventory-api.yaml
@@ -628,41 +628,41 @@ Relación con la documentación de contratos:
 
 | Documento | Rol |
 |---|---|
-| `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST que deberá implementar el backend ASP.NET Core Web API. |
-| `docs/api-contracts/sqlserver-schema.md` | Contrato de esquema SQL Server planificado para guiar entidades EF Core, migraciones y repositorios. |
+| `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST que la app móvil consumirá y que el backend externo deberá implementar. |
+| `docs/api-contracts/sqlserver-schema.md` | Referencia compartida de esquema SQL Server para el repositorio backend. |
 | `docs/api-contracts/external-product-api.md` | Documenta la integración directa con la API externa de productos (Open Food Facts). |
 | `docs/api-contracts/mock-data.md` | Aporta datos de demostración para desarrollo, pruebas y demostraciones del producto. |
 
 ### Reglas
 
 - Firebase no será la implementación principal de persistencia del MVP.
-- El contrato OpenAPI define lo que el backend deberá implementar.
-- El contrato OpenAPI no implica que el backend ya esté implementado.
-- `sqlserver-schema.md` define el contrato de persistencia planificado y no implica que SQL Server o migraciones ya existan.
+- El contrato OpenAPI define la superficie REST compartida entre móvil y backend.
+- El contrato OpenAPI no implica que exista código backend en este repositorio.
+- `sqlserver-schema.md` define una referencia compartida y no implica que SQL Server, Docker Compose o migraciones existan en `inventory-mobile-project`.
 - Los repositorios definidos en DT-12 deben permitir usar `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
 - Las pantallas y ViewModels no dependen del proveedor de backend.
 
 ### Justificación
 
-Documentar el contrato esperado mantiene alineada la implementación móvil con el backend planificado. También permite usar mock data sources en pruebas y demos sin cambiar el dominio.
+Documentar el contrato esperado mantiene alineada la implementación móvil con el backend externo. También permite usar mock data sources en pruebas y demos sin cambiar el dominio.
 
 ---
 
 ## DT-25: Usar infraestructura backend basada en Docker
 
-Docker / Docker Compose se usará para la infraestructura backend planificada en desarrollo local, especialmente para SQL Server.
+Docker / Docker Compose se usará para la infraestructura backend planificada en `inventory-backend`, especialmente para SQL Server.
 
 Dirección planificada:
 
-- Ejecutar SQL Server en Docker para desarrollo local.
-- Mantener la configuración reproducible mediante Docker Compose.
-- Evaluar la contenedorización del backend ASP.NET Core en una etapa posterior.
+- Ejecutar SQL Server en Docker desde el repositorio backend.
+- Mantener la configuración reproducible mediante Docker Compose en `inventory-backend`.
+- Evaluar la contenedorización del backend ASP.NET Core desde el repositorio backend.
 
-El archivo `docker-compose.yml` todavía no ha sido creado y la infraestructura Docker no está configurada.
+`inventory-mobile-project` no debe contener `docker-compose.yml`, configuración SQL Server ni infraestructura Docker del backend.
 
 ### Justificación
 
-Docker permite definir una base de datos local reproducible, reducir diferencias entre entornos y facilitar que el backend se ejecute con dependencias consistentes.
+Docker permite definir una base de datos local reproducible, reducir diferencias entre entornos y facilitar que el backend externo se ejecute con dependencias consistentes.
 
 ---
 
@@ -695,8 +695,8 @@ UI
 → ViewModel
 → Repository
 → RestApiDataSource
-→ ASP.NET Core Web API
-→ SQL Server
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en el repositorio backend
 ```
 
 Firebase Services, APIs externas y almacenamiento local se consumen mediante data sources específicos cuando aplique.
