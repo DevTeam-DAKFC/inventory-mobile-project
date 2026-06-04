@@ -24,8 +24,7 @@ info:
     Authentication:
     - Authentication is mandatory for the application.
     - User registration, login and current-user retrieval are MVP-critical
-      endpoints and will be defined under the Auth tag in later iterations of
-      this document.
+      endpoints defined under the Auth tag in this document.
   version: 1.0.0
 
 servers:
