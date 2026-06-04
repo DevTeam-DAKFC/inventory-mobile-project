@@ -195,7 +195,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), referencia Firestore por reformular, API externa y mock data. |
+| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), esquema SQL Server planificado, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -222,14 +222,16 @@ docs/architecture/layers-explanation.md
 ```text
 docs/api-contracts/README.md
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/firestore-collections.md
+docs/api-contracts/sqlserver-schema.md
 docs/api-contracts/external-product-api.md
 docs/api-contracts/mock-data.md
 ```
 
 `openapi.inventory-api.yaml` describe el contrato REST que el backend ASP.NET Core Web API deberá implementar. No implica que dicho backend esté implementado.
 
-`firestore-collections.md` ya no es el contrato activo de persistencia y será reformulado o reemplazado en un bloque posterior. `external-product-api.md` describe la integración con Open Food Facts y `mock-data.md` se mantiene útil para desarrollo, pruebas y demos.
+`sqlserver-schema.md` describe el contrato de esquema SQL Server planificado para la persistencia detrás del backend. No implica que la base de datos, las migraciones o el backend ya existan.
+
+`external-product-api.md` describe la integración con Open Food Facts y `mock-data.md` se mantiene útil para desarrollo, pruebas y demos.
 
 ### Testing
 

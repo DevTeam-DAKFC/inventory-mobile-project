@@ -13,10 +13,11 @@ docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
 docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/sqlserver-schema.md
 docs/api-contracts/external-product-api.md
 ```
 
-`docs/api-contracts/firestore-collections.md` documenta un enfoque anterior basado en Firestore. Ya no es el contrato activo de persistencia y queda pendiente de reemplazo por documentacion de esquema SQL Server.
+`docs/api-contracts/sqlserver-schema.md` define el contrato de esquema SQL Server planificado para la persistencia detrás del backend.
 
 ---
 
@@ -63,6 +64,8 @@ docs/api-contracts/openapi.inventory-api.yaml
 ```
 
 Los datos de demostracion descritos en `docs/api-contracts/mock-data.md` se utilizan en desarrollo, pruebas y demos, y permiten alimentar implementaciones mock de los data sources.
+
+El contrato de persistencia planificado vive en `docs/api-contracts/sqlserver-schema.md`. No implica que SQL Server, migraciones o backend ya existan.
 
 La UI y los ViewModels no deben depender directamente del backend, SQL Server, Firebase, un cliente REST ni cualquier otra fuente concreta de datos.
 

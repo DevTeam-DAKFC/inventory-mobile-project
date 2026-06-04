@@ -11,7 +11,7 @@ Firebase no será el backend principal ni la capa de persistencia del sistema. S
 Los documentos se dividen en:
 
 - Contrato REST para el backend ASP.NET Core Web API (`openapi.inventory-api.yaml`).
-- Referencia histórica de una persistencia basada en Firestore (`firestore-collections.md`), pendiente de reemplazo o archivo.
+- Contrato de esquema SQL Server planificado para la persistencia detrás del backend (`sqlserver-schema.md`).
 - Contrato de integración con la API externa de productos (`external-product-api.md`).
 - Datos de prueba o mock data para desarrollo, testing y demostraciones (`mock-data.md`).
 
@@ -36,7 +36,7 @@ Decisiones principales:
 - SQL Server será la capa principal de persistencia detrás del backend.
 - Docker / Docker Compose dará soporte a la infraestructura backend, especialmente para SQL Server en desarrollo local.
 - OpenAPI define el contrato de endpoints, requests, responses y seguridad.
-- La documentación del esquema SQL Server está pendiente.
+- `sqlserver-schema.md` define el contrato de esquema SQL Server planificado.
 - Firebase se mantiene únicamente para FCM y almacenamiento opcional de imágenes.
 
 ---
@@ -64,13 +64,11 @@ Este contrato no implica que el backend ya exista. Define la superficie que la i
 
 ---
 
-### `firestore-collections.md`
+### `sqlserver-schema.md`
 
-Documento deprecated/histórico.
+Define el contrato de esquema SQL Server planificado para la persistencia detrás del backend ASP.NET Core Web API.
 
-`firestore-collections.md` documenta un enfoque anterior de persistencia basado en Firestore. Ya no es el contrato activo de persistencia del MVP y será reemplazado o archivado en un bloque posterior.
-
-No se elimina en este bloque para conservar trazabilidad documental mientras se completa la transición hacia SQL Server.
+Incluye tablas, columnas, llaves primarias, llaves foráneas, restricciones e índices sugeridos para guiar futuras entidades EF Core, migraciones y repositorios. No implica que la base de datos, las migraciones o el backend ya estén implementados.
 
 ---
 
@@ -165,7 +163,7 @@ Será la capa principal de persistencia detrás del backend.
 
 La aplicación Flutter no se conectará directamente a SQL Server. Toda lectura y escritura de datos de inventario deberá pasar por el backend ASP.NET Core Web API.
 
-La documentación del esquema SQL Server está pendiente.
+El contrato de esquema planificado vive en `sqlserver-schema.md`.
 
 ---
 
@@ -257,13 +255,12 @@ Especialmente:
 
 Los siguientes elementos están pendientes o no forman parte de esta carpeta:
 
-- Documento de esquema SQL Server.
 - Implementación del backend ASP.NET Core Web API.
 - Configuración Docker / Docker Compose.
 - Flujo final de almacenamiento de imágenes si se decide gestionarlo desde backend.
 - Implementación server-side para envío automático de notificaciones push.
 
-El contrato OpenAPI ya documenta la superficie REST esperada. La implementación backend está pendiente, no excluida.
+El contrato OpenAPI ya documenta la superficie REST esperada y `sqlserver-schema.md` documenta el esquema de persistencia planificado. La implementación backend está pendiente, no excluida.
 
 ---
 
@@ -288,7 +285,7 @@ Estructura esperada:
 docs/api-contracts/
 ├── README.md
 ├── openapi.inventory-api.yaml
-├── firestore-collections.md
+├── sqlserver-schema.md
 ├── external-product-api.md
 └── mock-data.md
 ```
@@ -296,7 +293,7 @@ docs/api-contracts/
 Estado actual:
 
 - `openapi.inventory-api.yaml` se mantiene como contrato REST principal.
-- `firestore-collections.md` queda como documento histórico/deprecated y pendiente de reemplazo.
+- `sqlserver-schema.md` se mantiene como contrato de esquema SQL Server planificado.
 - `external-product-api.md` se mantiene como contrato de la API externa.
 - `mock-data.md` se mantiene para desarrollo, pruebas y demos.
 
@@ -309,15 +306,14 @@ La documentación de contratos cubre las piezas necesarias para describir cómo 
 | Pieza requerida | Archivo | Detalle |
 |---|---|---|
 | Endpoints | `openapi.inventory-api.yaml` | Contrato REST principal para el backend ASP.NET Core Web API planificado. |
-| Contratos | `openapi.inventory-api.yaml` y documento pendiente de esquema SQL Server | OpenAPI define la API; el esquema SQL Server deberá documentarse en un bloque posterior. |
+| Contratos | `openapi.inventory-api.yaml` y `sqlserver-schema.md` | OpenAPI define la API; `sqlserver-schema.md` define el esquema SQL Server planificado. |
 | Requests / responses | `openapi.inventory-api.yaml` y `external-product-api.md` | Ejemplos de solicitud y respuesta para el contrato REST de la aplicación y para Open Food Facts. |
 | Mock data | `mock-data.md` | Datos de demostración para usuarios, sucursales, productos, stock, movimientos, importación CSV y casos de prueba. |
-| Referencia histórica | `firestore-collections.md` | Documento deprecated/histórico de una persistencia Firestore anterior; no es el contrato activo. |
 
 Notas de alcance:
 
 - `openapi.inventory-api.yaml` describe la superficie REST que deberá implementar el backend ASP.NET Core Web API.
 - El contrato OpenAPI no implica que el backend ya esté implementado.
-- `firestore-collections.md` no representa la persistencia activa del MVP.
+- `sqlserver-schema.md` define el esquema de persistencia planificado y no implica que SQL Server o migraciones ya existan.
 - Open Food Facts es la API externa HTTP para búsqueda de productos; ese contrato se mantiene en `external-product-api.md`.
 - Los ejemplos de `mock-data.md` se utilizan en desarrollo, pruebas y demos del producto.

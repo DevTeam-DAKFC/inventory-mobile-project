@@ -134,7 +134,7 @@ Se almacenarán datos como:
 - Tokens de notificación.
 - Lotes de importación, si se implementan.
 
-Firestore ya no será la capa de persistencia del MVP. La configuración de SQL Server está pendiente y deberá realizarse detrás del backend ASP.NET Core Web API.
+El contrato de esquema planificado vive en `docs/api-contracts/sqlserver-schema.md`; la configuración de SQL Server sigue pendiente y deberá realizarse detrás del backend ASP.NET Core Web API.
 
 ### Justificación
 
@@ -629,7 +629,7 @@ Relación con la documentación de contratos:
 | Documento | Rol |
 |---|---|
 | `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST que deberá implementar el backend ASP.NET Core Web API. |
-| `docs/api-contracts/firestore-collections.md` | Ya no es el contrato activo de persistencia y será reformulado o reemplazado en un bloque posterior. |
+| `docs/api-contracts/sqlserver-schema.md` | Contrato de esquema SQL Server planificado para guiar entidades EF Core, migraciones y repositorios. |
 | `docs/api-contracts/external-product-api.md` | Documenta la integración directa con la API externa de productos (Open Food Facts). |
 | `docs/api-contracts/mock-data.md` | Aporta datos de demostración para desarrollo, pruebas y demostraciones del producto. |
 
@@ -638,6 +638,7 @@ Relación con la documentación de contratos:
 - Firebase no será la implementación principal de persistencia del MVP.
 - El contrato OpenAPI define lo que el backend deberá implementar.
 - El contrato OpenAPI no implica que el backend ya esté implementado.
+- `sqlserver-schema.md` define el contrato de persistencia planificado y no implica que SQL Server o migraciones ya existan.
 - Los repositorios definidos en DT-12 deben permitir usar `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
 - Las pantallas y ViewModels no dependen del proveedor de backend.
 
@@ -713,7 +714,7 @@ Las decisiones aquí registradas se consideran la base técnica oficial para los
 - `docs/architecture/data-model.md`
 - `docs/architecture/system-architecture.md`
 - `docs/api-contracts/openapi.inventory-api.yaml`
-- `docs/api-contracts/firestore-collections.md`
+- `docs/api-contracts/sqlserver-schema.md`
 - `docs/api-contracts/external-product-api.md`
 - `README.md`
 

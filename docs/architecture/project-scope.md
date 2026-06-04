@@ -95,7 +95,7 @@ La aplicación permitirá:
 - Mantener sesión activa.
 - Diferenciar usuarios según rol.
 
-La autenticación se implementará con Firebase Auth.
+La autenticación se implementará desde el backend ASP.NET Core Web API planificado. Esta definición no implica que el backend ya exista.
 
 ---
 
@@ -256,7 +256,7 @@ La aplicación permitirá asociar imágenes a productos.
 
 Las imágenes ayudarán a identificar productos de forma visual, especialmente en listados y pantallas de detalle.
 
-La gestión de imágenes se implementará mediante Firebase Storage.
+La gestión de imágenes podrá implementarse mediante Firebase Storage si el equipo decide usarlo, o mediante un flujo de almacenamiento gestionado por el backend planificado.
 
 ---
 
@@ -297,9 +297,9 @@ La aplicación incluirá alertas o notificaciones relacionadas con bajo stock.
 Para el MVP:
 
 - Se mostrará alerta visual o notificación local cuando un producto quede por debajo del stock mínimo.
-- Se podrá demostrar recepción de notificación push usando Firebase Cloud Messaging.
+- Se podrá demostrar recepción de notificación push usando Firebase Cloud Messaging cuando esté configurado.
 
-El envío automático de push notifications por bajo stock mediante Cloud Functions quedará como mejora futura.
+El envío automático de push notifications por bajo stock desde el backend planificado quedará como mejora futura.
 
 ---
 
@@ -642,15 +642,15 @@ La arquitectura base será:
 - MVVM.
 - Riverpod para manejo de estado e inyección de dependencias.
 - Repository Pattern para separar la UI del acceso a datos.
-- Firebase como backend principal.
-- Firebase Auth para autenticación.
-- Cloud Firestore para persistencia.
-- Firebase Storage para imágenes.
-- Firebase Cloud Messaging para notificaciones.
-- Cliente HTTP, como Dio, solo para API externa de productos.
+- ASP.NET Core Web API como backend planificado.
+- SQL Server como capa de persistencia planificada detrás del backend.
+- Docker / Docker Compose como infraestructura backend planificada.
+- Firebase Cloud Messaging para notificaciones push.
+- Firebase Storage como opción para imágenes de productos, si el equipo decide usarlo.
+- Cliente HTTP, como Dio / HttpClient, para consumir el backend planificado y la API externa de productos.
 - Lectura de archivos CSV como funcionalidad complementaria de carga inicial de inventario.
 
-Esta decisión permite cubrir los requerimientos técnicos del proyecto sin construir un backend propio completo, manteniendo el foco en el desarrollo móvil.
+Esta decisión permite mantener una arquitectura clara entre la aplicación móvil, el backend planificado, la persistencia y los servicios complementarios.
 
 ---
 

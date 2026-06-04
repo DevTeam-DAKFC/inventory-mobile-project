@@ -13,7 +13,6 @@ La aplicación Flutter no se conectará directamente a SQL Server. Flutter consu
 - `openapi.inventory-api.yaml` define el contrato REST esperado por la aplicación móvil.
 - `sqlserver-schema.md` define el esquema de persistencia planificado para SQL Server.
 - `mock-data.md` contiene datos semilla para demos, pruebas y desarrollo.
-- `firestore-collections.md` documenta un enfoque histórico basado en Firestore y no es el contrato activo de persistencia.
 
 ## 3. Convenciones de nombres
 
@@ -343,5 +342,4 @@ Restricciones importantes:
 - Este documento no crea migraciones.
 - Este documento no crea código backend.
 - Este documento no crea `docker-compose.yml`.
-- Este documento no elimina `firestore-collections.md`.
 - Este documento no indica que SQL Server, Docker Compose o el backend ya existan.

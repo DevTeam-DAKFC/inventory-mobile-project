@@ -633,7 +633,13 @@ unknown
 
 Este documento define el modelo conceptual.
 
-La persistencia principal planificada será SQL Server detrás del backend ASP.NET Core Web API. El esquema específico de SQL Server está pendiente de documentación.
+La persistencia principal planificada será SQL Server detrás del backend ASP.NET Core Web API. El contrato de esquema planificado se documenta en:
+
+```text
+docs/api-contracts/sqlserver-schema.md
+```
+
+`sqlserver-schema.md` guía futuras entidades EF Core, migraciones y repositorios. No implica que SQL Server, las migraciones o el backend ya existan.
 
 El contrato REST vigente se documenta en:
 
@@ -642,8 +648,6 @@ docs/api-contracts/openapi.inventory-api.yaml
 ```
 
 `openapi.inventory-api.yaml` describe el contrato REST que deberá implementar el backend ASP.NET Core Web API. No implica que el backend ya esté implementado.
-
-`docs/api-contracts/firestore-collections.md` ya no es el contrato activo de persistencia. Documenta un enfoque anterior basado en Firestore y será reemplazado o archivado en un bloque posterior.
 
 Sin embargo, desde este modelo se adelantan las siguientes decisiones:
 
