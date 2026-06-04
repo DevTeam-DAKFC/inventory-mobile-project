@@ -8,7 +8,7 @@ import '../../dto/backend_health_rest_dto.dart';
 ///
 /// Converts raw Dio failures into the shared [AppException] taxonomy so
 /// repositories never observe transport-specific errors.
-final class RestApiHealthDataSource {
+class RestApiHealthDataSource {
   const RestApiHealthDataSource(this._dio);
 
   final Dio _dio;
