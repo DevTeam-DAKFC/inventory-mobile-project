@@ -992,10 +992,8 @@ No debe depender de:
 Flutter UI
 Firebase
 Dio
-Firestore
 Storage
 FCM
-SQL Server
 ```
 
 ---

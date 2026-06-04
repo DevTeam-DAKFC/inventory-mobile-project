@@ -12,10 +12,9 @@ Este archivo complementa:
 docs/architecture/project-scope.md
 docs/architecture/data-model.md
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/sqlserver-schema.md
 ```
 
-`docs/api-contracts/sqlserver-schema.md` define el contrato de esquema SQL Server planificado.
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`.
 
 ---
 
@@ -24,7 +23,7 @@ docs/api-contracts/sqlserver-schema.md
 Estos datos pueden utilizarse para:
 
 - Alimentar `MockDataSource` durante desarrollo, pruebas y demos.
-- Sembrar datos de prueba para SQL Server cuando el backend ASP.NET Core Web API esté implementado.
+- Sembrar datos de prueba en `inventory-backend` cuando el backend ASP.NET Core Web API implemente la persistencia SQL Server.
 - Apoyar ejemplos del contrato `openapi.inventory-api.yaml`.
 - Probar pantallas con información realista.
 - Preparar capturas para documentación.

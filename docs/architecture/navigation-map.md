@@ -796,11 +796,12 @@ Mostrar alertas o notificaciones relacionadas con inventario.
 Flutter obtiene token FCM
 → NotificationRepository
 → RestApiNotificationTokenDataSource
-→ Backend ASP.NET Core Web API planificado mediante Dio
-→ SQL Server como persistencia planificada
+→ Dio
+→ Backend ASP.NET Core Web API en inventory-backend
+→ Persistencia gestionada por el backend
 ```
 
-Firebase Messaging se mantiene como mecanismo de recepción de push notifications. El token no debe registrarse directamente en Firestore desde Flutter.
+Firebase Messaging se mantiene como mecanismo de recepción de push notifications. El token no debe persistirse directamente desde Flutter; siempre se envía al backend a través de NotificationRepository.
 
 ---
 

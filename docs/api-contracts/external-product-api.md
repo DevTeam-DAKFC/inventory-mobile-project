@@ -4,7 +4,7 @@
 
 Este documento define el contrato de integración con la API externa utilizada por la aplicación para apoyar el registro de productos.
 
-La API externa no reemplaza al backend ASP.NET Core Web API planificado ni a la persistencia SQL Server definida en `sqlserver-schema.md`. Su función es ayudar al usuario a autocompletar información de productos, principalmente mediante código de barras.
+La API externa no reemplaza al backend ASP.NET Core Web API externo ni a la persistencia SQL Server gestionada en `inventory-backend`. Su función es ayudar al usuario a autocompletar información de productos, principalmente mediante código de barras.
 
 Este documento complementa:
 
@@ -12,7 +12,6 @@ Este documento complementa:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/api-contracts/sqlserver-schema.md
 ```
 
 ---

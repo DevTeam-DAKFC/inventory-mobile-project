@@ -13,11 +13,10 @@ docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/sqlserver-schema.md
 docs/api-contracts/external-product-api.md
 ```
 
-`docs/api-contracts/sqlserver-schema.md` se conserva como referencia compartida con `inventory-backend` para el esquema SQL Server. No implica que SQL Server, Docker Compose, EF Core o migraciones vivan en este repositorio movil.
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`. No implica que SQL Server, Docker Compose, EF Core o migraciones vivan en este repositorio movil.
 
 ---
 
@@ -65,7 +64,7 @@ docs/api-contracts/openapi.inventory-api.yaml
 
 Los datos de demostracion descritos en `docs/api-contracts/mock-data.md` se utilizan en desarrollo, pruebas y demos, y permiten alimentar implementaciones mock de los data sources.
 
-El contrato de persistencia planificado vive en `docs/api-contracts/sqlserver-schema.md` como referencia compartida. No implica que SQL Server, Docker Compose, migraciones o backend existan en `inventory-mobile-project`.
+La documentación de persistencia SQL Server pertenece a `inventory-backend`. No implica que SQL Server, Docker Compose, migraciones o backend existan en `inventory-mobile-project`.
 
 La UI y los ViewModels no deben depender directamente del backend, SQL Server, Firebase, un cliente REST ni cualquier otra fuente concreta de datos.
 
@@ -282,7 +281,7 @@ Responsabilidades:
 Regla:
 
 ```text
-domain/ no debe importar Firebase, Firestore, Dio, Storage ni paquetes de UI.
+domain/ no debe importar Firebase, Dio, Storage ni paquetes de UI.
 ```
 
 ---

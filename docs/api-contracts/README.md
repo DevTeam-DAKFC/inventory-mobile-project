@@ -4,14 +4,13 @@
 
 Esta carpeta contiene los contratos de datos e integración utilizados por la aplicación móvil Flutter.
 
-El contrato principal es `openapi.inventory-api.yaml`, que define la API REST que deberá implementar el backend ASP.NET Core Web API planificado. La persistencia principal estará detrás del backend y usará SQL Server como capa de datos.
+El contrato principal es `openapi.inventory-api.yaml`, que define la API REST que la aplicación móvil consumirá desde el backend externo `inventory-backend`. La persistencia principal estará detrás de ese backend y usará SQL Server como capa de datos en el repositorio backend.
 
 Firebase no será el backend principal ni la capa de persistencia del sistema. Se mantiene para Firebase Cloud Messaging y, si el equipo lo decide, Firebase Storage para imágenes de productos.
 
 Los documentos se dividen en:
 
 - Contrato REST para el backend ASP.NET Core Web API (`openapi.inventory-api.yaml`).
-- Contrato de esquema SQL Server planificado para la persistencia detrás del backend (`sqlserver-schema.md`).
 - Contrato de integración con la API externa de productos (`external-product-api.md`).
 - Datos de prueba o mock data para desarrollo, testing y demostraciones (`mock-data.md`).
 
@@ -24,19 +23,18 @@ La dirección técnica planificada es:
 ```text
 Flutter
 → Dio / HttpClient
-→ ASP.NET Core Web API
-→ SQL Server
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
 
-El backend ASP.NET Core Web API está planificado y todavía no está implementado. La configuración de SQL Server y Docker / Docker Compose también está pendiente.
+El backend ASP.NET Core Web API, SQL Server, Docker / Docker Compose, EF Core, migraciones y pruebas backend pertenecen a `inventory-backend`, no a este repositorio móvil.
 
 Decisiones principales:
 
 - ASP.NET Core Web API será el backend principal.
 - SQL Server será la capa principal de persistencia detrás del backend.
-- Docker / Docker Compose dará soporte a la infraestructura backend, especialmente para SQL Server en desarrollo local.
+- Docker / Docker Compose dará soporte a la infraestructura backend desde `inventory-backend`.
 - OpenAPI define el contrato de endpoints, requests, responses y seguridad.
-- `sqlserver-schema.md` define el contrato de esquema SQL Server planificado.
 - Firebase se mantiene únicamente para FCM y almacenamiento opcional de imágenes.
 
 ---
@@ -61,14 +59,6 @@ Define:
 - Esquema de seguridad `bearerAuth` (JWT), con excepciones públicas cuando aplique.
 
 Este contrato no implica que el backend ya exista. Define la superficie que la implementación backend deberá respetar.
-
----
-
-### `sqlserver-schema.md`
-
-Define el contrato de esquema SQL Server planificado para la persistencia detrás del backend ASP.NET Core Web API.
-
-Incluye tablas, columnas, llaves primarias, llaves foráneas, restricciones e índices sugeridos para guiar futuras entidades EF Core, migraciones y repositorios. No implica que la base de datos, las migraciones o el backend ya estén implementados.
 
 ---
 
@@ -163,7 +153,7 @@ Será la capa principal de persistencia detrás del backend.
 
 La aplicación Flutter no se conectará directamente a SQL Server. Toda lectura y escritura de datos de inventario deberá pasar por el backend ASP.NET Core Web API.
 
-El contrato de esquema planificado vive en `sqlserver-schema.md`.
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`.
 
 ---
 
@@ -260,7 +250,7 @@ Los siguientes elementos están pendientes o no forman parte de esta carpeta:
 - Flujo final de almacenamiento de imágenes si se decide gestionarlo desde backend.
 - Implementación server-side para envío automático de notificaciones push.
 
-El contrato OpenAPI ya documenta la superficie REST esperada y `sqlserver-schema.md` documenta el esquema de persistencia planificado. La implementación backend está pendiente, no excluida.
+El contrato OpenAPI ya documenta la superficie REST esperada para el consumo móvil. La documentación de persistencia SQL Server pertenece a `inventory-backend`.
 
 ---
 
@@ -285,7 +275,6 @@ Estructura esperada:
 docs/api-contracts/
 ├── README.md
 ├── openapi.inventory-api.yaml
-├── sqlserver-schema.md
 ├── external-product-api.md
 └── mock-data.md
 ```
@@ -293,7 +282,6 @@ docs/api-contracts/
 Estado actual:
 
 - `openapi.inventory-api.yaml` se mantiene como contrato REST principal.
-- `sqlserver-schema.md` se mantiene como contrato de esquema SQL Server planificado.
 - `external-product-api.md` se mantiene como contrato de la API externa.
 - `mock-data.md` se mantiene para desarrollo, pruebas y demos.
 
@@ -306,7 +294,7 @@ La documentación de contratos cubre las piezas necesarias para describir cómo 
 | Pieza requerida | Archivo | Detalle |
 |---|---|---|
 | Endpoints | `openapi.inventory-api.yaml` | Contrato REST principal para el backend ASP.NET Core Web API planificado. |
-| Contratos | `openapi.inventory-api.yaml` y `sqlserver-schema.md` | OpenAPI define la API; `sqlserver-schema.md` define el esquema SQL Server planificado. |
+| Contratos | `openapi.inventory-api.yaml` | OpenAPI define la API REST que consume la app móvil. |
 | Requests / responses | `openapi.inventory-api.yaml` y `external-product-api.md` | Ejemplos de solicitud y respuesta para el contrato REST de la aplicación y para Open Food Facts. |
 | Mock data | `mock-data.md` | Datos de demostración para usuarios, sucursales, productos, stock, movimientos, importación CSV y casos de prueba. |
 
@@ -314,6 +302,6 @@ Notas de alcance:
 
 - `openapi.inventory-api.yaml` describe la superficie REST que deberá implementar el backend ASP.NET Core Web API.
 - El contrato OpenAPI no implica que el backend ya esté implementado.
-- `sqlserver-schema.md` define el esquema de persistencia planificado y no implica que SQL Server o migraciones ya existan.
+- La documentación de esquema SQL Server pertenece a `inventory-backend`.
 - Open Food Facts es la API externa HTTP para búsqueda de productos; ese contrato se mantiene en `external-product-api.md`.
 - Los ejemplos de `mock-data.md` se utilizan en desarrollo, pruebas y demos del producto.

@@ -633,13 +633,7 @@ unknown
 
 Este documento define el modelo conceptual.
 
-La persistencia principal planificada será SQL Server detrás del backend ASP.NET Core Web API. El contrato de esquema planificado se documenta en:
-
-```text
-docs/api-contracts/sqlserver-schema.md
-```
-
-`sqlserver-schema.md` guía futuras entidades EF Core, migraciones y repositorios. No implica que SQL Server, las migraciones o el backend ya existan.
+La persistencia principal planificada será SQL Server detrás del backend externo ASP.NET Core Web API. La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`.
 
 El contrato REST vigente se documenta en:
 
@@ -647,12 +641,12 @@ El contrato REST vigente se documenta en:
 docs/api-contracts/openapi.inventory-api.yaml
 ```
 
-`openapi.inventory-api.yaml` describe el contrato REST que deberá implementar el backend ASP.NET Core Web API. No implica que el backend ya esté implementado.
+`openapi.inventory-api.yaml` describe el contrato REST que la aplicación móvil consumirá desde el backend externo.
 
 Sin embargo, desde este modelo se adelantan las siguientes decisiones:
 
-- Usuarios, perfiles y roles se persistirán en SQL Server a través del backend.
-- Sucursales, productos, stock y movimientos se persistirán en SQL Server a través del backend.
+- Usuarios, perfiles y roles se persistirán en SQL Server a través del backend externo.
+- Sucursales, productos, stock y movimientos se persistirán en SQL Server a través del backend externo.
 - `notification_tokens` representará tokens FCM enviados desde Flutter y almacenados por el backend.
 - `import_batches` podrá representar importaciones, si se implementa.
 - Firebase se mantiene para FCM y almacenamiento opcional de imágenes, no como persistencia principal.

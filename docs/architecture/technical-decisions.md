@@ -134,7 +134,7 @@ Se almacenarán datos como:
 - Tokens de notificación.
 - Lotes de importación, si se implementan.
 
-El contrato de esquema planificado vive en `docs/api-contracts/sqlserver-schema.md` como referencia compartida. La configuración real de SQL Server, las migraciones EF Core y la persistencia pertenecen a `inventory-backend`, no al repositorio móvil.
+La documentación de esquema SQL Server pertenece a `inventory-backend`. La configuración real de SQL Server, las migraciones EF Core y la persistencia pertenecen al repositorio backend, no al repositorio móvil.
 
 ### Justificación
 
@@ -629,7 +629,6 @@ Relación con la documentación de contratos:
 | Documento | Rol |
 |---|---|
 | `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST que la app móvil consumirá y que el backend externo deberá implementar. |
-| `docs/api-contracts/sqlserver-schema.md` | Referencia compartida de esquema SQL Server para el repositorio backend. |
 | `docs/api-contracts/external-product-api.md` | Documenta la integración directa con la API externa de productos (Open Food Facts). |
 | `docs/api-contracts/mock-data.md` | Aporta datos de demostración para desarrollo, pruebas y demostraciones del producto. |
 
@@ -638,7 +637,7 @@ Relación con la documentación de contratos:
 - Firebase no será la implementación principal de persistencia del MVP.
 - El contrato OpenAPI define la superficie REST compartida entre móvil y backend.
 - El contrato OpenAPI no implica que exista código backend en este repositorio.
-- `sqlserver-schema.md` define una referencia compartida y no implica que SQL Server, Docker Compose o migraciones existan en `inventory-mobile-project`.
+- La documentación de esquema SQL Server pertenece a `inventory-backend` y no implica que SQL Server, Docker Compose o migraciones existan en `inventory-mobile-project`.
 - Los repositorios definidos en DT-12 deben permitir usar `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
 - Las pantallas y ViewModels no dependen del proveedor de backend.
 
@@ -714,7 +713,6 @@ Las decisiones aquí registradas se consideran la base técnica oficial para los
 - `docs/architecture/data-model.md`
 - `docs/architecture/system-architecture.md`
 - `docs/api-contracts/openapi.inventory-api.yaml`
-- `docs/api-contracts/sqlserver-schema.md`
 - `docs/api-contracts/external-product-api.md`
 - `README.md`
 

@@ -72,7 +72,7 @@ tests/manual-test-cases.md
 
 Las pruebas unitarias y widget tests no deben depender de un backend real por defecto. Deben usar `MockDataSource`, repositorios fake, providers falsos o clientes Dio mockeados.
 
-Las pruebas de integración pueden apuntar al backend ASP.NET Core Web API cuando esté disponible. Las pruebas de integración backend para validar persistencia, transacciones y reglas sobre SQL Server quedan pendientes hasta que existan el backend, el esquema de datos y la configuración de ejecución correspondiente.
+Las pruebas de integración móvil pueden apuntar al backend ASP.NET Core Web API externo cuando esté disponible. Las pruebas backend para validar persistencia, transacciones y reglas sobre SQL Server pertenecen a `inventory-backend`.
 
 ---
 
@@ -437,7 +437,7 @@ Los integration tests validan flujos completos o semi-completos de la aplicació
 
 Deben enfocarse en los flujos principales del MVP.
 
-Por defecto, deben poder ejecutarse con mocks o fakes. Cuando el backend ASP.NET Core Web API esté disponible, algunos integration tests podrán ejecutarse contra endpoints reales. Las pruebas específicas de persistencia y transacciones con SQL Server quedan pendientes para el backend.
+Por defecto, deben poder ejecutarse con mocks o fakes. Cuando el backend ASP.NET Core Web API externo esté disponible, algunos integration tests móviles podrán ejecutarse contra endpoints reales. Las pruebas específicas de persistencia y transacciones con SQL Server pertenecen a `inventory-backend`.
 
 ## 9.2 Flujos prioritarios
 
@@ -855,7 +855,7 @@ El plan se considera cumplido si:
 - El equipo puede demostrar evidencia de validación.
 - Las pruebas pueden ejecutarse localmente.
 - Las pruebas unitarias y widget tests no dependen de un backend real por defecto.
-- Las pruebas backend y SQL Server se mantienen pendientes hasta que exista el backend.
+- Las pruebas backend y SQL Server pertenecen a `inventory-backend`.
 - El comportamiento FCM se valida cuando Firebase Messaging esté configurado.
 - Los fallos principales muestran mensajes claros en la app.
 
@@ -889,7 +889,7 @@ Mitigación:
 
 - Usar `MockDataSource`, repositorios fake o clientes Dio mockeados para unit y widget tests.
 - Reservar backend real para integration tests específicos cuando ASP.NET Core Web API esté disponible.
-- Validar persistencia SQL Server y transacciones en pruebas backend cuando existan backend y esquema de datos.
+- Validar persistencia SQL Server y transacciones en pruebas backend dentro de `inventory-backend`.
 - Configurar pruebas FCM solo cuando Firebase Messaging esté listo.
 
 ---

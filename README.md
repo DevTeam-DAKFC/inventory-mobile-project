@@ -223,14 +223,13 @@ docs/architecture/layers-explanation.md
 ```text
 docs/api-contracts/README.md
 docs/api-contracts/openapi.inventory-api.yaml
-docs/api-contracts/sqlserver-schema.md
 docs/api-contracts/external-product-api.md
 docs/api-contracts/mock-data.md
 ```
 
 `openapi.inventory-api.yaml` describe el contrato REST que la aplicación móvil consumirá desde el backend externo `inventory-backend`.
 
-`sqlserver-schema.md` se conserva como referencia compartida con el repositorio backend. No implica que SQL Server, migraciones, Docker Compose o código backend existan dentro de `inventory-mobile-project`.
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`. No implica que SQL Server, migraciones, Docker Compose o código backend existan dentro de `inventory-mobile-project`.
 
 `external-product-api.md` describe la integración con Open Food Facts y `mock-data.md` se mantiene útil para desarrollo, pruebas y demos.
 
