@@ -1,8 +1,5 @@
 /// Role of an authenticated user.
-enum UserRole {
-  admin,
-  collaborator,
-}
+enum UserRole { admin, collaborator }
 
 /// Authenticated user of the inventory mobile app.
 final class AppUser {
