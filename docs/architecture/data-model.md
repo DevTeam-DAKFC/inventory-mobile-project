@@ -631,11 +631,14 @@ unknown
 
 Este documento define el modelo conceptual.
 
-El diseño específico de colecciones, documentos, rutas, ejemplos y consultas se documentará en:
+El diseño específico de colecciones, documentos, rutas, ejemplos y consultas se documenta en:
 
 ```text
-docs/contracts/firestore-collections.md
+docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/firestore-collections.md
 ```
+
+`openapi.inventory-api.yaml` describe el contrato REST esperado por la aplicación móvil contra cualquier backend compatible. `firestore-collections.md` describe la implementación Firebase/Firestore actualmente prevista para el MVP. Ambos documentos representan el mismo modelo de dominio desde dos ángulos de implementación distintos.
 
 Sin embargo, desde este modelo se adelantan las siguientes decisiones:
 

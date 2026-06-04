@@ -11,7 +11,7 @@ Este archivo complementa:
 ```text
 docs/architecture/project-scope.md
 docs/architecture/data-model.md
-docs/contracts/firestore-collections.md
+docs/api-contracts/firestore-collections.md
 ```
 
 ---

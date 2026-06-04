@@ -76,7 +76,7 @@ tests/manual-test-cases.md
 
 ## 5.1 Propósito
 
-Los unit tests validan funciones, reglas y clases aisladas sin depender de UI ni servicios reales.
+Los unit tests validan funciones, reglas y componentes aislados sin depender de UI ni servicios reales.
 
 Deben ser rápidos, repetibles y ejecutarse en CI.
 
@@ -739,7 +739,7 @@ Estos casos deben estar cubiertos por unit, widget, integration o pruebas manual
 Los datos de prueba principales están documentados en:
 
 ```text
-docs/contracts/mock-data.md
+docs/api-contracts/mock-data.md
 ```
 
 Se deben utilizar para:
@@ -805,7 +805,7 @@ El workflow estará en:
 
 ## 17. Evidencia esperada
 
-Para el video técnico, PRs y defensa, se debe conservar evidencia de:
+Para el video técnico, PRs y revisiones técnicas, se debe conservar evidencia de:
 
 - Comandos ejecutados.
 - Resultados exitosos de tests.

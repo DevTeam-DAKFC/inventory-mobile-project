@@ -12,8 +12,9 @@ Este documento se basa en:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
+docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/firestore-collections.md
+docs/api-contracts/external-product-api.md
 ```
 
 ---
@@ -36,7 +37,7 @@ La aplicación permitirá:
 - Consumo de API externa para autocompletar productos.
 - Almacenamiento local limitado para preferencias.
 
-El backend principal será Firebase.
+Firebase será la implementación principal del MVP para autenticación, persistencia, imágenes y notificaciones push.
 
 Servicios utilizados:
 
@@ -47,7 +48,19 @@ Firebase Storage
 Firebase Cloud Messaging
 ```
 
-La aplicación no usará una API REST propia como backend principal.
+Además, el repositorio incluye un contrato REST formal que cualquier backend compatible podría implementar:
+
+```text
+docs/api-contracts/openapi.inventory-api.yaml
+```
+
+Este contrato describe la superficie REST esperada por la aplicación móvil. No implica que un backend REST esté implementado; solo formaliza qué deberá exponer cuando se decida ofrecer ese camino.
+
+Los datos de demostración descritos en `docs/api-contracts/mock-data.md` se utilizan en desarrollo, pruebas y demostraciones, y permiten alimentar implementaciones mock de los data sources.
+
+La UI y los ViewModels no deben depender directamente de Firebase, de un cliente REST ni de cualquier otra fuente concreta de datos.
+
+La aplicación no incluirá una implementación propia de backend REST como parte del MVP.
 
 ---
 
@@ -61,19 +74,26 @@ flowchart TD
     VM --> Repo[Repository Layer]
 
     Repo --> FirebaseDS[Firebase Data Sources]
+    Repo --> RestDS[REST API Data Sources]
     Repo --> ExternalDS[External API Data Source]
     Repo --> LocalDS[Local Storage Data Source]
+    Repo --> MockDS[Mock Data Source]
 
     FirebaseDS --> Auth[Firebase Auth]
     FirebaseDS --> Firestore[Cloud Firestore]
     FirebaseDS --> Storage[Firebase Storage]
     FirebaseDS --> FCM[Firebase Cloud Messaging]
 
-    ExternalDS --> ProductAPI[External Product API]
+    RestDS --> RestBackend[Backend REST compatible con openapi.inventory-api.yaml]
+
+    ExternalDS --> ProductAPI[Open Food Facts]
     LocalDS --> Preferences[Local Preferences]
+    MockDS --> MockSet[Mock data set]
 
     Firestore --> Collections[Users / Branches / Products / Stocks / Movements]
 ```
+
+Firebase Data Sources representan la implementación actual del MVP. REST API Data Sources representan una implementación futura compatible con el contrato OpenAPI. Mock Data Source se utiliza para pruebas, desarrollo temprano de UI y demostraciones. Los tres caminos comparten el mismo conjunto de contratos de repositorio.
 
 ---
 
@@ -123,6 +143,27 @@ Screen / Widget
 
 ---
 
+## 5A. Backend-swappable data sources
+
+La aplicación se diseña para ser independiente del proveedor concreto de backend.
+
+Los contratos de repositorio definidos en `domain/repositories/` son la frontera estable. Detrás de cada repositorio puede vivir más de una implementación de data source, sin que la UI ni los ViewModels deban cambiar al intercambiarlas.
+
+Implementaciones previstas:
+
+- `FirebaseDataSource` — implementa el camino Firebase del MVP. Cubre Firebase Auth, Cloud Firestore, Firebase Storage y Firebase Cloud Messaging.
+- `RestApiDataSource` — implementación futura compatible con `docs/api-contracts/openapi.inventory-api.yaml`. Permite operar la aplicación contra un backend REST cuando exista uno.
+- `MockDataSource` — implementación en memoria alineada con `docs/api-contracts/mock-data.md`. Soporta pruebas unitarias, widget tests, desarrollo temprano de UI y demostraciones.
+
+Reglas:
+
+- Los repositorios son agnósticos del backend.
+- La UI y los ViewModels nunca dependen de un proveedor concreto de datos.
+- El intercambio de data source ocurre en la composición de dependencias (Riverpod), no dentro de las pantallas.
+- Firebase sigue siendo la implementación principal del MVP; las demás son alternativas válidas para escenarios distintos.
+
+---
+
 ## 6. Estructura de carpetas propuesta
 
 Dentro de `app/lib`, la estructura base será:
@@ -146,8 +187,10 @@ lib/
 ├── data/
 │   ├── datasources/
 │   │   ├── firebase/
+│   │   ├── rest/
 │   │   ├── external/
-│   │   └── local/
+│   │   ├── local/
+│   │   └── mock/
 │   ├── dto/
 │   ├── mappers/
 │   └── repositories/
@@ -291,8 +334,10 @@ Subcarpetas esperadas:
 
 ```text
 data/datasources/firebase/
+data/datasources/rest/
 data/datasources/external/
 data/datasources/local/
+data/datasources/mock/
 data/dto/
 data/mappers/
 data/repositories/
@@ -304,11 +349,17 @@ Ejemplos:
 FirebaseProductDataSource
 FirebaseStockDataSource
 FirebaseInventoryMovementDataSource
+RestApiProductDataSource
+RestApiInventoryMovementDataSource
 OpenFoodFactsDataSource
 LocalPreferencesDataSource
+MockProductDataSource
+MockInventoryMovementDataSource
 ProductRepositoryImpl
 StockRepositoryImpl
 ```
+
+Los `RestApi*DataSource` consumen el contrato definido en `docs/api-contracts/openapi.inventory-api.yaml`. Los `Mock*DataSource` se alimentan de `docs/api-contracts/mock-data.md` y se utilizan en pruebas y demostraciones.
 
 ---
 
@@ -559,6 +610,10 @@ Para el MVP:
 
 ## 14. Integración con Firebase
 
+Firebase es la implementación principal del MVP. Cubre autenticación, persistencia, almacenamiento de imágenes y notificaciones push.
+
+El contrato OpenAPI documentado en `docs/api-contracts/openapi.inventory-api.yaml` no reemplaza a Firebase ni implica que un backend REST esté disponible. Firebase y un futuro backend REST compatible coexisten como implementaciones intercambiables detrás de los repositorios definidos en `domain/repositories/`.
+
 ## 14.1 Firebase Auth
 
 Uso:
@@ -588,7 +643,7 @@ Uso:
 Colecciones documentadas en:
 
 ```text
-docs/contracts/firestore-collections.md
+docs/api-contracts/firestore-collections.md
 ```
 
 ---
@@ -633,10 +688,14 @@ Open Food Facts API
 Contrato documentado en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
-Dio se usará solo para esta integración.
+En el MVP, la aplicación llama directamente a Open Food Facts desde `OpenFoodFactsDataSource`.
+
+Cuando exista un backend REST compatible con `docs/api-contracts/openapi.inventory-api.yaml`, esta búsqueda podrá enrutarse opcionalmente a través del endpoint `GET /product-lookup/{barcode}` definido en el contrato. En ese caso, el backend actuaría como proxy del proveedor externo y `ProductLookupRepository` cambiaría su data source concreto sin modificar la UI ni los ViewModels.
+
+Dio (o un cliente HTTP equivalente) se usará para esta integración y, en el futuro, para `RestApiDataSource`. Dio no debe usarse para Firebase.
 
 ---
 
@@ -716,7 +775,7 @@ Para:
 - Reglas de stock.
 - Mapeadores.
 - Casos de uso.
-- Repositorios con mocks.
+- Repositorios usando `MockDataSource` u otros fakes en memoria.
 
 ### Widget tests
 
@@ -727,6 +786,8 @@ Para:
 - Estados vacíos.
 - Mensajes de error.
 - Componentes reutilizables.
+
+`MockDataSource` resulta útil en widget tests y pruebas de ViewModel porque permite controlar respuestas, simular errores como `insufficient_stock` o `product_not_found` y mantener tiempos de ejecución cortos sin depender de Firebase ni de la red.
 
 ### Integration tests
 

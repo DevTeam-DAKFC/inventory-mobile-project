@@ -2,7 +2,7 @@
 
 ## 1. Propósito del documento
 
-Este documento registra las decisiones técnicas principales del proyecto. Su objetivo es mantener una guía común para el equipo durante el diseño, implementación, testing, documentación y defensa técnica.
+Este documento registra las decisiones técnicas principales del proyecto. Su objetivo es mantener una guía común para el equipo durante el diseño, implementación, testing, documentación y revisión técnica.
 
 Las decisiones aquí descritas deben mantenerse alineadas con el alcance definido en:
 
@@ -18,13 +18,13 @@ docs/architecture/project-scope.md
 |---|---|
 | DT-01 | Usar Flutter y Dart |
 | DT-02 | Usar Firebase como backend principal |
-| DT-03 | No construir una API REST propia para el MVP |
+| DT-03 | No implementar un backend REST propio para el MVP |
 | DT-04 | Usar Firebase Auth para autenticación |
 | DT-05 | Usar Cloud Firestore para persistencia |
 | DT-06 | Usar Firebase Storage para imágenes |
 | DT-07 | Usar Firebase Cloud Messaging para push notifications |
 | DT-08 | Usar una API externa para autocompletar productos |
-| DT-09 | Usar Dio solo para consumo de API externa |
+| DT-09 | Usar Dio para integraciones HTTP |
 | DT-10 | Usar MVVM como patrón de presentación |
 | DT-11 | Usar Riverpod para manejo de estado e inyección de dependencias |
 | DT-12 | Usar Repository Pattern |
@@ -39,12 +39,13 @@ docs/architecture/project-scope.md
 | DT-21 | Implementar estados de UI explícitos |
 | DT-22 | Centralizar validaciones |
 | DT-23 | Implementar testing automatizado y GitHub Actions |
+| DT-24 | Contrato API backend-swappable |
 
 ---
 
 ## DT-01: Usar Flutter y Dart
 
-Flutter será el framework principal del proyecto porque fue la tecnología asignada para el trabajo de investigación.
+Flutter será el framework principal del proyecto por su capacidad para desarrollar aplicaciones móviles con una sola base de código.
 
 La aplicación se desarrollará con una sola base de código y se enfocará inicialmente en Android, sin descartar compatibilidad futura con otras plataformas soportadas por Flutter.
 
@@ -76,26 +77,34 @@ Firebase permite cubrir autenticación, persistencia, archivos e infraestructura
 
 ---
 
-## DT-03: No construir una API REST propia para el MVP
+## DT-03: No implementar un backend REST propio para el MVP
 
-El MVP no incluirá una API REST propia desarrollada en .NET, Node.js, Laravel u otra tecnología backend.
+El MVP no incluirá una implementación propia de un backend REST desarrollada en .NET, Node.js, Laravel u otra tecnología backend.
 
 La aplicación se comunicará directamente con Firebase mediante los SDKs oficiales y con una API externa específica para autocompletar productos.
 
+El contrato REST esperado para cualquier backend compatible ya está documentado en:
+
+```text
+docs/api-contracts/openapi.inventory-api.yaml
+```
+
+Este contrato describe la superficie esperada por la aplicación móvil. No implica que el backend REST exista; solo formaliza qué deberá exponer cuando se decida implementarlo.
+
 ### Justificación
 
-Construir una API propia aumentaría significativamente el alcance del proyecto:
+Construir un backend REST propio aumentaría significativamente el alcance del proyecto:
 
-- Requeriría endpoints.
-- Requeriría autenticación backend.
-- Requeriría despliegue.
-- Requeriría pruebas adicionales.
-- Requeriría documentación OpenAPI completa.
-- Desviaría esfuerzo del objetivo móvil del curso.
+- Requeriría despliegue de infraestructura propia.
+- Requeriría autenticación y autorización backend.
+- Requeriría pruebas de integración adicionales contra ese backend.
+- Desviaría esfuerzo del objetivo móvil del producto.
+
+La documentación OpenAPI ya existe como contrato, por lo que el equipo conserva la opción de implementar un backend compatible más adelante sin redefinir la API desde cero.
 
 ### Mejora futura
 
-Una API propia podría considerarse en una versión futura si el sistema necesitara reglas empresariales más avanzadas, integraciones externas complejas o administración centralizada del inventario.
+Una implementación propia compatible con `openapi.inventory-api.yaml` podría considerarse en una versión futura si el sistema necesitara reglas empresariales más avanzadas, integraciones externas complejas o administración centralizada del inventario.
 
 ---
 
@@ -203,15 +212,23 @@ La API externa no reemplaza el registro manual. Si la API falla o no encuentra i
 
 ---
 
-## DT-09: Usar Dio solo para consumo de API externa
+## DT-09: Usar Dio para integraciones HTTP
 
-Dio se usará únicamente como cliente HTTP para la API externa de productos.
+Dio será el cliente HTTP de la aplicación para integraciones REST.
 
-No se usará Dio para comunicarse con Firebase.
+Uso actual en el MVP:
+
+- Consumir la API externa de productos (Open Food Facts) desde `OpenFoodFactsDataSource`.
+
+Uso futuro compatible con esta decisión:
+
+- Implementar un `RestApiDataSource` que consuma el contrato definido en `docs/api-contracts/openapi.inventory-api.yaml`, cuando exista un backend REST compatible. Dio o un cliente HTTP equivalente cumplen ese rol.
+
+Firebase no se consumirá con Dio. Los SDKs oficiales de Firebase se encargan de Firestore, Firebase Auth, Firebase Storage y Firebase Cloud Messaging.
 
 ### Justificación
 
-Firebase se consume mediante sus SDKs. Dio se reserva para integraciones HTTP externas, manteniendo clara la responsabilidad de cada tecnología.
+Mantener un único cliente HTTP para las integraciones REST simplifica configuración, manejo de errores, timeout y testing. Firebase mantiene su propio canal a través de los SDKs.
 
 ---
 
@@ -284,13 +301,22 @@ ProductLookupRepository
 ImportRepository
 ```
 
+Los contratos de repositorios son agnósticos del backend. Cada repositorio coordina una o varias implementaciones intercambiables de data source:
+
+- `FirebaseDataSource` — implementación actual del MVP, basada en Firebase Auth, Cloud Firestore, Firebase Storage y Firebase Cloud Messaging.
+- `RestApiDataSource` — implementación futura compatible con `docs/api-contracts/openapi.inventory-api.yaml`.
+- `MockDataSource` — implementación usada en pruebas, prototipos y demostraciones, alineada con los datos descritos en `docs/api-contracts/mock-data.md`.
+
+La UI y los ViewModels no deben cambiar cuando se intercambia la implementación del data source.
+
 ### Justificación
 
 Repository Pattern permite:
 
 - Separar UI de infraestructura.
-- Facilitar testing.
+- Facilitar testing mediante data sources mock.
 - Cambiar implementación interna sin afectar pantallas.
+- Permitir que el mismo contrato funcional sea servido por Firebase, por un backend REST compatible o por una capa de mock data.
 - Mantener una arquitectura defendible.
 
 ---
@@ -314,7 +340,7 @@ lib/
 
 ### Justificación
 
-Esta estructura facilita explicar la arquitectura en la defensa técnica y mantiene claras las capas del sistema.
+Esta estructura facilita explicar la arquitectura en revisiones técnicas y mantiene claras las capas del sistema.
 
 ### Nota
 
@@ -426,7 +452,7 @@ La transacción reduce el riesgo de inconsistencias cuando varios usuarios actua
 
 ### Limitación
 
-Para un entorno productivo, esta regla debería moverse a Cloud Functions o a un backend propio. Para el MVP académico, Firestore transactions desde la app son aceptables y mantienen el alcance controlado.
+Para un entorno productivo, esta regla debería moverse a Cloud Functions o a un backend propio. Para el MVP actual, Firestore transactions desde la app son aceptables y mantienen el alcance controlado.
 
 ---
 
@@ -591,7 +617,37 @@ flutter test
 
 ### Justificación
 
-El enunciado exige testing automatizado e integración continua, por lo que deben formar parte del flujo desde etapas tempranas.
+El proyecto requiere testing automatizado e integración continua, por lo que deben formar parte del flujo desde etapas tempranas.
+
+---
+
+## DT-24: Contrato API backend-swappable
+
+El sistema documenta un contrato REST formal que cualquier backend compatible podría implementar. Ese contrato vive en:
+
+```text
+docs/api-contracts/openapi.inventory-api.yaml
+```
+
+Relación con la documentación de contratos:
+
+| Documento | Rol |
+|---|---|
+| `docs/api-contracts/openapi.inventory-api.yaml` | Contrato REST backend-compatible esperado por la aplicación móvil. |
+| `docs/api-contracts/firestore-collections.md` | Documenta la implementación Firebase/Firestore del mismo dominio. |
+| `docs/api-contracts/external-product-api.md` | Documenta la integración directa con la API externa de productos (Open Food Facts). |
+| `docs/api-contracts/mock-data.md` | Aporta datos de demostración para desarrollo, pruebas y demostraciones del producto. |
+
+### Reglas
+
+- Firebase sigue siendo la implementación principal del MVP.
+- El contrato OpenAPI no implica que el backend REST esté implementado.
+- Los repositorios definidos en DT-12 deben permitir intercambiar `FirebaseDataSource`, `RestApiDataSource` y `MockDataSource` sin cambios en la UI ni en los ViewModels.
+- Las pantallas y ViewModels no dependen del proveedor de backend.
+
+### Justificación
+
+Documentar el contrato esperado mantiene la arquitectura abierta para una migración futura sin obligar al equipo a implementar el backend ahora. También permite usar mock data sources en pruebas y demos sin cambiar el dominio.
 
 ---
 
@@ -642,7 +698,8 @@ Las decisiones aquí registradas se consideran la base técnica oficial para los
 
 - `docs/architecture/data-model.md`
 - `docs/architecture/system-architecture.md`
-- `docs/contracts/firestore-collections.md`
-- `docs/contracts/external-product-api.md`
+- `docs/api-contracts/openapi.inventory-api.yaml`
+- `docs/api-contracts/firestore-collections.md`
+- `docs/api-contracts/external-product-api.md`
 - `README.md`
 

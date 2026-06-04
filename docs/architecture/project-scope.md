@@ -30,7 +30,7 @@ Se desarrollará una aplicación móvil en Flutter para gestionar el inventario 
 
 La aplicación permitirá que usuarios autenticados puedan consultar productos, visualizar stock por sucursal, registrar entradas y salidas de inventario, revisar el historial de movimientos y buscar o filtrar información relevante.
 
-El proyecto no busca ser un sistema empresarial completo tipo ERP. El enfoque será construir un MVP académico-profesional, de alcance controlado, pero con buena calidad técnica, visual y documental.
+El proyecto no busca ser un sistema empresarial completo tipo ERP. El enfoque será construir un MVP funcional y profesional, de alcance controlado, pero con buena calidad técnica, visual y documental.
 
 ---
 
@@ -796,5 +796,5 @@ Si el tiempo lo permite, también podrá demostrar:
 
 - Importación inicial de productos desde archivo CSV.
 
-El resultado debe ser una solución de alcance controlado, pero con suficiente calidad técnica y funcional para defenderse como proyecto académico-profesional.
+El resultado debe ser una solución de alcance controlado, pero con suficiente calidad técnica y funcional para presentarse como producto profesional.
 

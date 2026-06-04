@@ -733,7 +733,7 @@ Las reglas finales de Firestore se definirán durante implementación, pero conc
 
 Limitación:
 
-La validación cuantitativa completa de stock es más segura en un backend o Cloud Function. Para el MVP, se manejará mediante Firestore transaction desde la app y reglas de seguridad como defensa adicional.
+La validación cuantitativa completa de stock es más segura en un backend o Cloud Function. Para el MVP, se manejará mediante Firestore transaction desde la app y reglas de seguridad como control adicional.
 
 ---
 
@@ -744,7 +744,7 @@ La API externa de productos no se documenta en este archivo.
 Su contrato se documentará en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
 Relación con Firestore:

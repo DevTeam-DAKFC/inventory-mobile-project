@@ -2,7 +2,7 @@
 
 Aplicación móvil desarrollada con **Flutter** para la gestión de inventario multiusuario en una pequeña cadena de tiendas locales.
 
-El proyecto forma parte del curso **Diseño y Programación de Plataformas Móviles** y busca resolver una problemática de control de inventario entre sucursales, donde actualmente se utilizan registros manuales y hojas de cálculo que generan inconsistencias, pérdidas de productos y poca trazabilidad de movimientos.
+El sistema busca resolver una problemática de control de inventario entre sucursales, donde actualmente se utilizan registros manuales y hojas de cálculo que generan inconsistencias, pérdidas de productos y poca trazabilidad de movimientos.
 
 ---
 
@@ -10,7 +10,7 @@ El proyecto forma parte del curso **Diseño y Programación de Plataformas Móvi
 
 La aplicación permitirá que usuarios autenticados puedan gestionar productos, visualizar existencias por sucursal, registrar entradas y salidas de inventario, consultar historial de movimientos y recibir alertas relacionadas con bajo stock.
 
-El enfoque del proyecto es construir un **MVP académico-profesional**, de alcance controlado, pero con buena calidad técnica, documentación clara, pruebas automatizadas e integración continua.
+El enfoque del proyecto es construir un **MVP funcional y profesional**, de alcance controlado, pero con buena calidad técnica, documentación clara, pruebas automatizadas e integración continua.
 
 No se busca construir un sistema ERP completo. El alcance se centra en:
 
@@ -114,6 +114,7 @@ La solución propuesta es una aplicación móvil que permita centralizar y organ
 
 - Firebase será el backend principal.
 - No se construirá una API REST propia para el MVP.
+- El contrato OpenAPI `docs/api-contracts/openapi.inventory-api.yaml` define la superficie REST esperada por la aplicación móvil. Firebase es una implementación válida de ese contrato y los repositorios pueden intercambiarse entre Firebase y un backend REST compatible sin cambios en la UI.
 - La API externa se usará únicamente para autocompletar productos por código de barras.
 - La sucursal es una entidad obligatoria del dominio.
 - El stock se maneja por combinación `productId + branchId`.
@@ -186,7 +187,7 @@ inventory-mobile-project/
 | `.github/workflows` | Workflows de GitHub Actions. |
 | `app` | Proyecto Flutter. |
 | `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/contracts` | Contratos de Firestore, API externa y mock data. |
+| `docs/api-contracts` | Contrato REST backend-compatible (OpenAPI), contratos de Firestore, API externa y mock data. |
 | `docs/research` | Informe de investigación sobre Flutter en PDF. |
 | `docs/screenshots` | Evidencia visual del proyecto. |
 | `docs/video` | Guion o apoyo para video técnico. |
@@ -211,11 +212,14 @@ docs/architecture/layers-explanation.md
 ### API contracts
 
 ```text
-docs/contracts/README.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
-docs/contracts/mock-data.md
+docs/api-contracts/README.md
+docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/firestore-collections.md
+docs/api-contracts/external-product-api.md
+docs/api-contracts/mock-data.md
 ```
+
+`openapi.inventory-api.yaml` describe el contrato REST backend-compatible esperado por la aplicación móvil. No implica que dicho backend esté implementado. `firestore-collections.md` documenta la implementación Firebase del mismo dominio, `external-product-api.md` describe la integración directa con Open Food Facts y `mock-data.md` contiene los datos de demostración y pruebas.
 
 ### Testing
 
@@ -233,7 +237,7 @@ docs/research/flutter-research.pdf
 
 ## 9. Instalación del proyecto
 
-> Estado actual: el repositorio contiene la estructura base y documentación inicial. El proyecto Flutter debe crearse dentro de la carpeta `app`.
+> Estado actual: el repositorio incluye el proyecto Flutter inicial dentro de la carpeta `app/`, junto con la documentación base. Las dependencias específicas del producto (Firebase, Riverpod, go_router, Dio, etc.) y la configuración de Firebase aún están pendientes.
 
 ### Requisitos
 
@@ -242,23 +246,13 @@ docs/research/flutter-research.pdf
 - Android Studio.
 - Android SDK.
 - Emulador Android o dispositivo físico.
-- Firebase project configurado.
+- Cuenta y proyecto Firebase disponibles para conectar más adelante.
 
 ### Verificar Flutter
 
 ```powershell
 flutter --version
 flutter doctor
-```
-
-### Crear proyecto Flutter dentro de `/app`
-
-Desde la raíz del repositorio:
-
-```powershell
-cd C:\dev\inventory-mobile-project
-
-flutter create --project-name inventory_mobile app
 ```
 
 ### Entrar al proyecto Flutter
@@ -271,6 +265,13 @@ cd .\app
 
 ```powershell
 flutter pub get
+```
+
+### Validar el proyecto
+
+```powershell
+flutter analyze
+flutter test
 ```
 
 ### Ejecutar aplicación
@@ -336,7 +337,7 @@ flutter build apk --debug
 Los datos de prueba están documentados en:
 
 ```text
-docs/contracts/mock-data.md
+docs/api-contracts/mock-data.md
 ```
 
 Incluyen:
@@ -371,7 +372,7 @@ La API externa no reemplaza el registro manual.
 Contrato documentado en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
 ---
@@ -457,23 +458,24 @@ test(movements): add stock validation tests
 
 - Estructura base del repositorio.
 - Documentación inicial de arquitectura.
+- Contrato OpenAPI backend-compatible (`openapi.inventory-api.yaml`).
 - Contratos de Firestore.
 - Contrato de API externa.
 - Mock data.
 - Plan de pruebas.
+- Proyecto Flutter creado dentro de `app/`, con `flutter pub get`, `flutter analyze` y `flutter test` ejecutándose correctamente sobre el scaffold inicial.
 
 ### Pendiente
 
-- Crear proyecto Flutter dentro de `app`.
-- Configurar Firebase.
-- Configurar dependencias Flutter.
-- Implementar arquitectura base.
-- Implementar navegación.
-- Implementar módulos funcionales.
-- Crear GitHub Actions.
-- Completar informe de investigación en PDF.
-- Preparar video técnico.
-- Preparar workshop.
+- Configurar dependencias base del producto (Firebase, Riverpod, go_router, Dio, entre otras).
+- Configurar Firebase para los entornos de desarrollo.
+- Implementar la estructura de capas descrita en `docs/architecture/layers-explanation.md`.
+- Implementar navegación según `docs/architecture/navigation-map.md`.
+- Implementar módulos funcionales según el alcance del MVP.
+- Crear el workflow de GitHub Actions en `.github/workflows/flutter-ci.yml`.
+- Completar el documento de investigación en PDF en `docs/research/`.
+- Preparar el video técnico.
+- Preparar la guía del workshop.
 
 ---
 
@@ -515,8 +517,8 @@ El workshop deberá incluir:
 - Explicación de arquitectura.
 - Actividad práctica guiada.
 - Live coding.
-- Participación de la clase.
-- Defensa técnica individual.
+- Sesión de preguntas.
+- Revisión técnica del flujo implementado.
 
 Guía pendiente:
 
@@ -532,17 +534,16 @@ El uso de IA puede apoyar planificación, documentación, revisión y generació
 
 Sin embargo:
 
-- El equipo debe comprender todo el código entregado.
+- El equipo debe comprender todo el código del sistema.
 - Cada integrante debe poder explicar su parte.
 - Las decisiones técnicas deben ser justificables.
 - El código generado o asistido debe revisarse críticamente.
-- La IA no reemplaza el dominio técnico esperado del curso.
+- La IA no reemplaza el criterio técnico esperado del equipo.
 
 ---
 
 ## 22. Licencia
 
-Proyecto académico desarrollado para el curso Diseño y Programación de Plataformas Móviles.
+Proyecto de gestión de inventario desarrollado como solución móvil profesional.
 
 La licencia formal queda pendiente de definición por el equipo.
-
