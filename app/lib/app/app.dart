@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../navigation/app_router.dart';
+import '../navigation/session_restore_controller.dart';
+import '../ui/foundation/session_restore_screen.dart';
 import 'theme.dart';
 
 class InventoryMobileApp extends ConsumerWidget {
@@ -9,13 +11,69 @@ class InventoryMobileApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final router = ref.watch(appRouterProvider);
+    final restore = ref.watch(sessionRestoreProvider);
 
-    return MaterialApp.router(
-      title: 'Inventory Mobile',
-      theme: buildAppTheme(),
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return restore.when(
+      loading: () => MaterialApp(
+        title: 'Inventory Mobile',
+        theme: buildAppTheme(),
+        debugShowCheckedModeBanner: false,
+        home: const SessionRestoreScreen(),
+      ),
+      error: (error, stackTrace) => MaterialApp(
+        title: 'Inventory Mobile',
+        theme: buildAppTheme(),
+        debugShowCheckedModeBanner: false,
+        home: _SessionRestoreErrorScreen(onRetry: () => ref.invalidate(sessionRestoreProvider)),
+      ),
+      data: (_) {
+        final router = ref.watch(appRouterProvider);
+        return MaterialApp.router(
+          title: 'Inventory Mobile',
+          theme: buildAppTheme(),
+          routerConfig: router,
+          debugShowCheckedModeBanner: false,
+        );
+      },
+    );
+  }
+}
+
+class _SessionRestoreErrorScreen extends StatelessWidget {
+  const _SessionRestoreErrorScreen({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 56, color: theme.colorScheme.error),
+                const SizedBox(height: 16),
+                Text(
+                  'Could not start the app.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleMedium,
+                ),
+                const SizedBox(height: 24),
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
