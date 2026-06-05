@@ -30,7 +30,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Restoring session...'), findsOneWidget);
-    expect(find.text('Sign in to continue'), findsNothing);
+    expect(find.text('Iniciar sesión'), findsNothing);
 
     // Resolve the pending future so the test exits cleanly.
     pending.complete();
@@ -46,7 +46,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
     expect(find.text('Restoring session...'), findsNothing);
   });
 
@@ -66,6 +66,6 @@ void main() {
 
     expect(find.text('Resumen de inventario'), findsOneWidget);
     expect(find.text('Restoring session...'), findsNothing);
-    expect(find.text('Sign in to continue'), findsNothing);
+    expect(find.text('Iniciar sesión'), findsNothing);
   });
 }

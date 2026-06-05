@@ -17,8 +17,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Inventory Mobile'), findsOneWidget);
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Control de inventario'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
   testWidgets('redirects unauthenticated users away from private routes', (tester) async {
@@ -27,7 +27,7 @@ void main() {
     await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
     expect(find.text('Resumen de inventario'), findsNothing);
   });
 
@@ -88,7 +88,7 @@ void main() {
     session.signOut();
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 }
 

@@ -5,31 +5,31 @@ final class AuthValidators {
 
   static String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Name is required.';
+      return 'El nombre es obligatorio.';
     }
     if (value.trim().length < 2) {
-      return 'Name must be at least 2 characters long.';
+      return 'El nombre debe tener al menos 2 caracteres.';
     }
     return null;
   }
 
   static String? validateEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Email is required.';
+      return 'El correo electrónico es obligatorio.';
     }
     if (!_emailRegex.hasMatch(value.trim())) {
-      return 'Email format is invalid.';
+      return 'Ingresa un correo electrónico válido.';
     }
     return null;
   }
 
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Password is required.';
+      return 'La contraseña es obligatoria.';
     }
 
     if (value.length < 8) {
-      return 'Password must be at least 8 characters long.';
+      return 'La contraseña debe tener al menos 8 caracteres.';
     }
     return null;
   }
