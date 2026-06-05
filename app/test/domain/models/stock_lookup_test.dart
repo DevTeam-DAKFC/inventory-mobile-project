@@ -1,12 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:inventory_mobile/domain/models/branch.dart';
-import 'package:inventory_mobile/domain/models/product.dart';
 import 'package:inventory_mobile/domain/models/stock_lookup.dart';
 
 void main() {
   group('StockLookup', () {
     test('can be constructed with product and branch details', () {
-      final createdAt = DateTime.utc(2026, 6, 1);
       final updatedAt = DateTime.utc(2026, 6, 5);
       final stock = StockLookup(
         id: 'stock-id',
@@ -15,20 +12,15 @@ void main() {
         isLowStock: false,
         lastMovementAt: updatedAt,
         updatedAt: updatedAt,
-        product: Product(
+        product: const StockLookupProduct(
           id: 'product-id',
           name: 'Rice 1kg',
           sku: 'RICE-001',
           category: 'Food',
-          minStock: 10,
-          isActive: true,
-          createdAt: createdAt,
         ),
-        branch: Branch(
+        branch: const StockLookupBranch(
           id: 'branch-id',
           name: 'Central Branch',
-          isActive: true,
-          createdAt: createdAt,
         ),
       );
 
