@@ -3,6 +3,7 @@ import '../../core/errors/app_exception.dart';
 import '../../core/result/app_result.dart';
 import '../../domain/models/paginated_products.dart';
 import '../../domain/models/product.dart';
+import '../../domain/models/product_image_input.dart';
 import '../../domain/models/product_list_query.dart';
 import '../../domain/models/product_mutations.dart';
 import '../../domain/repositories/product_repository.dart';
@@ -58,6 +59,24 @@ final class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<AppResult<void>> deactivateProduct(String productId) {
     return _guard(() => _dataSource.deactivateProduct(productId));
+  }
+
+  @override
+  Future<AppResult<Product>> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  ) async {
+    final validation = ProductImageValidator.validate(image);
+    final validatedImage = validation.dataOrNull;
+    if (validatedImage == null) {
+      return AppFailure(validation.exceptionOrNull!);
+    }
+
+    return _guard(
+      () async => ProductMapper.toDomain(
+        await _dataSource.uploadProductImage(productId, validatedImage),
+      ),
+    );
   }
 
   Future<AppResult<T>> _guard<T>(Future<T> Function() operation) async {

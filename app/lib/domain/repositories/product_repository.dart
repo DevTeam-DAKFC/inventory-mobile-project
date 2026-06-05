@@ -1,6 +1,7 @@
 import '../../core/result/app_result.dart';
 import '../models/paginated_products.dart';
 import '../models/product.dart';
+import '../models/product_image_input.dart';
 import '../models/product_list_query.dart';
 import '../models/product_mutations.dart';
 
@@ -18,4 +19,9 @@ abstract class ProductRepository {
   );
 
   Future<AppResult<void>> deactivateProduct(String productId);
+
+  Future<AppResult<Product>> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  );
 }

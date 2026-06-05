@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
@@ -8,6 +10,7 @@ import 'package:inventory_mobile/data/dto/product_requests.dart';
 import 'package:inventory_mobile/data/dto/product_rest_dto.dart';
 import 'package:inventory_mobile/data/repositories/product_repository_impl.dart';
 import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -27,6 +30,13 @@ void main() {
       ),
     );
     registerFallbackValue(const ProductUpdateRequest(UpdateProductInput()));
+    registerFallbackValue(
+      ProductImageInput(
+        fileName: 'fallback.jpg',
+        bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF]),
+        mimeType: 'image/jpeg',
+      ),
+    );
   });
 
   setUp(() {
@@ -86,6 +96,63 @@ void main() {
 
     expect(result, isA<AppSuccess<void>>());
   });
+
+  test('uploads validated product image successfully', () async {
+    when(
+      () => dataSource.uploadProductImage('product_1', any()),
+    ).thenAnswer((_) async => _productDto());
+
+    final result = await sut.uploadProductImage(
+      'product_1',
+      ProductImageInput(
+        fileName: 'product.jpg',
+        bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF, 0x00]),
+        mimeType: 'image/jpeg',
+      ),
+    );
+
+    expect(result, isA<AppSuccess>());
+    expect(result.dataOrNull?.imageUrl, 'https://example.com/product.jpg');
+  });
+
+  test('rejects invalid image before calling data source', () async {
+    final result = await sut.uploadProductImage(
+      'product_1',
+      ProductImageInput(
+        fileName: 'invalid.jpg',
+        bytes: Uint8List.fromList([1, 2, 3]),
+        mimeType: 'image/jpeg',
+      ),
+    );
+
+    expect(result.exceptionOrNull?.code, AppErrorCode.validationError);
+    verifyNever(() => dataSource.uploadProductImage(any(), any()));
+  });
+
+  for (final code in <AppErrorCode>[
+    AppErrorCode.validationError,
+    AppErrorCode.notFound,
+    AppErrorCode.networkError,
+    AppErrorCode.timeout,
+  ]) {
+    test('preserves ${code.value} from image upload', () async {
+      final exception = AppException(code: code, message: 'upload failed');
+      when(
+        () => dataSource.uploadProductImage('product_1', any()),
+      ).thenThrow(exception);
+
+      final result = await sut.uploadProductImage(
+        'product_1',
+        ProductImageInput(
+          fileName: 'product.jpg',
+          bytes: Uint8List.fromList([0xFF, 0xD8, 0xFF, 0x00]),
+          mimeType: 'image/jpeg',
+        ),
+      );
+
+      expect(result.exceptionOrNull, same(exception));
+    });
+  }
 
   for (final code in <AppErrorCode>[
     AppErrorCode.validationError,

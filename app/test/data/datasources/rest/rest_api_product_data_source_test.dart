@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/errors/app_error_code.dart';
@@ -5,6 +7,7 @@ import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/data/datasources/rest/rest_api_product_data_source.dart';
 import 'package:inventory_mobile/data/dto/product_requests.dart';
 import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -159,6 +162,40 @@ void main() {
       ).called(1);
     },
   );
+
+  test(
+    'POST /products/{productId}/image sends multipart file metadata',
+    () async {
+      late FormData capturedFormData;
+      when(
+        () => dio.post<dynamic>(
+          '/products/product_1/image',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((invocation) async {
+        capturedFormData = invocation.namedArguments[#data] as FormData;
+        return _response(
+          _productJson()..['imageUrl'] = '/uploads/products/product_1.jpg',
+        );
+      });
+
+      final product = await sut.uploadProductImage(
+        'product_1',
+        ProductImageInput(
+          fileName: 'product.jpg',
+          bytes: _jpegBytes(),
+          mimeType: 'image/jpeg',
+        ),
+      );
+
+      final fileEntry = capturedFormData.files.single;
+      expect(fileEntry.key, 'file');
+      expect(fileEntry.value.filename, 'product.jpg');
+      expect(fileEntry.value.contentType.toString(), 'image/jpeg');
+      expect(capturedFormData.fields, isEmpty);
+      expect(product.imageUrl, '/uploads/products/product_1.jpg');
+    },
+  );
 }
 
 Response<dynamic> _response(dynamic data, {int statusCode = 200}) {
@@ -190,3 +227,5 @@ Map<String, dynamic> _productJson() => <String, dynamic>{
   'createdAt': '2026-06-02T20:00:00Z',
   'updatedAt': null,
 };
+
+Uint8List _jpegBytes() => Uint8List.fromList([0xFF, 0xD8, 0xFF, 0x00]);

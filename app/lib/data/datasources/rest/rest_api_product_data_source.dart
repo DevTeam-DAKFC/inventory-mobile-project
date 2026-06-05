@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/app_error_code.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../domain/models/product_list_query.dart';
+import '../../../domain/models/product_image_input.dart';
 import '../../dto/paginated_products_rest_dto.dart';
 import '../../dto/product_requests.dart';
 import '../../dto/product_rest_dto.dart';
@@ -52,6 +53,23 @@ class RestApiProductDataSource {
     await _request(
       () => _dio.patch<dynamic>('/products/$productId/deactivate'),
     );
+  }
+
+  Future<ProductRestDto> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  ) async {
+    final formData = FormData.fromMap({
+      'file': MultipartFile.fromBytes(
+        image.bytes,
+        filename: image.fileName,
+        contentType: DioMediaType.parse(image.mimeType),
+      ),
+    });
+    final response = await _request(
+      () => _dio.post<dynamic>('/products/$productId/image', data: formData),
+    );
+    return ProductRestDto.fromJson(_jsonObject(response.data));
   }
 
   Map<String, dynamic> _queryParameters(ProductListQuery query) => {
