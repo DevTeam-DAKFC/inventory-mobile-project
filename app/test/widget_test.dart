@@ -25,7 +25,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to continue'), findsOneWidget);
-    expect(find.text('Disponibilidad general'), findsNothing);
+    expect(find.text('Resumen de inventario'), findsNothing);
   });
 
   testWidgets('authenticated users reach the main app shell', (tester) async {
@@ -36,7 +36,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Disponibilidad general'), findsOneWidget);
+    expect(find.text('Resumen de inventario'), findsOneWidget);
     expect(_navigationDestination('Inicio'), findsOneWidget);
     expect(_navigationDestination('Productos'), findsOneWidget);
     expect(_navigationDestination('Stock'), findsOneWidget);
@@ -83,7 +83,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
-    expect(find.text('collaborator'), findsOneWidget);
+    expect(session.role, SessionRole.collaborator);
+    expect(session.canViewAdminEntries, isFalse);
   });
 
   testWidgets('logout returns the user to the public auth flow', (
@@ -96,7 +97,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Sign out'));
+    session.signOut();
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to continue'), findsOneWidget);
