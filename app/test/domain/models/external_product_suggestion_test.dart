@@ -18,8 +18,7 @@ void main() {
     });
 
     test('preserves optional fields when provided', () {
-      const imageUrl =
-          'https://images.openfoodfacts.org/products/nutella.jpg';
+      const imageUrl = 'https://images.openfoodfacts.org/products/nutella.jpg';
       const suggestion = ExternalProductSuggestion(
         barcode: '3017624010701',
         name: 'Nutella',
