@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../common/placeholder_module_screen.dart';
 
-class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+class AlertsScreen extends StatelessWidget {
+  const AlertsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const PlaceholderModuleScreen(
-      title: 'Notifications',
+      title: 'Alertas',
       icon: Icons.notifications_outlined,
     );
   }

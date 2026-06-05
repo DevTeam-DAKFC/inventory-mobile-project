@@ -25,7 +25,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sign in to continue'), findsOneWidget);
-    expect(find.text('Inventory overview'), findsNothing);
+    expect(find.text('Disponibilidad general'), findsNothing);
   });
 
   testWidgets('authenticated users reach the main app shell', (tester) async {
@@ -36,11 +36,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Inventory overview'), findsOneWidget);
-    expect(find.text('Home'), findsWidgets);
-    expect(_navigationDestination('Products'), findsOneWidget);
+    expect(find.text('Disponibilidad general'), findsOneWidget);
+    expect(_navigationDestination('Inicio'), findsOneWidget);
+    expect(_navigationDestination('Productos'), findsOneWidget);
     expect(_navigationDestination('Stock'), findsOneWidget);
-    expect(_navigationDestination('History'), findsOneWidget);
+    expect(_navigationDestination('Movimientos'), findsOneWidget);
+    expect(_navigationDestination('Alertas'), findsOneWidget);
   });
 
   testWidgets('navigates between core shell screens', (tester) async {
@@ -51,10 +52,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(_navigationDestination('Products'));
+    await tester.tap(_navigationDestination('Productos'));
     await tester.pumpAndSettle();
     expect(
-      find.text('This screen is ready for its feature implementation.'),
+      find.text('Reserved for the assigned feature issue.'),
       findsOneWidget,
     );
 
@@ -62,12 +63,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Stock'), findsWidgets);
 
-    await tester.tap(_navigationDestination('History'));
+    await tester.tap(_navigationDestination('Movimientos'));
     await tester.pumpAndSettle();
-    expect(find.text('History'), findsWidgets);
+    expect(find.text('Movimientos'), findsWidgets);
+
+    await tester.tap(_navigationDestination('Alertas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Alertas'), findsWidgets);
   });
 
-  testWidgets('hides admin navigation entries for collaborators', (
+  testWidgets('shows role state without exposing feature-specific entries', (
     tester,
   ) async {
     final session = AppSession()..signInAsDemoCollaborator();
@@ -78,6 +83,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
+    expect(find.text('collaborator'), findsOneWidget);
   });
 
   testWidgets('logout returns the user to the public auth flow', (
@@ -98,10 +104,7 @@ void main() {
 }
 
 Finder _navigationDestination(String label) {
-  return find.ancestor(
-    of: find.text(label),
-    matching: find.byType(NavigationDestination),
-  );
+  return find.text(label);
 }
 
 class _RouterTestApp extends StatelessWidget {

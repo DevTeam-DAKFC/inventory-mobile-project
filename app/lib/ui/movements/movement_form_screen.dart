@@ -8,7 +8,7 @@ class MovementFormScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const PlaceholderModuleScreen(
-      title: 'Register movement',
+      title: 'Movimientos',
       icon: Icons.swap_vert,
     );
   }

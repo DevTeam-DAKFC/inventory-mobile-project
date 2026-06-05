@@ -7,19 +7,17 @@ class AppRoutes {
 
   static const home = '/home';
   static const products = '/products';
-  static const productImport = '/products/import';
   static const stock = '/stock';
-  static const movementNew = '/movements/new';
-  static const history = '/history';
-  static const notifications = '/notifications';
-  static const settings = '/settings';
+  static const movements = '/movements';
+  static const alerts = '/alerts';
 }
 
 enum AppShellTab {
   home(AppRoutes.home),
   products(AppRoutes.products),
   stock(AppRoutes.stock),
-  history(AppRoutes.history);
+  movements(AppRoutes.movements),
+  alerts(AppRoutes.alerts);
 
   const AppShellTab(this.path);
 

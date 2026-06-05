@@ -3,15 +3,12 @@ import 'package:go_router/go_router.dart';
 
 import '../ui/auth/login_screen.dart';
 import '../ui/auth/register_screen.dart';
-import '../ui/history/history_screen.dart';
+import '../ui/alerts/alerts_screen.dart';
 import '../ui/home/home_screen.dart';
-import '../ui/import/import_products_screen.dart';
 import '../ui/movements/movement_form_screen.dart';
 import '../ui/navigation/app_shell.dart';
 import '../ui/navigation/not_found_screen.dart';
-import '../ui/notifications/notifications_screen.dart';
 import '../ui/products/products_screen.dart';
-import '../ui/settings/settings_screen.dart';
 import '../ui/stock/stock_screen.dart';
 import 'app_session.dart';
 import 'routes.dart';
@@ -70,12 +67,6 @@ GoRouter buildAppRouter(
               GoRoute(
                 path: AppRoutes.products,
                 builder: (context, state) => const ProductsScreen(),
-                routes: [
-                  GoRoute(
-                    path: 'import',
-                    builder: (context, state) => const ImportProductsScreen(),
-                  ),
-                ],
               ),
             ],
           ),
@@ -90,24 +81,20 @@ GoRouter buildAppRouter(
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: AppRoutes.history,
-                builder: (context, state) => const HistoryScreen(),
+                path: AppRoutes.movements,
+                builder: (context, state) => const MovementFormScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.alerts,
+                builder: (context, state) => const AlertsScreen(),
               ),
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: AppRoutes.movementNew,
-        builder: (context, state) => const MovementFormScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.notifications,
-        builder: (context, state) => const NotificationsScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
       ),
     ],
     errorBuilder: (context, state) => NotFoundScreen(location: state.uri.path),
