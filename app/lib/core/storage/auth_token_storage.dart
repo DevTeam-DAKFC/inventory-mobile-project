@@ -1,20 +1,12 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// A single persisted access-token record.
 final class StoredAuthToken {
-  const StoredAuthToken({
-    required this.accessToken,
-    required this.expiresAt,
-  });
+  const StoredAuthToken({required this.accessToken, required this.expiresAt});
 
   final String accessToken;
   final DateTime expiresAt;
 }
 
-/// Persists the authenticated access token on the device.
-///
-/// Lives in `core/storage` so it can be reused from data-layer repositories
-/// and Dio interceptors without leaking transport- or UI-specific types.
 abstract class AuthTokenStorage {
   Future<void> saveToken(StoredAuthToken token);
 
@@ -23,16 +15,11 @@ abstract class AuthTokenStorage {
   Future<void> clear();
 }
 
-/// [AuthTokenStorage] backed by `flutter_secure_storage`.
-///
-/// Tokens and expiration timestamps are kept under separate keys so the
-/// storage entries remain individually deletable.
 final class SecureAuthTokenStorage implements AuthTokenStorage {
   SecureAuthTokenStorage({FlutterSecureStorage? secureStorage})
-      : _storage = secureStorage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-            );
+    : _storage =
+          secureStorage ??
+          const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
 
   final FlutterSecureStorage _storage;
 
@@ -42,10 +29,7 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   @override
   Future<void> saveToken(StoredAuthToken token) async {
     await _storage.write(key: _accessTokenKey, value: token.accessToken);
-    await _storage.write(
-      key: _expiresAtKey,
-      value: token.expiresAt.toUtc().toIso8601String(),
-    );
+    await _storage.write(key: _expiresAtKey, value: token.expiresAt.toUtc().toIso8601String());
   }
 
   @override
@@ -57,7 +41,6 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
     }
     final expiresAt = DateTime.tryParse(expiresAtRaw);
     if (expiresAt == null) {
-      // Corrupted entry — treat as no token and clear so we recover next time.
       await clear();
       return null;
     }

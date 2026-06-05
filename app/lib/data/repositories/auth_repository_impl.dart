@@ -8,26 +8,12 @@ import '../datasources/rest/rest_api_auth_data_source.dart';
 import '../dto/auth_rest_dto.dart';
 import '../mappers/auth_user_mapper.dart';
 
-/// Default [AuthRepository] backed by [RestApiAuthDataSource].
-///
-/// Persists the access token via [AuthTokenStorage] after successful
-/// register/login, and clears it on logout. Does **not** mutate
-/// AppSession — session restoration is the responsibility of a later
-/// block.
 final class AuthRepositoryImpl implements AuthRepository {
   const AuthRepositoryImpl({
-    required RestApiAuthDataSource dataSource,
-    required AuthTokenStorage tokenStorage,
-    DateTime Function() now = DateTime.now,
-  })  :
-        // Named params are not declared as `this._field` because the
-        // public-facing name would then carry a leading underscore.
-        // ignore: prefer_initializing_formals
-        _dataSource = dataSource,
-        // ignore: prefer_initializing_formals
-        _tokenStorage = tokenStorage,
-        // ignore: prefer_initializing_formals
-        _now = now;
+    required this._dataSource,
+    required this._tokenStorage,
+    this._now = DateTime.now,
+  });
 
   final RestApiAuthDataSource _dataSource;
   final AuthTokenStorage _tokenStorage;
@@ -41,25 +27,16 @@ final class AuthRepositoryImpl implements AuthRepository {
   }) async {
     return _runAuth(
       () => _dataSource.register(
-        AuthRegisterRequestDto(
-          name: name,
-          email: email,
-          password: password,
-        ),
+        AuthRegisterRequestDto(name: name, email: email, password: password),
       ),
       failureMessage: 'Unexpected error during registration.',
     );
   }
 
   @override
-  Future<AppResult<AppUser>> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<AppResult<AppUser>> login({required String email, required String password}) async {
     return _runAuth(
-      () => _dataSource.login(
-        AuthLoginRequestDto(email: email, password: password),
-      ),
+      () => _dataSource.login(AuthLoginRequestDto(email: email, password: password)),
       failureMessage: 'Unexpected error during login.',
     );
   }
@@ -88,8 +65,6 @@ final class AuthRepositoryImpl implements AuthRepository {
     try {
       await _dataSource.logout();
     } on AppException catch (e) {
-      // Clear local token even if the server-side call failed — the user
-      // intent is to end the session locally.
       await _tokenStorage.clear();
       return AppFailure<void>(e);
     } catch (e, stack) {

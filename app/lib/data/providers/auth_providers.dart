@@ -9,19 +9,12 @@ import '../repositories/auth_repository_impl.dart';
 import 'health_providers.dart';
 
 /// Secure on-device storage for the access token.
-final tokenStorageProvider = Provider<AuthTokenStorage>(
-  (ref) => SecureAuthTokenStorage(),
-);
+final tokenStorageProvider = Provider<AuthTokenStorage>((ref) => SecureAuthTokenStorage());
 
 final authTokenInterceptorProvider = Provider<AuthTokenInterceptor>(
   (ref) => AuthTokenInterceptor(ref.watch(tokenStorageProvider)),
 );
 
-/// Returns the shared [Dio] instance from [apiClientProvider] after
-/// ensuring the [AuthTokenInterceptor] is registered on it.
-///
-/// Wiring lives in a provider (instead of inside `ApiClient`) so this
-/// block does not touch `ApiClient` itself.
 final authenticatedDioProvider = Provider<Dio>((ref) {
   final dio = ref.watch(apiClientProvider).dio;
   final interceptor = ref.watch(authTokenInterceptorProvider);
