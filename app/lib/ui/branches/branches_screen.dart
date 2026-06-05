@@ -29,7 +29,10 @@ class BranchesScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _BranchesHeader(showAdminActions: session.canViewAdminEntries),
+              _BranchesHeader(
+                showAdminActions: session.canViewAdminEntries,
+                onCreate: () => _showBranchForm(context, ref),
+              ),
               Expanded(
                 child: asyncResult.when(
                   loading: () => const _LoadingView(),
@@ -52,6 +55,11 @@ class BranchesScreen extends ConsumerWidget {
                               .read(selectedBranchProvider.notifier)
                               .select(branch);
                         },
+                        showAdminActions: session.canViewAdminEntries,
+                        onEdit: (branch) =>
+                            _showBranchForm(context, ref, branch: branch),
+                        onDeactivate: (branch) =>
+                            _confirmDeactivate(context, ref, branch),
                       );
                     },
                     failure: (exception) => _ErrorView(
@@ -71,12 +79,115 @@ class BranchesScreen extends ConsumerWidget {
 
   String _formatException(AppException exception) =>
       '${exception.code.value}: ${exception.message}';
+
+  Future<void> _showBranchForm(
+    BuildContext context,
+    WidgetRef ref, {
+    Branch? branch,
+  }) async {
+    final saved = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF12181C),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _BranchFormSheet(
+        branch: branch,
+        onSubmit: (name, address) async {
+          final repository = ref.read(branchRepositoryProvider);
+          final result = branch == null
+              ? await repository.createBranch(name: name, address: address)
+              : await repository.updateBranch(
+                  branchId: branch.id,
+                  name: name,
+                  address: address,
+                );
+
+          return result.when(
+            success: (_) => null,
+            failure: (exception) => _formatException(exception),
+          );
+        },
+      ),
+    );
+
+    if (saved == true) {
+      ref.invalidate(branchesProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              branch == null
+                  ? 'Sucursal creada correctamente.'
+                  : 'Sucursal actualizada correctamente.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmDeactivate(
+    BuildContext context,
+    WidgetRef ref,
+    Branch branch,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Desactivar sucursal'),
+        content: Text(
+          'La sucursal "${branch.name}" dejará de aparecer en la lista activa.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Desactivar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    final result = await ref
+        .read(branchRepositoryProvider)
+        .deactivateBranch(branch.id);
+
+    if (!context.mounted) return;
+
+    result.when(
+      success: (_) {
+        if (ref.read(selectedBranchProvider)?.id == branch.id) {
+          ref.read(selectedBranchProvider.notifier).clear();
+        }
+        ref.invalidate(branchesProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Sucursal desactivada correctamente.')),
+        );
+      },
+      failure: (exception) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(_formatException(exception))));
+      },
+    );
+  }
 }
 
 class _BranchesHeader extends StatelessWidget {
-  const _BranchesHeader({required this.showAdminActions});
+  const _BranchesHeader({
+    required this.showAdminActions,
+    required this.onCreate,
+  });
 
   final bool showAdminActions;
+  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
@@ -110,9 +221,9 @@ class _BranchesHeader extends StatelessWidget {
           ),
           if (showAdminActions)
             Tooltip(
-              message: 'La creación se implementará en otra tarea',
+              message: 'Nueva sucursal',
               child: IconButton(
-                onPressed: null,
+                onPressed: onCreate,
                 icon: const Icon(Icons.add),
                 color: const Color(0xFF14B8A6),
               ),
@@ -224,11 +335,17 @@ class _BranchesList extends StatelessWidget {
     required this.branches,
     required this.selectedBranch,
     required this.onSelected,
+    required this.showAdminActions,
+    required this.onEdit,
+    required this.onDeactivate,
   });
 
   final List<Branch> branches;
   final Branch? selectedBranch;
   final ValueChanged<Branch> onSelected;
+  final bool showAdminActions;
+  final ValueChanged<Branch> onEdit;
+  final ValueChanged<Branch> onDeactivate;
 
   @override
   Widget build(BuildContext context) {
@@ -242,6 +359,9 @@ class _BranchesList extends StatelessWidget {
           branch: branch,
           selected: selectedBranch?.id == branch.id,
           onTap: () => onSelected(branch),
+          showAdminActions: showAdminActions,
+          onEdit: () => onEdit(branch),
+          onDeactivate: () => onDeactivate(branch),
         );
       },
     );
@@ -253,11 +373,17 @@ class _BranchTile extends StatelessWidget {
     required this.branch,
     required this.selected,
     required this.onTap,
+    required this.showAdminActions,
+    required this.onEdit,
+    required this.onDeactivate,
   });
 
   final Branch branch;
   final bool selected;
   final VoidCallback onTap;
+  final bool showAdminActions;
+  final VoidCallback onEdit;
+  final VoidCallback onDeactivate;
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +445,13 @@ class _BranchTile extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        _StatusBadge(selected: selected),
+                        if (showAdminActions)
+                          _BranchActions(
+                            onEdit: onEdit,
+                            onDeactivate: onDeactivate,
+                          )
+                        else
+                          _StatusBadge(selected: selected),
                       ],
                     ),
                     if (branch.address?.trim().isNotEmpty ?? false) ...[
@@ -334,6 +466,10 @@ class _BranchTile extends StatelessWidget {
                         ),
                       ),
                     ],
+                    if (showAdminActions) ...[
+                      const SizedBox(height: 8),
+                      _StatusBadge(selected: selected),
+                    ],
                   ],
                 ),
               ),
@@ -342,6 +478,187 @@ class _BranchTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _BranchActions extends StatelessWidget {
+  const _BranchActions({required this.onEdit, required this.onDeactivate});
+
+  final VoidCallback onEdit;
+  final VoidCallback onDeactivate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Tooltip(
+          message: 'Editar sucursal',
+          child: IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onEdit,
+            icon: const Icon(Icons.edit_outlined),
+            color: const Color(0xFFA9B4BE),
+          ),
+        ),
+        Tooltip(
+          message: 'Desactivar sucursal',
+          child: IconButton(
+            visualDensity: VisualDensity.compact,
+            onPressed: onDeactivate,
+            icon: const Icon(Icons.block),
+            color: const Color(0xFFF87171),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _BranchFormSheet extends StatefulWidget {
+  const _BranchFormSheet({required this.onSubmit, this.branch});
+
+  final Branch? branch;
+  final Future<String?> Function(String name, String? address) onSubmit;
+
+  @override
+  State<_BranchFormSheet> createState() => _BranchFormSheetState();
+}
+
+class _BranchFormSheetState extends State<_BranchFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameController;
+  late final TextEditingController _addressController;
+  bool _isSubmitting = false;
+  String? _submitError;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.branch?.name ?? '');
+    _addressController = TextEditingController(
+      text: widget.branch?.address ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(20, 20, 20, bottomInset + 20),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.branch == null
+                        ? 'Nueva sucursal'
+                        : 'Editar sucursal',
+                    style: const TextStyle(
+                      color: Color(0xFFF8FAFC),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context).pop(false),
+                  icon: const Icon(Icons.close),
+                  color: const Color(0xFFA9B4BE),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _nameController,
+              enabled: !_isSubmitting,
+              decoration: const InputDecoration(
+                labelText: 'Nombre de la sucursal',
+                hintText: 'Sucursal Central',
+              ),
+              textInputAction: TextInputAction.next,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'El nombre de la sucursal es requerido.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _addressController,
+              enabled: !_isSubmitting,
+              decoration: const InputDecoration(
+                labelText: 'Dirección',
+                hintText: 'Dirección',
+              ),
+              minLines: 2,
+              maxLines: 4,
+            ),
+            if (_submitError != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _submitError!,
+                style: const TextStyle(color: Color(0xFFF87171)),
+              ),
+            ],
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: _isSubmitting ? null : _submit,
+              icon: _isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined),
+              label: Text(_isSubmitting ? 'Guardando...' : 'Guardar sucursal'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isSubmitting = true;
+      _submitError = null;
+    });
+
+    final error = await widget.onSubmit(
+      _nameController.text,
+      _addressController.text,
+    );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = false;
+      _submitError = error;
+    });
   }
 }
 

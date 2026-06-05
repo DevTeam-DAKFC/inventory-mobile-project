@@ -31,4 +31,8 @@ final class SelectedBranchNotifier extends Notifier<Branch?> {
   void select(Branch branch) {
     state = branch;
   }
+
+  void clear() {
+    state = null;
+  }
 }
