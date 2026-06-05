@@ -1,7 +1,3 @@
-/// Form-field validators for the authentication flow.
-///
-/// Returns `null` when the value is valid, or a human-readable English error
-/// message otherwise.
 final class AuthValidators {
   const AuthValidators._();
 
@@ -31,8 +27,9 @@ final class AuthValidators {
     if (value == null || value.isEmpty) {
       return 'Password is required.';
     }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters long.';
+
+    if (value.length < 8) {
+      return 'Password must be at least 8 characters long.';
     }
     return null;
   }
