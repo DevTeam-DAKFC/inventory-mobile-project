@@ -1,9 +1,5 @@
 /// Type of an inventory movement.
-enum MovementType {
-  incoming,
-  outgoing,
-  adjustment,
-}
+enum MovementType { incoming, outgoing, adjustment }
 
 /// Inventory movement record.
 ///

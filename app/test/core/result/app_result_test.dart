@@ -46,13 +46,15 @@ void main() {
       expect(result.isSuccess, isFalse);
     });
 
-    test('dataOrNull returns null and exceptionOrNull returns the exception',
-        () {
-      const result = AppFailure<int>(exception);
+    test(
+      'dataOrNull returns null and exceptionOrNull returns the exception',
+      () {
+        const result = AppFailure<int>(exception);
 
-      expect(result.dataOrNull, isNull);
-      expect(result.exceptionOrNull, same(exception));
-    });
+        expect(result.dataOrNull, isNull);
+        expect(result.exceptionOrNull, same(exception));
+      },
+    );
 
     test('when() runs the failure branch with the held exception', () {
       const result = AppFailure<int>(exception);

@@ -4,14 +4,11 @@ import 'package:inventory_mobile/domain/models/inventory_movement.dart';
 void main() {
   group('MovementType', () {
     test('exposes incoming, outgoing and adjustment', () {
-      expect(
-        MovementType.values,
-        [
-          MovementType.incoming,
-          MovementType.outgoing,
-          MovementType.adjustment,
-        ],
-      );
+      expect(MovementType.values, [
+        MovementType.incoming,
+        MovementType.outgoing,
+        MovementType.adjustment,
+      ]);
     });
   });
 

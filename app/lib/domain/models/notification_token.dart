@@ -1,10 +1,5 @@
 /// Device platform reported when registering a notification token.
-enum PlatformType {
-  android,
-  ios,
-  web,
-  unknown,
-}
+enum PlatformType { android, ios, web, unknown }
 
 /// Push notification token associated with a user device.
 final class NotificationToken {

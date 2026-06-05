@@ -1,10 +1,5 @@
 /// Lifecycle status of a CSV product import batch.
-enum ImportStatus {
-  pending,
-  validated,
-  completed,
-  failed,
-}
+enum ImportStatus { pending, validated, completed, failed }
 
 /// Per-row validation error detected during a CSV import.
 final class ImportBatchError {
