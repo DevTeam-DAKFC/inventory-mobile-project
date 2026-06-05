@@ -110,17 +110,21 @@ void main() {
     session = AppSession();
   });
 
-  testWidgets('renders prototype copy and primary CTA', (tester) async {
+  testWidgets('renders premium dark headline and primary CTA', (tester) async {
     await tester.pumpWidget(
       _harness(repository: repository, session: session),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Control de inventario'), findsOneWidget);
+    expect(find.text('Bienvenido de'), findsOneWidget);
+    expect(find.text('nuevo'), findsOneWidget);
     expect(
-      find.text('Gestiona productos, stock y movimientos por sucursal'),
+      find.text(
+        'Gestioná productos, existencias y movimientos entre sucursales.',
+      ),
       findsOneWidget,
     );
+    expect(find.text('Inventario'), findsOneWidget);
     expect(find.text('Correo electrónico'), findsOneWidget);
     expect(find.text('Contraseña'), findsOneWidget);
     expect(find.text('Iniciar sesión'), findsOneWidget);
@@ -405,6 +409,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('Crear cuenta'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Crear cuenta'));
     await tester.pumpAndSettle();
 

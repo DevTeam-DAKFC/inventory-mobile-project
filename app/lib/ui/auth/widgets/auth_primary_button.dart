@@ -25,12 +25,12 @@ class AuthPrimaryButton extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 44,
+      height: 56,
       child: Material(
         color: background,
-        borderRadius: const BorderRadius.all(Radius.circular(12)),
+        borderRadius: const BorderRadius.all(Radius.circular(28)),
         child: InkWell(
-          borderRadius: const BorderRadius.all(Radius.circular(12)),
+          borderRadius: const BorderRadius.all(Radius.circular(28)),
           onTap: disabled ? null : onPressed,
           child: Center(
             child: Row(
@@ -39,22 +39,23 @@ class AuthPrimaryButton extends StatelessWidget {
               children: [
                 if (isLoading) ...[
                   SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(foreground),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                 ],
                 Text(
                   label,
                   style: TextStyle(
                     color: foreground,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    height: 1.4,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    height: 1.2,
+                    letterSpacing: -0.1,
                   ),
                 ),
               ],

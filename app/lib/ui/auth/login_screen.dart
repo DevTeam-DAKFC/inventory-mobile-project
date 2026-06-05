@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/errors/app_error_code.dart';
-import '../../core/errors/app_exception.dart';
 import '../../core/validation/auth_validators.dart';
-import '../../data/providers/auth_providers.dart';
-import '../../navigation/app_session.dart';
 import '../../navigation/routes.dart';
+import 'login_controller.dart';
 import 'widgets/auth_error_banner.dart';
 import 'widgets/auth_form_field.dart';
+import 'widgets/auth_package_mark.dart';
 import 'widgets/auth_primary_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -24,9 +22,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _isLoading = false;
-  String? _errorMessage;
-
   @override
   void dispose() {
     _emailController.dispose();
@@ -34,152 +29,88 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (_isLoading) {
-      return;
-    }
+  Future<void> _onSubmit() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
       return;
     }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    final email = _emailController.text.trim();
-    final password = _passwordController.text;
-
-    final result = await ref
-        .read(authRepositoryProvider)
-        .login(email: email, password: password);
-
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = false;
-      _errorMessage = result.isSuccess
-          ? null
-          : _messageFor(result.exceptionOrNull);
-    });
-
-    final user = result.dataOrNull;
-    if (user != null) {
-      // Router redirect listens to AppSession and will navigate to /home.
-      ref.read(appSessionProvider).setAuthenticatedUser(user);
-    }
-  }
-
-  String _messageFor(AppException? exception) {
-    switch (exception?.code) {
-      case AppErrorCode.unauthorized:
-        return 'Correo o contraseña incorrectos.';
-      case AppErrorCode.validationError:
-        return 'Revisa los campos ingresados.';
-      case AppErrorCode.networkError:
-        return 'Sin conexión. Inténtalo de nuevo.';
-      case AppErrorCode.timeout:
-        return 'La solicitud tardó demasiado. Inténtalo de nuevo.';
-      case AppErrorCode.serviceUnavailable:
-        return 'El servidor no está disponible.';
-      default:
-        return 'No pudimos iniciar sesión. Inténtalo de nuevo.';
-    }
+    await ref.read(loginControllerProvider.notifier).submit(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = ref.watch(loginControllerProvider);
+    final isLoading = state.isLoading;
+    final errorMessage = state.errorMessage;
+
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0A0D0F), Color(0xFF111A20)],
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: const Color(0xFF06090B),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
           child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 24,
-              ),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 384),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const _LogoTile(),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const _BrandRow(),
+                    const SizedBox(height: 40),
+                    const _Headline(),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Gestioná productos, existencias y movimientos entre sucursales.',
+                      style: TextStyle(
+                        color: Color(0xFFA9B4BE),
+                        fontSize: 15,
+                        height: 1.5,
+                        letterSpacing: -0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    AuthFormField(
+                      label: 'Correo electrónico',
+                      hintText: 'correo@ejemplo.com',
+                      controller: _emailController,
+                      validator: AuthValidators.validateEmail,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      enabled: !isLoading,
+                      autofillHints: const [AutofillHints.email],
+                    ),
+                    const SizedBox(height: 14),
+                    AuthFormField(
+                      label: 'Contraseña',
+                      hintText: '••••••••',
+                      controller: _passwordController,
+                      validator: AuthValidators.validatePassword,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      enabled: !isLoading,
+                      onFieldSubmitted: (_) => _onSubmit(),
+                      autofillHints: const [AutofillHints.password],
+                    ),
+                    if (errorMessage != null) ...[
                       const SizedBox(height: 16),
-                      const Text(
-                        'Control de inventario',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFFF8FAFC),
-                          fontSize: 24,
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Gestiona productos, stock y movimientos por sucursal',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Color(0xFFA9B4BE),
-                          fontSize: 14,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      AuthFormField(
-                        label: 'Correo electrónico',
-                        hintText: 'tu@email.com',
-                        controller: _emailController,
-                        validator: AuthValidators.validateEmail,
-                        keyboardType: TextInputType.emailAddress,
-                        textInputAction: TextInputAction.next,
-                        enabled: !_isLoading,
-                        autofillHints: const [AutofillHints.email],
-                      ),
-                      const SizedBox(height: 16),
-                      AuthFormField(
-                        label: 'Contraseña',
-                        hintText: '••••••••',
-                        controller: _passwordController,
-                        validator: AuthValidators.validatePassword,
-                        obscureText: true,
-                        textInputAction: TextInputAction.done,
-                        enabled: !_isLoading,
-                        onFieldSubmitted: (_) => _submit(),
-                        autofillHints: const [AutofillHints.password],
-                      ),
-                      const SizedBox(height: 16),
-                      AuthErrorBanner(message: _errorMessage),
-                      if (_errorMessage != null) const SizedBox(height: 16),
-                      AuthPrimaryButton(
-                        label: 'Iniciar sesión',
-                        isLoading: _isLoading,
-                        onPressed: _isLoading ? null : _submit,
-                      ),
-                      const SizedBox(height: 12),
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () => context.go(AppRoutes.register),
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color(0xFF14B8A6),
-                        ),
-                        child: const Text('Crear cuenta'),
-                      ),
+                      AuthErrorBanner(message: errorMessage),
                     ],
-                  ),
+                    const SizedBox(height: 24),
+                    AuthPrimaryButton(
+                      label: 'Iniciar sesión',
+                      isLoading: isLoading,
+                      onPressed: isLoading ? null : _onSubmit,
+                    ),
+                    const SizedBox(height: 20),
+                    _RegisterPrompt(
+                      enabled: !isLoading,
+                      onTap: () => context.go(AppRoutes.register),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -190,26 +121,100 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 }
 
-class _LogoTile extends StatelessWidget {
-  const _LogoTile();
+class _BrandRow extends StatelessWidget {
+  const _BrandRow();
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          color: const Color(0xFF182126),
-          border: Border.all(color: const Color(0x0FFFFFFF)),
-          borderRadius: BorderRadius.circular(16),
+    return Row(
+      children: const [
+        AuthPackageMark(size: 20),
+        SizedBox(width: 10),
+        Text(
+          'Inventario',
+          style: TextStyle(
+            color: Color(0xFFA9B4BE),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.4,
+            height: 1.2,
+          ),
         ),
-        child: const Icon(
-          Icons.inventory_2_outlined,
-          size: 32,
-          color: Color(0xFF14B8A6),
+      ],
+    );
+  }
+}
+
+class _Headline extends StatelessWidget {
+  const _Headline();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Text(
+          'Bienvenido de',
+          style: TextStyle(
+            color: Color(0xFFF8FAFC),
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            height: 1.12,
+            letterSpacing: -0.8,
+          ),
         ),
-      ),
+        Text(
+          'nuevo',
+          style: TextStyle(
+            color: Color(0xFF14B8A6),
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            height: 1.12,
+            letterSpacing: -0.8,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RegisterPrompt extends StatelessWidget {
+  const _RegisterPrompt({required this.enabled, required this.onTap});
+
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 4,
+      children: [
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            '¿No tienes cuenta?',
+            style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 14, height: 1.4),
+          ),
+        ),
+        InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: const BorderRadius.all(Radius.circular(8)),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            child: Text(
+              'Crear cuenta',
+              style: TextStyle(
+                color: enabled ? const Color(0xFF14B8A6) : const Color(0xFF6F7C86),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

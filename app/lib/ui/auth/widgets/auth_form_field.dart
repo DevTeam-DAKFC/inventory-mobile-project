@@ -26,13 +26,13 @@ class AuthFormField extends StatelessWidget {
   final ValueChanged<String>? onFieldSubmitted;
   final Iterable<String>? autofillHints;
 
-  static const Color _fill = Color(0xFF1F2A30);
-  static const Color _border = Color(0x0FFFFFFF); // rgba(255,255,255,0.06)
+  static const Color _fill = Color(0xFF141B20);
+  static const Color _border = Color(0x12FFFFFF);
   static const Color _textPrimary = Color(0xFFF8FAFC);
   static const Color _textSecondary = Color(0xFFA9B4BE);
   static const Color _textMuted = Color(0xFF6F7C86);
   static const Color _danger = Color(0xFFEF4444);
-  static const double _radius = 12;
+  static const double _radius = 28;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +68,7 @@ class AuthFormField extends StatelessWidget {
             fillColor: _fill,
             hintText: hintText,
             hintStyle: const TextStyle(color: _textMuted, fontSize: 15),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             border: _outline(_border),
             enabledBorder: _outline(_border),
             focusedBorder: _outline(const Color(0xFF14B8A6), width: 1.4),
