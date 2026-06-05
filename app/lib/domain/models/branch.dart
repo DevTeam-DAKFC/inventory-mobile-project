@@ -4,8 +4,8 @@ final class Branch {
     required this.id,
     required this.name,
     required this.isActive,
-    required this.createdAt,
     this.address,
+    this.createdAt,
     this.updatedAt,
   });
 
@@ -13,6 +13,6 @@ final class Branch {
   final String name;
   final String? address;
   final bool isActive;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
 }

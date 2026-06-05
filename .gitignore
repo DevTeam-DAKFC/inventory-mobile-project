@@ -22,6 +22,9 @@ app/build/
 app/.flutter-plugins
 app/.flutter-plugins-dependencies
 
+# Prototypes / design drafts
+prototypes/
+
 # Android
 app/android/.gradle/
 app/android/local.properties
