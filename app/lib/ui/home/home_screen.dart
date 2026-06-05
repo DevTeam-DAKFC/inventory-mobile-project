@@ -17,12 +17,7 @@ class HomeScreen extends StatelessWidget {
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _DashboardHeader(),
-                _DashboardContent(),
-              ],
-            ),
+            child: Column(children: [_DashboardHeader(), _DashboardContent()]),
           ),
         ),
       ),
@@ -126,7 +121,11 @@ class _DashboardHeader extends StatelessWidget {
                   style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
                 ),
                 SizedBox(width: 8),
-                Icon(Icons.keyboard_arrow_down, color: Color(0xFF6F7C86), size: 16),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF6F7C86),
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -201,8 +200,14 @@ class _HeroCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Disponibilidad', style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 12)),
-              Text('75%', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 12)),
+              Text(
+                'Disponibilidad',
+                style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 12),
+              ),
+              Text(
+                '75%',
+                style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
+              ),
             ],
           ),
           SizedBox(height: 6),
@@ -210,7 +215,10 @@ class _HeroCard extends StatelessWidget {
           SizedBox(height: 12),
           Row(
             children: [
-              Text('Ver resumen', style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12)),
+              Text(
+                'Ver resumen',
+                style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12),
+              ),
               SizedBox(width: 6),
               Icon(Icons.arrow_forward, size: 14, color: Color(0xFF14B8A6)),
             ],
@@ -225,10 +233,25 @@ class _KpiGrid extends StatelessWidget {
   const _KpiGrid();
 
   static const _items = [
-    _KpiItem('Productos activos', '-', _DashboardIconType.package, Color(0xFF14B8A6)),
-    _KpiItem('Stock bajo', '-', _DashboardIconType.alertTriangle, Color(0xFFF59E0B)),
+    _KpiItem(
+      'Productos activos',
+      '-',
+      _DashboardIconType.package,
+      Color(0xFF14B8A6),
+    ),
+    _KpiItem(
+      'Stock bajo',
+      '-',
+      _DashboardIconType.alertTriangle,
+      Color(0xFFF59E0B),
+    ),
     _KpiItem('Agotados', '-', _DashboardIconType.xCircle, Color(0xFFEF4444)),
-    _KpiItem('Movimientos hoy', '-', _DashboardIconType.trendingUp, Color(0xFF3B82F6)),
+    _KpiItem(
+      'Movimientos hoy',
+      '-',
+      _DashboardIconType.trendingUp,
+      Color(0xFF3B82F6),
+    ),
   ];
 
   @override
@@ -287,7 +310,10 @@ class _KpiCard extends StatelessWidget {
                   item.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+                  style: const TextStyle(
+                    color: Color(0xFF6F7C86),
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ),
@@ -356,7 +382,9 @@ class _ActionButton extends StatelessWidget {
         border: Border.all(color: const Color(0x0FFFFFFF)),
       ),
       child: Row(
-        mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
+        mainAxisAlignment: centered
+            ? MainAxisAlignment.center
+            : MainAxisAlignment.start,
         children: [
           _DashboardIcon(type: item.icon, color: const Color(0xFF14B8A6)),
           const SizedBox(width: 8),
@@ -378,9 +406,33 @@ class _RecentMovements extends StatelessWidget {
   const _RecentMovements();
 
   static const _items = [
-    _MovementItem('Salida', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
-    _MovementItem('Salida', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
-    _MovementItem('Entrada', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
+    _MovementItem(
+      'Salida',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
+    _MovementItem(
+      'Salida',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
+    _MovementItem(
+      'Entrada',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
   ];
 
   @override
@@ -395,7 +447,10 @@ class _RecentMovements extends StatelessWidget {
               'Últimos movimientos',
               style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
             ),
-            Text('Ver todos', style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12)),
+            Text(
+              'Ver todos',
+              style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12),
+            ),
           ],
         ),
         const SizedBox(height: 10),
@@ -424,14 +479,20 @@ class _MovementCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _Badge(text: item.type, variant: incoming ? _BadgeVariant.success : _BadgeVariant.info),
+              _Badge(
+                text: item.type,
+                variant: incoming ? _BadgeVariant.success : _BadgeVariant.info,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   item.product,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFFF8FAFC),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -440,7 +501,10 @@ class _MovementCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(item.branch, style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 10)),
+              Text(
+                item.branch,
+                style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 10),
+              ),
               Text(
                 '${item.quantity} → Stock: ${item.stock}',
                 style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
@@ -451,8 +515,14 @@ class _MovementCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(item.user, style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10)),
-              Text(item.date, style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10)),
+              Text(
+                item.user,
+                style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+              ),
+              Text(
+                item.date,
+                style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+              ),
             ],
           ),
         ],
@@ -505,9 +575,21 @@ class _Badge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = switch (variant) {
-      _BadgeVariant.success => (const Color(0x2422C55E), const Color(0xFF22C55E), const Color(0x3322C55E)),
-      _BadgeVariant.info => (const Color(0x243B82F6), const Color(0xFF3B82F6), const Color(0x333B82F6)),
-      _BadgeVariant.defaultVariant => (const Color(0x2414B8A6), const Color(0xFF14B8A6), const Color(0x5214B8A6)),
+      _BadgeVariant.success => (
+        const Color(0x2422C55E),
+        const Color(0xFF22C55E),
+        const Color(0x3322C55E),
+      ),
+      _BadgeVariant.info => (
+        const Color(0x243B82F6),
+        const Color(0xFF3B82F6),
+        const Color(0x333B82F6),
+      ),
+      _BadgeVariant.defaultVariant => (
+        const Color(0x2414B8A6),
+        const Color(0xFF14B8A6),
+        const Color(0x5214B8A6),
+      ),
     };
 
     return Container(
@@ -587,19 +669,10 @@ class _MovementItem {
   final String date;
 }
 
-enum _DashboardIconType {
-  package,
-  alertTriangle,
-  xCircle,
-  trendingUp,
-  plus,
-}
+enum _DashboardIconType { package, alertTriangle, xCircle, trendingUp, plus }
 
 class _DashboardIcon extends StatelessWidget {
-  const _DashboardIcon({
-    required this.type,
-    required this.color,
-  });
+  const _DashboardIcon({required this.type, required this.color});
 
   final _DashboardIconType type;
   final Color color;
@@ -614,10 +687,7 @@ class _DashboardIcon extends StatelessWidget {
 }
 
 class _DashboardIconPainter extends CustomPainter {
-  const _DashboardIconPainter({
-    required this.type,
-    required this.color,
-  });
+  const _DashboardIconPainter({required this.type, required this.color});
 
   final _DashboardIconType type;
   final Color color;

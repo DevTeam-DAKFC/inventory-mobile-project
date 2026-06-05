@@ -39,31 +39,37 @@ void main() {
       expect(client.dio.options.headers['Accept'], 'application/json');
     });
 
-    test('adds Authorization header when an access token is available', () async {
-      const config = ApiConfig(baseUrl: 'http://localhost:5225');
-      final adapter = _HeaderCapturingAdapter();
-      final client = ApiClient(
-        config,
-        accessTokenProvider: const DevAccessTokenProvider(token: 'abc123'),
-      )..dio.httpClientAdapter = adapter;
+    test(
+      'adds Authorization header when an access token is available',
+      () async {
+        const config = ApiConfig(baseUrl: 'http://localhost:5225');
+        final adapter = _HeaderCapturingAdapter();
+        final client = ApiClient(
+          config,
+          accessTokenProvider: const DevAccessTokenProvider(token: 'abc123'),
+        )..dio.httpClientAdapter = adapter;
 
-      await client.dio.get<dynamic>('/inventory-movements');
+        await client.dio.get<dynamic>('/inventory-movements');
 
-      expect(adapter.lastHeaders['Authorization'], 'Bearer abc123');
-    });
+        expect(adapter.lastHeaders['Authorization'], 'Bearer abc123');
+      },
+    );
 
-    test('does not add Authorization header when no token is available', () async {
-      const config = ApiConfig(baseUrl: 'http://localhost:5225');
-      final adapter = _HeaderCapturingAdapter();
-      final client = ApiClient(
-        config,
-        accessTokenProvider: const DevAccessTokenProvider(token: ''),
-      )..dio.httpClientAdapter = adapter;
+    test(
+      'does not add Authorization header when no token is available',
+      () async {
+        const config = ApiConfig(baseUrl: 'http://localhost:5225');
+        final adapter = _HeaderCapturingAdapter();
+        final client = ApiClient(
+          config,
+          accessTokenProvider: const DevAccessTokenProvider(token: ''),
+        )..dio.httpClientAdapter = adapter;
 
-      await client.dio.get<dynamic>('/health');
+        await client.dio.get<dynamic>('/health');
 
-      expect(adapter.lastHeaders.containsKey('Authorization'), isFalse);
-    });
+        expect(adapter.lastHeaders.containsKey('Authorization'), isFalse);
+      },
+    );
   });
 }
 

@@ -12,8 +12,9 @@ import 'package:inventory_mobile/ui/foundation/backend_health_screen.dart';
 
 void main() {
   group('BackendHealthScreen', () {
-    testWidgets('shows a loading indicator while the check is in flight',
-        (tester) async {
+    testWidgets('shows a loading indicator while the check is in flight', (
+      tester,
+    ) async {
       final completer = Completer<AppResult<BackendHealth>>();
 
       await tester.pumpWidget(
@@ -30,15 +31,14 @@ void main() {
       expect(find.text('Checking backend...'), findsOneWidget);
 
       completer.complete(
-        const AppSuccess(
-          BackendHealth(status: 'ok', service: 'Inventory.Api'),
-        ),
+        const AppSuccess(BackendHealth(status: 'ok', service: 'Inventory.Api')),
       );
       await tester.pumpAndSettle();
     });
 
-    testWidgets('shows status and service when the result is AppSuccess',
-        (tester) async {
+    testWidgets('shows status and service when the result is AppSuccess', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -59,31 +59,32 @@ void main() {
     });
 
     testWidgets(
-        'shows error message and retry button when the result is AppFailure',
-        (tester) async {
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            backendHealthProvider.overrideWith(
-              (_) async => const AppFailure<BackendHealth>(
-                AppException(
-                  code: AppErrorCode.networkError,
-                  message: 'Cannot reach the backend.',
+      'shows error message and retry button when the result is AppFailure',
+      (tester) async {
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              backendHealthProvider.overrideWith(
+                (_) async => const AppFailure<BackendHealth>(
+                  AppException(
+                    code: AppErrorCode.networkError,
+                    message: 'Cannot reach the backend.',
+                  ),
                 ),
               ),
-            ),
-          ],
-          child: const MaterialApp(home: BackendHealthScreen()),
-        ),
-      );
-      await tester.pumpAndSettle();
+            ],
+            child: const MaterialApp(home: BackendHealthScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Could not reach backend.'), findsOneWidget);
-      expect(
-        find.text('network_error: Cannot reach the backend.'),
-        findsOneWidget,
-      );
-      expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
-    });
+        expect(find.text('Could not reach backend.'), findsOneWidget);
+        expect(
+          find.text('network_error: Cannot reach the backend.'),
+          findsOneWidget,
+        );
+        expect(find.widgetWithText(FilledButton, 'Retry'), findsOneWidget);
+      },
+    );
   });
 }

@@ -4,10 +4,7 @@ import 'package:inventory_mobile/domain/models/backend_health.dart';
 void main() {
   group('BackendHealth', () {
     test('can be constructed with required fields', () {
-      const health = BackendHealth(
-        status: 'ok',
-        service: 'Inventory.Api',
-      );
+      const health = BackendHealth(status: 'ok', service: 'Inventory.Api');
 
       expect(health.status, 'ok');
       expect(health.service, 'Inventory.Api');
@@ -35,8 +32,10 @@ void main() {
       });
 
       test('returns false for "unhealthy"', () {
-        const health =
-            BackendHealth(status: 'unhealthy', service: 'Inventory.Api');
+        const health = BackendHealth(
+          status: 'unhealthy',
+          service: 'Inventory.Api',
+        );
         expect(health.isOk, isFalse);
       });
 
