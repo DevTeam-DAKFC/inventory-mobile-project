@@ -17,8 +17,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Inicio de'), findsOneWidget);
-    expect(find.textContaining('sesión'), findsOneWidget);
+    expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
   });
 
   testWidgets('redirects unauthenticated users away from private routes', (tester) async {
@@ -94,6 +93,13 @@ void main() {
 
 Finder _navigationDestination(String label) {
   return find.text(label);
+}
+
+Finder _richTextPlain(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.textSpan?.toPlainText() == text,
+    description: 'Text.rich with plain text "$text"',
+  );
 }
 
 class _RouterTestApp extends StatelessWidget {

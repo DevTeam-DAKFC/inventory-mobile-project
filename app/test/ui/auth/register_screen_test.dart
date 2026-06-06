@@ -95,6 +95,20 @@ Future<void> _tapPrimary(WidgetTester tester) async {
   await tester.tap(button);
 }
 
+Finder _richTextPlain(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.textSpan?.toPlainText() == text,
+    description: 'Text.rich with plain text "$text"',
+  );
+}
+
+Finder _textData(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.data == text,
+    description: 'Text widget with data "$text"',
+  );
+}
+
 void main() {
   late _MockAuthRepository repository;
   late AppSession session;
@@ -109,7 +123,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Inventario'), findsOneWidget);
-    expect(find.text('Crear cuenta', findRichText: true), findsWidgets);
+    expect(_richTextPlain('Crear cuenta'), findsOneWidget);
     expect(
       find.text('Registrá tu acceso para gestionar productos y movimientos entre sucursales.'),
       findsOneWidget,
@@ -117,7 +131,7 @@ void main() {
     expect(find.text('Nombre'), findsOneWidget);
     expect(find.text('Correo electrónico'), findsOneWidget);
     expect(find.text('Contraseña'), findsOneWidget);
-    expect(find.text('Crear cuenta'), findsOneWidget);
+    expect(_textData('Crear cuenta'), findsOneWidget);
     expect(find.text('¿Ya tienes cuenta?'), findsOneWidget);
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });

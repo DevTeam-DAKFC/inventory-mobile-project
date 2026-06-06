@@ -88,6 +88,13 @@ Widget _harness({
   );
 }
 
+Finder _richTextPlain(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.textSpan?.toPlainText() == text,
+    description: 'Text.rich with plain text "$text"',
+  );
+}
+
 void main() {
   late _MockAuthRepository repository;
   late AppSession session;
@@ -105,8 +112,7 @@ void main() {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
     expect(find.text('Inventario'), findsOneWidget);
-    expect(find.text('Inicio de'), findsOneWidget);
-    expect(find.text('sesión'), findsOneWidget);
+    expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
     expect(find.text('Ingresá para gestionar inventario entre sucursales.'), findsOneWidget);
     expect(find.text('Correo electrónico'), findsOneWidget);
     expect(find.text('Contraseña'), findsOneWidget);
