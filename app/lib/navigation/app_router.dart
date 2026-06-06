@@ -5,6 +5,7 @@ import '../ui/auth/login_screen.dart';
 import '../ui/auth/register_screen.dart';
 import '../ui/alerts/alerts_screen.dart';
 import '../ui/home/home_screen.dart';
+import '../ui/imports/import_products_screen.dart';
 import '../ui/movements/movement_form_screen.dart';
 import '../ui/navigation/app_shell.dart';
 import '../ui/navigation/not_found_screen.dart';
@@ -67,6 +68,12 @@ GoRouter buildAppRouter(
               GoRoute(
                 path: AppRoutes.products,
                 builder: (context, state) => const ProductsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'import',
+                    builder: (context, state) => const ImportProductsScreen(),
+                  ),
+                ],
               ),
             ],
           ),
