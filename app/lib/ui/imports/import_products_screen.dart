@@ -2,10 +2,13 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/result/app_result.dart';
 import '../../domain/models/import_batch.dart';
+import '../../domain/models/paginated_result.dart';
 import '../../domain/models/product_import_file.dart';
 import 'import_flow_state.dart';
 import 'import_flow_view_model.dart';
+import 'import_providers.dart';
 
 class ImportProductsScreen extends ConsumerWidget {
   const ImportProductsScreen({super.key});
@@ -13,6 +16,9 @@ class ImportProductsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(importFlowViewModelProvider);
+    final recentImports = ref.watch(
+      importBatchListProvider((page: 1, pageSize: 5)),
+    );
 
     return Scaffold(
       body: DecoratedBox(
@@ -56,6 +62,8 @@ class ImportProductsScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       _SuccessPanel(message: state.successMessage!),
                     ],
+                    const SizedBox(height: 16),
+                    _RecentImportsSection(recentImports: recentImports),
                     const SizedBox(height: 20),
                     _PrimaryButton(
                       label: state.isUploading ? 'Uploading...' : 'Subir CSV',
@@ -72,6 +80,104 @@ class ImportProductsScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RecentImportsSection extends StatelessWidget {
+  const _RecentImportsSection({required this.recentImports});
+
+  final AsyncValue<AppResult<PaginatedResult<ImportBatch>>> recentImports;
+
+  @override
+  Widget build(BuildContext context) {
+    return _PrototypeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Importaciones recientes',
+            style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          recentImports.when(
+            data: (result) => result.when(
+              success: (page) {
+                if (page.isEmpty) {
+                  return const _MutedText('No hay importaciones recientes.');
+                }
+                return Column(
+                  children: [
+                    for (final batch in page.items.take(5)) ...[
+                      _RecentImportRow(batch: batch),
+                      if (batch != page.items.take(5).last)
+                        const SizedBox(height: 10),
+                    ],
+                  ],
+                );
+              },
+              failure: (exception) => _MutedText(exception.message),
+            ),
+            error: (error, stackTrace) =>
+                const _MutedText('No se pudo cargar el historial.'),
+            loading: () =>
+                const _MutedText('Cargando importaciones recientes...'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentImportRow extends StatelessWidget {
+  const _RecentImportRow({required this.batch});
+
+  final ImportBatch batch;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = batch.hasErrors
+        ? const Color(0xFFF59E0B)
+        : const Color(0xFF22C55E);
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F2A30),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0x0FFFFFFF)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.description_outlined, color: color, size: 18),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  batch.fileName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFF8FAFC),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${batch.importedRows} imported - ${batch.failedRows} failed',
+                  style: const TextStyle(
+                    color: Color(0xFF6F7C86),
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _Badge(text: _statusLabel(batch.status), color: color),
+        ],
       ),
     );
   }
@@ -373,6 +479,20 @@ class _FormatLine extends StatelessWidget {
   }
 }
 
+class _MutedText extends StatelessWidget {
+  const _MutedText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 12),
+    );
+  }
+}
+
 class _MetricTile extends StatelessWidget {
   const _MetricTile({
     required this.label,
@@ -413,6 +533,16 @@ class _MetricTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _statusLabel(ImportStatus status) {
+  return switch (status) {
+    ImportStatus.pending => 'Pendiente',
+    ImportStatus.processing => 'Procesando',
+    ImportStatus.completed => 'Completado',
+    ImportStatus.failed => 'Fallido',
+    ImportStatus.completedWithErrors => 'Con errores',
+  };
 }
 
 class _PrototypeCard extends StatelessWidget {
