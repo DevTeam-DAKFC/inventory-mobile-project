@@ -17,8 +17,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Bienvenido de'), findsOneWidget);
-    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.textContaining('Inicio de'), findsOneWidget);
+    expect(find.textContaining('sesión'), findsOneWidget);
   });
 
   testWidgets('redirects unauthenticated users away from private routes', (tester) async {

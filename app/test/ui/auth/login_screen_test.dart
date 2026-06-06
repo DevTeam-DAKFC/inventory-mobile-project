@@ -101,20 +101,17 @@ void main() {
     session = AppSession();
   });
 
-  testWidgets('renders premium dark headline and primary CTA', (tester) async {
+  testWidgets('renders the auth-shell sign-in copy and the primary CTA', (tester) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
-
-    expect(find.text('Bienvenido de'), findsOneWidget);
-    expect(find.text('nuevo'), findsOneWidget);
-    expect(
-      find.text('Gestioná productos, existencias y movimientos entre sucursales.'),
-      findsOneWidget,
-    );
     expect(find.text('Inventario'), findsOneWidget);
+    expect(find.text('Inicio de'), findsOneWidget);
+    expect(find.text('sesión'), findsOneWidget);
+    expect(find.text('Ingresá para gestionar inventario entre sucursales.'), findsOneWidget);
     expect(find.text('Correo electrónico'), findsOneWidget);
     expect(find.text('Contraseña'), findsOneWidget);
     expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('¿No tienes cuenta?'), findsOneWidget);
     expect(find.text('Crear cuenta'), findsOneWidget);
   });
 
@@ -302,61 +299,38 @@ void main() {
     expect(find.text('REGISTER_STUB'), findsOneWidget);
   });
 
-  testWidgets(
-    'after returning to /login from /home, a previous credentials error is '
-    'not shown again',
-    (tester) async {
-      when(
-        () => repository.login(
-          email: any(named: 'email'),
-          password: any(named: 'password'),
-        ),
-      ).thenAnswer(
-        (_) async => const AppFailure(
-          AppException(
-            code: AppErrorCode.unauthorized,
-            message: 'bad creds',
-          ),
-        ),
-      );
+  testWidgets('after returning to /login from /home, a previous credentials error is '
+      'not shown again', (tester) async {
+    when(
+      () => repository.login(
+        email: any(named: 'email'),
+        password: any(named: 'password'),
+      ),
+    ).thenAnswer(
+      (_) async =>
+          const AppFailure(AppException(code: AppErrorCode.unauthorized, message: 'bad creds')),
+    );
 
-      await tester.pumpWidget(
-        _harness(
-          repository: repository,
-          session: session,
-          router: _buildAuthAwareRouter(session),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      _harness(repository: repository, session: session, router: _buildAuthAwareRouter(session)),
+    );
+    await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byType(TextFormField).at(0),
-        'user@example.com',
-      );
-      await tester.enterText(
-        find.byType(TextFormField).at(1),
-        'wrong-password',
-      );
-      await tester.tap(find.byType(AuthPrimaryButton));
-      await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+    await tester.enterText(find.byType(TextFormField).at(1), 'wrong-password');
+    await tester.tap(find.byType(AuthPrimaryButton));
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
-        findsOneWidget,
-      );
+    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsOneWidget);
 
-      session.setAuthenticatedUser(_adminUser());
-      await tester.pumpAndSettle();
-      expect(find.text('HOME_STUB'), findsOneWidget);
+    session.setAuthenticatedUser(_adminUser());
+    await tester.pumpAndSettle();
+    expect(find.text('HOME_STUB'), findsOneWidget);
 
-      session.signOut();
-      await tester.pumpAndSettle();
+    session.signOut();
+    await tester.pumpAndSettle();
 
-      expect(find.text('Iniciar sesión'), findsOneWidget);
-      expect(
-        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
-        findsNothing,
-      );
-    },
-  );
+    expect(find.text('Iniciar sesión'), findsOneWidget);
+    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsNothing);
+  });
 }
