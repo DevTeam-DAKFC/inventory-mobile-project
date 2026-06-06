@@ -7,9 +7,12 @@ class AppRoutes {
 
   static const home = '/home';
   static const products = '/products';
+  static const productNew = '/products/new';
   static const stock = '/stock';
   static const movements = '/movements';
   static const alerts = '/alerts';
+
+  static String productEdit(String productId) => '/products/$productId/edit';
 }
 
 enum AppShellTab {

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
@@ -14,6 +15,7 @@ import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:inventory_mobile/domain/repositories/product_repository.dart';
 import 'package:inventory_mobile/ui/products/products_screen.dart';
+import 'package:inventory_mobile/ui/products/product_form_screen.dart';
 
 void main() {
   testWidgets('renders loading and then product cards with status', (
@@ -95,6 +97,52 @@ void main() {
 
     expect(repository.queries, hasLength(1));
   });
+
+  testWidgets('navigates from add button and product card to the form', (
+    tester,
+  ) async {
+    final product = _product('1', active: true);
+    final repository = _FakeProductRepository(
+      (_) async => AppSuccess(_page([product])),
+      onGet: (_) async => AppSuccess(product),
+    );
+    final router = GoRouter(
+      initialLocation: '/products',
+      routes: [
+        GoRoute(
+          path: '/products',
+          builder: (_, _) => const ProductsScreen(),
+          routes: [
+            GoRoute(path: 'new', builder: (_, _) => const ProductFormScreen()),
+            GoRoute(
+              path: ':id/edit',
+              builder: (_, state) =>
+                  ProductFormScreen(productId: state.pathParameters['id']),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [productRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('add-product-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Nuevo producto'), findsOneWidget);
+    router.pop();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('product-card-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Editar producto'), findsOneWidget);
+    expect(repository.requestedProductId, '1');
+  });
 }
 
 Future<void> _pumpScreen(WidgetTester tester, ProductRepository repository) {
@@ -108,11 +156,13 @@ Future<void> _pumpScreen(WidgetTester tester, ProductRepository repository) {
 }
 
 final class _FakeProductRepository implements ProductRepository {
-  _FakeProductRepository(this.onList);
+  _FakeProductRepository(this.onList, {this.onGet});
 
   final Future<AppResult<PaginatedProducts>> Function(ProductListQuery query)
   onList;
+  final Future<AppResult<Product>> Function(String productId)? onGet;
   final queries = <ProductListQuery>[];
+  String? requestedProductId;
 
   @override
   Future<AppResult<PaginatedProducts>> listProducts(ProductListQuery query) {
@@ -129,8 +179,11 @@ final class _FakeProductRepository implements ProductRepository {
       throw UnimplementedError();
 
   @override
-  Future<AppResult<Product>> getProduct(String productId) =>
-      throw UnimplementedError();
+  Future<AppResult<Product>> getProduct(String productId) {
+    requestedProductId = productId;
+    return onGet?.call(productId) ??
+        Future.value(AppSuccess(_product(productId, active: true)));
+  }
 
   @override
   Future<AppResult<Product>> updateProduct(

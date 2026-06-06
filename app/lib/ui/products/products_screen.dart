@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/providers/product_providers.dart';
 import '../../domain/models/product.dart';
+import '../../navigation/routes.dart';
 import 'product_catalog_controller.dart';
 
 class ProductsScreen extends ConsumerStatefulWidget {
@@ -104,18 +106,25 @@ class _CatalogHeader extends ConsumerWidget {
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              Container(
+              InkWell(
                 key: const Key('add-product-button'),
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: _Colors.accent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.add,
-                  color: _Colors.background,
-                  size: 20,
+                onTap: () async {
+                  final saved = await context.push<bool>(AppRoutes.productNew);
+                  if (saved == true) controller.reload();
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _Colors.accent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    color: _Colors.background,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -287,90 +296,101 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final resolver = ref.watch(publicAssetUrlResolverProvider);
-    return Container(
-      key: Key('product-card-${product.id}'),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _Colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _ProductImage(imageUrl: resolver.resolve(product.imageUrl)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        product.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _Colors.textPrimary,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: () async {
+        final saved = await context.push<bool>(
+          AppRoutes.productEdit(product.id),
+        );
+        if (saved == true) {
+          ref.read(productCatalogProvider.notifier).reload();
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        key: Key('product-card-${product.id}'),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _Colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _Colors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProductImage(imageUrl: resolver.resolve(product.imageUrl)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: _Colors.textMuted,
-                      size: 16,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        product.sku,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _Colors.textSecondary,
-                          fontSize: 12,
+                      const Icon(
+                        Icons.chevron_right,
+                        color: _Colors.textMuted,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          product.sku,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textSecondary,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text(
-                        '·',
-                        style: TextStyle(
-                          color: _Colors.textMuted,
-                          fontSize: 12,
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          '·',
+                          style: TextStyle(
+                            color: _Colors.textMuted,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        product.category,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: _Colors.textMuted,
-                          fontSize: 12,
+                      Flexible(
+                        child: Text(
+                          product.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textMuted,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [_StatusBadge(isActive: product.isActive)],
-                ),
-              ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [_StatusBadge(isActive: product.isActive)],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

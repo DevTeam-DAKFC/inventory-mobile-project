@@ -9,6 +9,7 @@ import '../ui/movements/movement_form_screen.dart';
 import '../ui/navigation/app_shell.dart';
 import '../ui/navigation/not_found_screen.dart';
 import '../ui/products/products_screen.dart';
+import '../ui/products/product_form_screen.dart';
 import '../ui/stock/stock_screen.dart';
 import 'app_session.dart';
 import 'routes.dart';
@@ -67,6 +68,18 @@ GoRouter buildAppRouter(
               GoRoute(
                 path: AppRoutes.products,
                 builder: (context, state) => const ProductsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const ProductFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':productId/edit',
+                    builder: (context, state) => ProductFormScreen(
+                      productId: state.pathParameters['productId'],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
