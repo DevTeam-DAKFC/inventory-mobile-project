@@ -84,11 +84,13 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-class _DashboardHeader extends StatelessWidget {
+class _DashboardHeader extends ConsumerWidget {
   const _DashboardHeader();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggingOut = ref.watch(logoutControllerProvider).isLoading;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       decoration: const BoxDecoration(
@@ -103,10 +105,7 @@ class _DashboardHeader extends StatelessWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF14B8A6),
-                  shape: BoxShape.circle,
-                ),
+                decoration: const BoxDecoration(color: Color(0xFF14B8A6), shape: BoxShape.circle),
                 child: const Center(
                   child: Text(
                     'UI',
@@ -123,10 +122,7 @@ class _DashboardHeader extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Inventario',
-                      style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-                    ),
+                    Text('Inventario', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
                     SizedBox(height: 2),
                     Text(
                       'Panel principal',
@@ -135,30 +131,45 @@ class _DashboardHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              SizedBox(
+              const SizedBox(
                 width: 40,
                 height: 40,
                 child: Stack(
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(
-                      Icons.notifications_outlined,
-                      color: Color(0xFFA9B4BE),
-                      size: 20,
-                    ),
+                    Icon(Icons.notifications_outlined, color: Color(0xFFA9B4BE), size: 20),
                     Positioned(
                       top: 9,
                       right: 9,
                       child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Color(0xFFEF4444),
-                          shape: BoxShape.circle,
-                        ),
+                        decoration: BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
                         child: SizedBox(width: 8, height: 8),
                       ),
                     ),
                   ],
+                ),
+              ),
+              SizedBox(
+                width: 40,
+                height: 40,
+                child: IconButton(
+                  tooltip: 'Cerrar sesión',
+                  padding: EdgeInsets.zero,
+                  splashRadius: 20,
+                  onPressed: isLoggingOut
+                      ? null
+                      : () => ref.read(logoutControllerProvider.notifier).logout(),
+                  icon: isLoggingOut
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA9B4BE)),
+                          ),
+                        )
+                      : const Icon(Icons.logout, color: Color(0xFFA9B4BE), size: 20),
                 ),
               ),
             ],
@@ -175,10 +186,7 @@ class _DashboardHeader extends StatelessWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  'Sucursal activa',
-                  style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-                ),
+                Text('Sucursal activa', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
                 SizedBox(width: 8),
                 Icon(
                   Icons.keyboard_arrow_down,
@@ -410,10 +418,7 @@ class _QuickActions extends ConsumerWidget {
       children: [
         const Padding(
           padding: EdgeInsets.only(left: 2, bottom: 10),
-          child: Text(
-            'Acciones rápidas',
-            style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-          ),
+          child: Text('Acciones rápidas', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
         ),
         GridView.builder(
           shrinkWrap: true,
@@ -539,10 +544,7 @@ class _RecentMovements extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 10),
-        for (final item in _items) ...[
-          _MovementCard(item: item),
-          const SizedBox(height: 8),
-        ],
+        for (final item in _items) ...[_MovementCard(item: item), const SizedBox(height: 8)],
       ],
     );
   }
@@ -649,10 +651,7 @@ class _PrototypeCard extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({
-    required this.text,
-    this.variant = _BadgeVariant.defaultVariant,
-  });
+  const _Badge({required this.text, this.variant = _BadgeVariant.defaultVariant});
 
   final String text;
   final _BadgeVariant variant;
