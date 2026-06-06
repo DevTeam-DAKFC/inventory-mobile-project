@@ -266,7 +266,8 @@ class _CatalogContent extends ConsumerWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         if (index < state.products.length) {
-          return _ProductCard(product: state.products[index]);
+          final product = state.products[index];
+          return _ProductCard(product: product);
         }
         if (state.isLoadingMore) {
           return const Padding(
@@ -298,10 +299,10 @@ class _ProductCard extends ConsumerWidget {
     final resolver = ref.watch(publicAssetUrlResolverProvider);
     return InkWell(
       onTap: () async {
-        final saved = await context.push<bool>(
-          AppRoutes.productEdit(product.id),
+        final changed = await context.push<bool>(
+          AppRoutes.productDetail(product.id),
         );
-        if (saved == true) {
+        if (changed == true) {
           ref.read(productCatalogProvider.notifier).reload();
         }
       },
@@ -317,7 +318,10 @@ class _ProductCard extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _ProductImage(imageUrl: resolver.resolve(product.imageUrl)),
+            _ProductImage(
+              productId: product.id,
+              imageUrl: resolver.resolve(product.imageUrl),
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -337,7 +341,8 @@ class _ProductCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      const Icon(
+                      Icon(
+                        key: Key('product-chevron-${product.id}'),
                         Icons.chevron_right,
                         color: _Colors.textMuted,
                         size: 16,
@@ -397,25 +402,33 @@ class _ProductCard extends ConsumerWidget {
 }
 
 class _ProductImage extends StatelessWidget {
-  const _ProductImage({this.imageUrl});
+  const _ProductImage({required this.productId, this.imageUrl});
 
+  final String productId;
   final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    Widget placeholder() => const Center(
-      child: Icon(Icons.inventory_2_outlined, color: _Colors.accent, size: 20),
+    Widget placeholder() => Center(
+      key: Key('product-image-placeholder-$productId'),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        color: _Colors.accent,
+        size: 24,
+      ),
     );
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: ColoredBox(
         color: _Colors.surfaceSoft,
-        child: SizedBox.square(
-          dimension: 48,
+        child: SizedBox(
+          width: 64,
+          height: 72,
           child: imageUrl == null
               ? placeholder()
               : Image.network(
+                  key: Key('product-image-$productId'),
                   imageUrl!,
                   fit: BoxFit.cover,
                   errorBuilder: (_, _, _) => placeholder(),

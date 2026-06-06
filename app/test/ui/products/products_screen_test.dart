@@ -15,6 +15,7 @@ import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:inventory_mobile/domain/repositories/product_repository.dart';
 import 'package:inventory_mobile/ui/products/products_screen.dart';
+import 'package:inventory_mobile/ui/products/product_detail_screen.dart';
 import 'package:inventory_mobile/ui/products/product_form_screen.dart';
 
 void main() {
@@ -36,8 +37,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Producto 1'), findsOneWidget);
+    expect(find.text('SKU-1'), findsOneWidget);
+    expect(find.text('General'), findsNWidgets(2));
     expect(find.text('ACTIVO'), findsOneWidget);
     expect(find.text('INACTIVO'), findsOneWidget);
+    expect(find.byIcon(Icons.block_outlined), findsNothing);
+    expect(
+      find.byKey(const Key('product-image-placeholder-1')),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('branch-selector')), findsOneWidget);
     expect(find.text('Tienda Central'), findsOneWidget);
     expect(find.text('Agotados'), findsOneWidget);
@@ -98,9 +106,25 @@ void main() {
     expect(repository.queries, hasLength(1));
   });
 
-  testWidgets('navigates from add button and product card to the form', (
-    tester,
-  ) async {
+  testWidgets('renders a cover image when the product has one', (tester) async {
+    final repository = _FakeProductRepository(
+      (_) async => AppSuccess(
+        _page([
+          _product('1', active: true, imageUrl: 'https://example.com/a.jpg'),
+        ]),
+      ),
+    );
+    await _pumpScreen(tester, repository);
+    await tester.pump();
+    await tester.pump();
+
+    final image = tester.widget<Image>(
+      find.byKey(const Key('product-image-1')),
+    );
+    expect(image.fit, BoxFit.cover);
+  });
+
+  testWidgets('navigates from add button, card and chevron', (tester) async {
     final product = _product('1', active: true);
     final repository = _FakeProductRepository(
       (_) async => AppSuccess(_page([product])),
@@ -115,9 +139,16 @@ void main() {
           routes: [
             GoRoute(path: 'new', builder: (_, _) => const ProductFormScreen()),
             GoRoute(
-              path: ':id/edit',
+              path: ':id',
               builder: (_, state) =>
-                  ProductFormScreen(productId: state.pathParameters['id']),
+                  ProductDetailScreen(productId: state.pathParameters['id']!),
+              routes: [
+                GoRoute(
+                  path: 'edit',
+                  builder: (_, state) =>
+                      ProductFormScreen(productId: state.pathParameters['id']),
+                ),
+              ],
             ),
           ],
         ),
@@ -140,8 +171,73 @@ void main() {
 
     await tester.tap(find.byKey(const Key('product-card-1')));
     await tester.pumpAndSettle();
-    expect(find.text('Editar producto'), findsOneWidget);
+    expect(find.text('Detalle de producto'), findsOneWidget);
     expect(repository.requestedProductId, '1');
+
+    router.pop();
+    await tester.pumpAndSettle();
+    repository.requestedProductId = null;
+    await tester.tap(find.byKey(const Key('product-chevron-1')));
+    await tester.pumpAndSettle();
+    expect(find.text('Detalle de producto'), findsOneWidget);
+    expect(repository.requestedProductId, '1');
+  });
+
+  testWidgets('refreshes the active catalog after deactivation in detail', (
+    tester,
+  ) async {
+    var active = true;
+    Product product() => _product('1', active: active);
+    final repository = _FakeProductRepository(
+      (_) async => AppSuccess(_page(active ? [product()] : [])),
+      onGet: (_) async => AppSuccess(product()),
+      onDeactivate: (_) async {
+        active = false;
+        return const AppSuccess(null);
+      },
+    );
+    final router = GoRouter(
+      initialLocation: '/products',
+      routes: [
+        GoRoute(
+          path: '/products',
+          builder: (_, _) => const ProductsScreen(),
+          routes: [
+            GoRoute(
+              path: ':id',
+              builder: (_, state) =>
+                  ProductDetailScreen(productId: state.pathParameters['id']!),
+            ),
+          ],
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [productRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Activos'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-card-1')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const Key('deactivate-product-button')),
+    );
+    await tester.tap(find.byKey(const Key('deactivate-product-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirm-deactivate-product')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('product-detail-back-button')));
+    await tester.pumpAndSettle();
+
+    expect(repository.deactivatedProductId, '1');
+    expect(repository.queries.last.isActive, isTrue);
+    expect(find.byKey(const Key('product-card-1')), findsNothing);
   });
 }
 
@@ -156,13 +252,15 @@ Future<void> _pumpScreen(WidgetTester tester, ProductRepository repository) {
 }
 
 final class _FakeProductRepository implements ProductRepository {
-  _FakeProductRepository(this.onList, {this.onGet});
+  _FakeProductRepository(this.onList, {this.onGet, this.onDeactivate});
 
   final Future<AppResult<PaginatedProducts>> Function(ProductListQuery query)
   onList;
   final Future<AppResult<Product>> Function(String productId)? onGet;
+  final Future<AppResult<void>> Function(String productId)? onDeactivate;
   final queries = <ProductListQuery>[];
   String? requestedProductId;
+  String? deactivatedProductId;
 
   @override
   Future<AppResult<PaginatedProducts>> listProducts(ProductListQuery query) {
@@ -175,8 +273,11 @@ final class _FakeProductRepository implements ProductRepository {
       throw UnimplementedError();
 
   @override
-  Future<AppResult<void>> deactivateProduct(String productId) =>
-      throw UnimplementedError();
+  Future<AppResult<void>> deactivateProduct(String productId) {
+    deactivatedProductId = productId;
+    return onDeactivate?.call(productId) ??
+        Future.value(const AppSuccess(null));
+  }
 
   @override
   Future<AppResult<Product>> getProduct(String productId) {
@@ -208,7 +309,7 @@ PaginatedProducts _page(List<Product> products) {
   );
 }
 
-Product _product(String id, {required bool active}) {
+Product _product(String id, {required bool active, String? imageUrl}) {
   return Product(
     id: id,
     name: 'Producto $id',
@@ -217,5 +318,6 @@ Product _product(String id, {required bool active}) {
     minStock: 5,
     isActive: active,
     createdAt: DateTime(2026),
+    imageUrl: imageUrl,
   );
 }

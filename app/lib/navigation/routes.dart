@@ -12,6 +12,8 @@ class AppRoutes {
   static const movements = '/movements';
   static const alerts = '/alerts';
 
+  static String productDetail(String productId) => '/products/$productId';
+
   static String productEdit(String productId) => '/products/$productId/edit';
 }
 
