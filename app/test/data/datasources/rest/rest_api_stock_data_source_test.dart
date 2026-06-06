@@ -8,6 +8,7 @@ import 'package:mocktail/mocktail.dart';
 class _MockDio extends Mock implements Dio {}
 
 const _developmentBranchId = '10000000-0000-0000-0000-000000000001';
+const _warehouseBranchId = '10000000-0000-0000-0000-000000000002';
 
 Response<dynamic> _okResponse(dynamic data) => Response<dynamic>(
   requestOptions: RequestOptions(path: '/stock'),
@@ -98,6 +99,25 @@ void main() {
       final result = await sut.fetchStockByBranch(_developmentBranchId);
 
       expect(result.single.id, 'stock-guid');
+    });
+
+    test('sends the selected warehouse branchId as query parameter', () async {
+      when(
+        () => dio.get<dynamic>(
+          '/stock',
+          queryParameters: {'branchId': _warehouseBranchId},
+        ),
+      ).thenAnswer((_) async => _okResponse([]));
+
+      final result = await sut.fetchStockByBranch(_warehouseBranchId);
+
+      expect(result, isEmpty);
+      verify(
+        () => dio.get<dynamic>(
+          '/stock',
+          queryParameters: {'branchId': _warehouseBranchId},
+        ),
+      ).called(1);
     });
 
     test('maps connectionTimeout to AppErrorCode.timeout', () async {

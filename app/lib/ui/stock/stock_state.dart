@@ -4,6 +4,13 @@ sealed class StockState {
   const StockState();
 }
 
+final class StockLoading extends StockState {
+  const StockLoading({required this.branchId, required this.branchName});
+
+  final String branchId;
+  final String branchName;
+}
+
 final class StockLoaded extends StockState {
   const StockLoaded({
     required this.branchId,

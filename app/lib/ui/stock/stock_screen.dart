@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/stock_config.dart';
 import '../../domain/models/stock_overview_item.dart';
 import 'stock_state.dart';
 import 'stock_view_model.dart';
@@ -39,9 +40,13 @@ class _StockScreenState extends ConsumerState<StockScreen> {
         child: Column(
           children: [
             _Header(
-              branchName: _branchName(asyncState),
+              branches: StockConfig.developmentBranches,
+              selectedBranchId: _branchId(asyncState),
               controller: _searchController,
               activeFilter: _activeFilter,
+              onBranchChanged: (branchId) => ref
+                  .read(stockViewModelProvider.notifier)
+                  .selectBranch(branchId),
               onSearchChanged: (_) => setState(() {}),
               onFilterChanged: (filter) {
                 setState(() => _activeFilter = filter);
@@ -67,6 +72,7 @@ class _StockScreenState extends ConsumerState<StockScreen> {
 
   Widget _buildDataState(StockState state) {
     return switch (state) {
+      StockLoading() => const _LoadingState(),
       StockLoaded(:final items) => _StockList(
         items: _filteredItems(items),
         onRefresh: () => ref.read(stockViewModelProvider.notifier).refresh(),
@@ -107,29 +113,34 @@ class _StockScreenState extends ConsumerState<StockScreen> {
         .toList(growable: false);
   }
 
-  String _branchName(AsyncValue<StockState> asyncState) {
+  String _branchId(AsyncValue<StockState> asyncState) {
     final value = asyncState.asData?.value;
     return switch (value) {
-      StockLoaded(:final branchName) => branchName,
-      StockEmpty(:final branchName) => branchName,
-      StockError(:final branchName) => branchName,
-      _ => 'Sucursal Central',
+      StockLoading(:final branchId) => branchId,
+      StockLoaded(:final branchId) => branchId,
+      StockEmpty(:final branchId) => branchId,
+      StockError(:final branchId) => branchId,
+      _ => StockConfig.defaultDevelopmentBranch.id,
     };
   }
 }
 
 class _Header extends StatelessWidget {
   const _Header({
-    required this.branchName,
+    required this.branches,
+    required this.selectedBranchId,
     required this.controller,
     required this.activeFilter,
+    required this.onBranchChanged,
     required this.onSearchChanged,
     required this.onFilterChanged,
   });
 
-  final String branchName;
+  final List<StockBranchOption> branches;
+  final String selectedBranchId;
   final TextEditingController controller;
   final _StockFilter activeFilter;
+  final ValueChanged<String> onBranchChanged;
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<_StockFilter> onFilterChanged;
 
@@ -155,7 +166,11 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _BranchButton(branchName: branchName),
+          _BranchSelector(
+            branches: branches,
+            selectedBranchId: selectedBranchId,
+            onChanged: onBranchChanged,
+          ),
           const SizedBox(height: 12),
           _SearchField(controller: controller, onChanged: onSearchChanged),
           const SizedBox(height: 12),
@@ -180,10 +195,16 @@ class _Header extends StatelessWidget {
   }
 }
 
-class _BranchButton extends StatelessWidget {
-  const _BranchButton({required this.branchName});
+class _BranchSelector extends StatelessWidget {
+  const _BranchSelector({
+    required this.branches,
+    required this.selectedBranchId,
+    required this.onChanged,
+  });
 
-  final String branchName;
+  final List<StockBranchOption> branches;
+  final String selectedBranchId;
+  final ValueChanged<String> onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -195,20 +216,30 @@ class _BranchButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0x0FFFFFFF)),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            branchName,
-            style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedBranchId,
+          dropdownColor: const Color(0xFF1F2A30),
+          icon: const Icon(
             Icons.keyboard_arrow_down_rounded,
             color: Color(0xFF6F7C86),
             size: 18,
           ),
-        ],
+          style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+          items: [
+            for (final branch in branches)
+              DropdownMenuItem<String>(
+                value: branch.id,
+                child: Text(branch.name),
+              ),
+          ],
+          onChanged: (branchId) {
+            if (branchId == null) {
+              return;
+            }
+            onChanged(branchId);
+          },
+        ),
       ),
     );
   }

@@ -9,43 +9,63 @@ final stockViewModelProvider =
     AsyncNotifierProvider<StockViewModel, StockState>(StockViewModel.new);
 
 class StockViewModel extends AsyncNotifier<StockState> {
-  static const _branchId = StockConfig.developmentBranchId;
-  static const _branchName = StockConfig.developmentBranchName;
+  StockBranchOption _selectedBranch = StockConfig.defaultDevelopmentBranch;
 
   @override
-  Future<StockState> build() => _loadStock();
+  Future<StockState> build() => _loadStock(_selectedBranch);
 
   Future<void> refresh() async {
-    state = const AsyncLoading<StockState>();
-    state = await AsyncValue.guard(_loadStock);
+    state = AsyncData(
+      StockLoading(
+        branchId: _selectedBranch.id,
+        branchName: _selectedBranch.name,
+      ),
+    );
+    state = await AsyncValue.guard(() => _loadStock(_selectedBranch));
   }
 
-  Future<StockState> _loadStock() async {
+  Future<void> selectBranch(String branchId) async {
+    final nextBranch = StockConfig.developmentBranchById(branchId);
+    if (nextBranch.id == _selectedBranch.id) {
+      return;
+    }
+
+    _selectedBranch = nextBranch;
+    state = AsyncData(
+      StockLoading(branchId: nextBranch.id, branchName: nextBranch.name),
+    );
+    state = await AsyncValue.guard(() => _loadStock(nextBranch));
+  }
+
+  Future<StockState> _loadStock(StockBranchOption branch) async {
     final repository = ref.watch(stockRepositoryProvider);
-    final result = await repository.getStockByBranch(_branchId);
+    final result = await repository.getStockByBranch(branch.id);
 
     return result.when(
-      success: (items) => _successState(items),
+      success: (items) => _successState(branch, items),
       failure: (exception) => StockError(
-        branchId: _branchId,
-        branchName: _branchName,
+        branchId: branch.id,
+        branchName: branch.name,
         message: exception.message,
         code: exception.code.value,
       ),
     );
   }
 
-  StockState _successState(List<StockOverviewItem> items) {
+  StockState _successState(
+    StockBranchOption branch,
+    List<StockOverviewItem> items,
+  ) {
     if (items.isEmpty) {
-      return const StockEmpty(branchId: _branchId, branchName: _branchName);
+      return StockEmpty(branchId: branch.id, branchName: branch.name);
     }
 
     final branchName = items.first.branchName.isEmpty
-        ? _branchName
+        ? branch.name
         : items.first.branchName;
 
     return StockLoaded(
-      branchId: _branchId,
+      branchId: branch.id,
       branchName: branchName,
       items: items,
     );

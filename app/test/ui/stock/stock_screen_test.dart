@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,11 +14,11 @@ import 'package:inventory_mobile/ui/stock/stock_screen.dart';
 
 void main() {
   group('StockScreen', () {
-    testWidgets('loads development branch stock and renders backend fields', (
+    testWidgets('starts with Central Branch and renders backend fields', (
       tester,
     ) async {
-      final repository = _FakeStockRepository(
-        const AppSuccess([
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: const AppSuccess([
           StockOverviewItem(
             id: 'stock-low',
             productId: 'product-coffee',
@@ -39,11 +41,11 @@ void main() {
             isLowStock: true,
           ),
         ]),
-      );
+      });
 
       await _pumpStockScreen(tester, repository);
 
-      expect(repository.requestedBranchId, StockConfig.developmentBranchId);
+      expect(repository.requestedBranchIds, [StockConfig.developmentBranchId]);
       expect(find.text('Central Branch'), findsWidgets);
       expect(find.text('Coffee Beans'), findsOneWidget);
       expect(find.text('COF-001'), findsOneWidget);
@@ -56,32 +58,144 @@ void main() {
       expect(find.text('AGOTADO'), findsOneWidget);
     });
 
-    testWidgets('shows the expected empty state for an empty stock response', (
+    testWidgets('keeps search and filters working after changing branch', (
       tester,
     ) async {
-      await _pumpStockScreen(
-        tester,
-        _FakeStockRepository(const AppSuccess([])),
-      );
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: const AppSuccess([
+          StockOverviewItem(
+            id: 'central',
+            productId: 'product-coffee',
+            productName: 'Coffee Beans',
+            branchId: StockConfig.developmentBranchId,
+            branchName: 'Central Branch',
+            availableQuantity: 8,
+            minStock: 3,
+            isLowStock: false,
+          ),
+        ]),
+        StockConfig.developmentBranches[1].id: AppSuccess([
+          StockOverviewItem(
+            id: 'warehouse',
+            productId: 'product-flour',
+            productName: 'Warehouse Flour',
+            sku: 'FLR-002',
+            branchId: StockConfig.developmentBranches[1].id,
+            branchName: 'Warehouse Branch',
+            availableQuantity: 2,
+            minStock: 5,
+            isLowStock: true,
+          ),
+          StockOverviewItem(
+            id: 'warehouse-empty',
+            productId: 'product-sugar',
+            productName: 'Warehouse Sugar',
+            branchId: StockConfig.developmentBranches[1].id,
+            branchName: 'Warehouse Branch',
+            availableQuantity: 0,
+            minStock: 4,
+            isLowStock: true,
+          ),
+        ]),
+      });
+
+      await _pumpStockScreen(tester, repository);
+
+      await _selectWarehouseBranch(tester);
+
+      expect(repository.requestedBranchIds, [
+        StockConfig.developmentBranchId,
+        StockConfig.developmentBranches[1].id,
+      ]);
+      expect(find.text('Coffee Beans'), findsNothing);
+      expect(find.text('Warehouse Flour'), findsOneWidget);
+      expect(find.text('Warehouse Sugar'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField), 'flour');
+      await tester.pump();
+
+      expect(find.text('Warehouse Flour'), findsOneWidget);
+      expect(find.text('Warehouse Sugar'), findsNothing);
+
+      await tester.enterText(find.byType(TextField), '');
+      await tester.tap(find.text('Stock bajo'));
+      await tester.pump();
+
+      expect(find.text('Warehouse Flour'), findsOneWidget);
+      expect(find.text('Warehouse Sugar'), findsNothing);
+    });
+
+    testWidgets('shows loading while changing branch', (tester) async {
+      final warehouseCompleter =
+          Completer<AppResult<List<StockOverviewItem>>>();
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: const AppSuccess([
+          StockOverviewItem(
+            id: 'central',
+            productId: 'product-coffee',
+            productName: 'Coffee Beans',
+            branchId: StockConfig.developmentBranchId,
+            branchName: 'Central Branch',
+            availableQuantity: 8,
+            minStock: 3,
+            isLowStock: false,
+          ),
+        ]),
+        StockConfig.developmentBranches[1].id: warehouseCompleter.future,
+      });
+
+      await _pumpStockScreen(tester, repository);
+      await _selectWarehouseBranch(tester, settle: false);
+
+      expect(find.text('Cargando existencias...'), findsOneWidget);
+      expect(find.text('Warehouse Branch'), findsWidgets);
+
+      warehouseCompleter.complete(const AppSuccess([]));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No se encontraron existencias'), findsOneWidget);
+    });
+
+    testWidgets('shows the expected empty state for an empty branch response', (
+      tester,
+    ) async {
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: const AppSuccess([]),
+      });
+
+      await _pumpStockScreen(tester, repository);
 
       expect(find.text('No se encontraron existencias'), findsOneWidget);
       expect(find.text(StockConfig.developmentBranchName), findsOneWidget);
     });
 
-    testWidgets('shows the expected error state for backend failures', (
+    testWidgets('shows the expected error state when selected branch fails', (
       tester,
     ) async {
-      await _pumpStockScreen(
-        tester,
-        _FakeStockRepository(
-          const AppFailure<List<StockOverviewItem>>(
-            AppException(
-              code: AppErrorCode.networkError,
-              message: 'Cannot reach the backend.',
-            ),
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: const AppSuccess([
+          StockOverviewItem(
+            id: 'central',
+            productId: 'product-coffee',
+            productName: 'Coffee Beans',
+            branchId: StockConfig.developmentBranchId,
+            branchName: 'Central Branch',
+            availableQuantity: 8,
+            minStock: 3,
+            isLowStock: false,
           ),
-        ),
-      );
+        ]),
+        StockConfig.developmentBranches[1].id:
+            const AppFailure<List<StockOverviewItem>>(
+              AppException(
+                code: AppErrorCode.networkError,
+                message: 'Cannot reach the backend.',
+              ),
+            ),
+      });
+
+      await _pumpStockScreen(tester, repository);
+      await _selectWarehouseBranch(tester);
 
       expect(
         find.text('No se pudieron cargar las existencias'),
@@ -91,6 +205,7 @@ void main() {
         find.text('network_error: Cannot reach the backend.'),
         findsOneWidget,
       );
+      expect(find.text('Warehouse Branch'), findsWidgets);
       expect(find.widgetWithText(FilledButton, 'Reintentar'), findsOneWidget);
     });
   });
@@ -109,17 +224,36 @@ Future<void> _pumpStockScreen(
   await tester.pumpAndSettle();
 }
 
-final class _FakeStockRepository implements StockRepository {
-  _FakeStockRepository(this.result);
+Future<void> _selectWarehouseBranch(
+  WidgetTester tester, {
+  bool settle = true,
+}) async {
+  await tester.tap(find.byType(DropdownButton<String>));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Warehouse Branch').last);
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
+}
 
-  final AppResult<List<StockOverviewItem>> result;
-  String? requestedBranchId;
+final class _FakeStockRepository implements StockRepository {
+  _FakeStockRepository(this.resultsByBranch);
+
+  final Map<String, FutureOr<AppResult<List<StockOverviewItem>>>>
+  resultsByBranch;
+  final List<String> requestedBranchIds = [];
 
   @override
   Future<AppResult<List<StockOverviewItem>>> getStockByBranch(
     String branchId,
   ) async {
-    requestedBranchId = branchId;
-    return result;
+    requestedBranchIds.add(branchId);
+    final result = resultsByBranch[branchId];
+    if (result == null) {
+      return const AppSuccess([]);
+    }
+    return Future.value(result);
   }
 }
