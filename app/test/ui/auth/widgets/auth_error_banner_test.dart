@@ -13,10 +13,10 @@ Widget _host(Widget child) {
 void main() {
   testWidgets('renders the message when non-empty', (tester) async {
     await tester.pumpWidget(
-      _host(const AuthErrorBanner(message: 'Correo o contraseña incorrectos.')),
+      _host(const AuthErrorBanner(message: 'Acceso inválido. Por favor, inténtelo otra vez.')),
     );
 
-    expect(find.text('Correo o contraseña incorrectos.'), findsOneWidget);
+    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsOneWidget);
     expect(find.byType(Container), findsWidgets);
   });
 

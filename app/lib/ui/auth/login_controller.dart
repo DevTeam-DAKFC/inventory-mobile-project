@@ -12,15 +12,10 @@ class LoginState extends Equatable {
   final bool isLoading;
   final String? errorMessage;
 
-  LoginState copyWith({
-    bool? isLoading,
-    Object? errorMessage = _unset,
-  }) {
+  LoginState copyWith({bool? isLoading, Object? errorMessage = _unset}) {
     return LoginState(
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: identical(errorMessage, _unset)
-          ? this.errorMessage
-          : errorMessage as String?,
+      errorMessage: identical(errorMessage, _unset) ? this.errorMessage : errorMessage as String?,
     );
   }
 
@@ -34,10 +29,7 @@ class LoginController extends Notifier<LoginState> {
   @override
   LoginState build() => const LoginState();
 
-  Future<void> submit({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> submit({required String email, required String password}) async {
     if (state.isLoading) {
       return;
     }
@@ -45,10 +37,9 @@ class LoginController extends Notifier<LoginState> {
     state = const LoginState(isLoading: true);
 
     final trimmedEmail = email.trim();
-    final result = await ref.read(authRepositoryProvider).login(
-          email: trimmedEmail,
-          password: password,
-        );
+    final result = await ref
+        .read(authRepositoryProvider)
+        .login(email: trimmedEmail, password: password);
 
     final user = result.dataOrNull;
     if (user != null) {
@@ -63,7 +54,7 @@ class LoginController extends Notifier<LoginState> {
   String _messageFor(AppException? exception) {
     switch (exception?.code) {
       case AppErrorCode.unauthorized:
-        return 'Correo o contraseña incorrectos.';
+        return 'Acceso inválido. Por favor, inténtelo otra vez.';
       case AppErrorCode.validationError:
         return 'Revisa los campos ingresados.';
       case AppErrorCode.networkError:
@@ -78,5 +69,4 @@ class LoginController extends Notifier<LoginState> {
   }
 }
 
-final loginControllerProvider =
-    NotifierProvider<LoginController, LoginState>(LoginController.new);
+final loginControllerProvider = NotifierProvider<LoginController, LoginState>(LoginController.new);
