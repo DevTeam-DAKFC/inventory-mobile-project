@@ -71,6 +71,6 @@ class RegisterController extends Notifier<RegisterState> {
 }
 
 final registerControllerProvider =
-    NotifierProvider<RegisterController, RegisterState>(
+    NotifierProvider.autoDispose<RegisterController, RegisterState>(
   RegisterController.new,
 );

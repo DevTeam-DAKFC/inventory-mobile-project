@@ -301,4 +301,62 @@ void main() {
 
     expect(find.text('REGISTER_STUB'), findsOneWidget);
   });
+
+  testWidgets(
+    'after returning to /login from /home, a previous credentials error is '
+    'not shown again',
+    (tester) async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(
+            code: AppErrorCode.unauthorized,
+            message: 'bad creds',
+          ),
+        ),
+      );
+
+      await tester.pumpWidget(
+        _harness(
+          repository: repository,
+          session: session,
+          router: _buildAuthAwareRouter(session),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'user@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'wrong-password',
+      );
+      await tester.tap(find.byType(AuthPrimaryButton));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
+        findsOneWidget,
+      );
+
+      session.setAuthenticatedUser(_adminUser());
+      await tester.pumpAndSettle();
+      expect(find.text('HOME_STUB'), findsOneWidget);
+
+      session.signOut();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Iniciar sesión'), findsOneWidget);
+      expect(
+        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
+        findsNothing,
+      );
+    },
+  );
 }

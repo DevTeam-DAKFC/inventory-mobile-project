@@ -69,4 +69,7 @@ class LoginController extends Notifier<LoginState> {
   }
 }
 
-final loginControllerProvider = NotifierProvider<LoginController, LoginState>(LoginController.new);
+final loginControllerProvider =
+    NotifierProvider.autoDispose<LoginController, LoginState>(
+  LoginController.new,
+);

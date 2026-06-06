@@ -42,4 +42,6 @@ class LogoutController extends Notifier<LogoutState> {
 }
 
 final logoutControllerProvider =
-    NotifierProvider<LogoutController, LogoutState>(LogoutController.new);
+    NotifierProvider.autoDispose<LogoutController, LogoutState>(
+  LogoutController.new,
+);
