@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../navigation/routes.dart';
 import '../auth/logout_controller.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -337,41 +339,54 @@ class _QuickActions extends StatelessWidget {
           itemBuilder: (context, index) => _ActionButton(item: _items[index]),
         ),
         const SizedBox(height: 8),
-        _ActionButton(item: _items[4], centered: true),
+        _ActionButton(
+          item: _items[4],
+          centered: true,
+          onTap: () => context.go(AppRoutes.branches),
+        ),
       ],
     );
   }
 }
 
 class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.item, this.centered = false});
+  const _ActionButton({required this.item, this.centered = false, this.onTap});
 
   final _ActionItem item;
   final bool centered;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12181C),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0x0FFFFFFF)),
-      ),
-      child: Row(
-        mainAxisAlignment: centered ? MainAxisAlignment.center : MainAxisAlignment.start,
-        children: [
-          _DashboardIcon(type: item.icon, color: const Color(0xFF14B8A6)),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
+    return InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFF12181C),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0x0FFFFFFF)),
+        ),
+        child: Row(
+          mainAxisAlignment:
+              centered ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            _DashboardIcon(type: item.icon, color: const Color(0xFF14B8A6)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                item.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFF8FAFC),
+                  fontSize: 12,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
