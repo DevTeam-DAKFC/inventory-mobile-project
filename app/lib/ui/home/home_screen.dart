@@ -2,17 +2,67 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/providers/product_providers.dart';
+import '../../domain/models/product_list_query.dart';
+import '../../domain/repositories/product_repository.dart';
 import '../../navigation/routes.dart';
 import '../auth/logout_controller.dart';
 
-class HomeScreen extends StatelessWidget {
+final homeProductMetricsProvider = FutureProvider<HomeProductMetrics>((
+  ref,
+) async {
+  final repository = ref.watch(productRepositoryProvider);
+  final totals = await Future.wait([
+    _loadProductTotal(
+      repository,
+      const ProductListQuery(isActive: true, page: 1, pageSize: 1),
+    ),
+    _loadProductTotal(
+      repository,
+      const ProductListQuery(lowStockOnly: true, page: 1, pageSize: 1),
+    ),
+  ]);
+
+  return HomeProductMetrics(
+    activeProducts: totals[0],
+    lowStockProducts: totals[1],
+  );
+});
+
+Future<int?> _loadProductTotal(
+  ProductRepository repository,
+  ProductListQuery query,
+) async {
+  try {
+    return (await repository.listProducts(query)).dataOrNull?.total;
+  } on Object {
+    return null;
+  }
+}
+
+final class HomeProductMetrics {
+  const HomeProductMetrics({
+    required this.activeProducts,
+    required this.lowStockProducts,
+  });
+
+  final int? activeProducts;
+  final int? lowStockProducts;
+}
+
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final metrics = switch (ref.watch(homeProductMetricsProvider)) {
+      AsyncData(:final value) => value,
+      _ => null,
+    };
+
+    return Scaffold(
       body: DecoratedBox(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -22,7 +72,12 @@ class HomeScreen extends StatelessWidget {
         child: SafeArea(
           bottom: false,
           child: SingleChildScrollView(
-            child: Column(children: [_DashboardHeader(), _DashboardContent()]),
+            child: Column(
+              children: [
+                const _DashboardHeader(),
+                _DashboardContent(metrics: metrics),
+              ],
+            ),
           ),
         ),
       ),
@@ -51,7 +106,10 @@ class _DashboardHeader extends ConsumerWidget {
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(color: Color(0xFF14B8A6), shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF14B8A6),
+                  shape: BoxShape.circle,
+                ),
                 child: const Center(
                   child: Text(
                     'UI',
@@ -68,7 +126,10 @@ class _DashboardHeader extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Inventario', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
+                    Text(
+                      'Inventario',
+                      style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+                    ),
                     SizedBox(height: 2),
                     Text(
                       'Panel principal',
@@ -84,12 +145,19 @@ class _DashboardHeader extends ConsumerWidget {
                   alignment: Alignment.center,
                   clipBehavior: Clip.none,
                   children: [
-                    Icon(Icons.notifications_outlined, color: Color(0xFFA9B4BE), size: 20),
+                    Icon(
+                      Icons.notifications_outlined,
+                      color: Color(0xFFA9B4BE),
+                      size: 20,
+                    ),
                     Positioned(
                       top: 9,
                       right: 9,
                       child: DecoratedBox(
-                        decoration: BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                        decoration: BoxDecoration(
+                          color: Color(0xFFEF4444),
+                          shape: BoxShape.circle,
+                        ),
                         child: SizedBox(width: 8, height: 8),
                       ),
                     ),
@@ -105,17 +173,25 @@ class _DashboardHeader extends ConsumerWidget {
                   splashRadius: 20,
                   onPressed: isLoggingOut
                       ? null
-                      : () => ref.read(logoutControllerProvider.notifier).logout(),
+                      : () => ref
+                            .read(logoutControllerProvider.notifier)
+                            .logout(),
                   icon: isLoggingOut
                       ? const SizedBox(
                           width: 16,
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFA9B4BE)),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Color(0xFFA9B4BE),
+                            ),
                           ),
                         )
-                      : const Icon(Icons.logout, color: Color(0xFFA9B4BE), size: 20),
+                      : const Icon(
+                          Icons.logout,
+                          color: Color(0xFFA9B4BE),
+                          size: 20,
+                        ),
                 ),
               ),
             ],
@@ -132,9 +208,16 @@ class _DashboardHeader extends ConsumerWidget {
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Sucursal activa', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
+                Text(
+                  'Sucursal activa',
+                  style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+                ),
                 SizedBox(width: 8),
-                Icon(Icons.keyboard_arrow_down, color: Color(0xFF6F7C86), size: 16),
+                Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Color(0xFF6F7C86),
+                  size: 16,
+                ),
               ],
             ),
           ),
@@ -145,7 +228,9 @@ class _DashboardHeader extends ConsumerWidget {
 }
 
 class _DashboardContent extends StatelessWidget {
-  const _DashboardContent();
+  const _DashboardContent({required this.metrics});
+
+  final HomeProductMetrics? metrics;
 
   @override
   Widget build(BuildContext context) {
@@ -153,14 +238,14 @@ class _DashboardContent extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
-          _HeroCard(),
-          SizedBox(height: 20),
-          _KpiGrid(),
-          SizedBox(height: 20),
-          _QuickActions(),
-          SizedBox(height: 20),
-          _RecentMovements(),
+        children: [
+          const _HeroCard(),
+          const SizedBox(height: 20),
+          _KpiGrid(metrics: metrics),
+          const SizedBox(height: 20),
+          const _QuickActions(),
+          const SizedBox(height: 20),
+          const _RecentMovements(),
         ],
       ),
     );
@@ -209,8 +294,14 @@ class _HeroCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Disponibilidad', style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 12)),
-              Text('75%', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 12)),
+              Text(
+                'Disponibilidad',
+                style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 12),
+              ),
+              Text(
+                '75%',
+                style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
+              ),
             ],
           ),
           SizedBox(height: 6),
@@ -218,7 +309,10 @@ class _HeroCard extends StatelessWidget {
           SizedBox(height: 12),
           Row(
             children: [
-              Text('Ver resumen', style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12)),
+              Text(
+                'Ver resumen',
+                style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12),
+              ),
               SizedBox(width: 6),
               Icon(Icons.arrow_forward, size: 14, color: Color(0xFF14B8A6)),
             ],
@@ -230,28 +324,50 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _KpiGrid extends StatelessWidget {
-  const _KpiGrid();
+  const _KpiGrid({required this.metrics});
 
-  static const _items = [
-    _KpiItem('Productos activos', '-', _DashboardIconType.package, Color(0xFF14B8A6)),
-    _KpiItem('Stock bajo', '-', _DashboardIconType.alertTriangle, Color(0xFFF59E0B)),
-    _KpiItem('Agotados', '-', _DashboardIconType.xCircle, Color(0xFFEF4444)),
-    _KpiItem('Movimientos hoy', '-', _DashboardIconType.trendingUp, Color(0xFF3B82F6)),
-  ];
+  final HomeProductMetrics? metrics;
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      _KpiItem(
+        'Productos activos',
+        metrics?.activeProducts?.toString() ?? '-',
+        _DashboardIconType.package,
+        const Color(0xFF14B8A6),
+      ),
+      _KpiItem(
+        'Stock bajo',
+        metrics?.lowStockProducts?.toString() ?? '-',
+        _DashboardIconType.alertTriangle,
+        const Color(0xFFF59E0B),
+      ),
+      const _KpiItem(
+        'Agotados',
+        '-',
+        _DashboardIconType.xCircle,
+        Color(0xFFEF4444),
+      ),
+      const _KpiItem(
+        'Movimientos hoy',
+        '-',
+        _DashboardIconType.trendingUp,
+        Color(0xFF3B82F6),
+      ),
+    ];
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      itemCount: _items.length,
+      itemCount: items.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         mainAxisSpacing: 10,
         crossAxisSpacing: 10,
         childAspectRatio: 2.35,
       ),
-      itemBuilder: (context, index) => _KpiCard(item: _items[index]),
+      itemBuilder: (context, index) => _KpiCard(item: items[index]),
     );
   }
 }
@@ -295,7 +411,10 @@ class _KpiCard extends StatelessWidget {
                   item.label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+                  style: const TextStyle(
+                    color: Color(0xFF6F7C86),
+                    fontSize: 10,
+                  ),
                 ),
               ],
             ),
@@ -306,7 +425,7 @@ class _KpiCard extends StatelessWidget {
   }
 }
 
-class _QuickActions extends StatelessWidget {
+class _QuickActions extends ConsumerWidget {
   const _QuickActions();
 
   static const _items = [
@@ -318,13 +437,16 @@ class _QuickActions extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Padding(
           padding: EdgeInsets.only(left: 2, bottom: 10),
-          child: Text('Acciones rápidas', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
+          child: Text(
+            'Acciones rápidas',
+            style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+          ),
         ),
         GridView.builder(
           shrinkWrap: true,
@@ -336,7 +458,19 @@ class _QuickActions extends StatelessWidget {
             crossAxisSpacing: 8,
             childAspectRatio: 3.15,
           ),
-          itemBuilder: (context, index) => _ActionButton(item: _items[index]),
+          itemBuilder: (context, index) => _ActionButton(
+            item: _items[index],
+            onTap: index == 0
+                ? () async {
+                    final saved = await context.push<bool>(
+                      AppRoutes.productNew,
+                    );
+                    if (saved == true) {
+                      ref.invalidate(homeProductMetricsProvider);
+                    }
+                  }
+                : null,
+          ),
         ),
         const SizedBox(height: 8),
         _ActionButton(
@@ -359,8 +493,8 @@ class _ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      borderRadius: BorderRadius.circular(8),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -369,8 +503,9 @@ class _ActionButton extends StatelessWidget {
           border: Border.all(color: const Color(0x0FFFFFFF)),
         ),
         child: Row(
-          mainAxisAlignment:
-              centered ? MainAxisAlignment.center : MainAxisAlignment.start,
+          mainAxisAlignment: centered
+              ? MainAxisAlignment.center
+              : MainAxisAlignment.start,
           children: [
             _DashboardIcon(type: item.icon, color: const Color(0xFF14B8A6)),
             const SizedBox(width: 8),
@@ -379,10 +514,7 @@ class _ActionButton extends StatelessWidget {
                 item.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFFF8FAFC),
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
               ),
             ),
           ],
@@ -396,9 +528,33 @@ class _RecentMovements extends StatelessWidget {
   const _RecentMovements();
 
   static const _items = [
-    _MovementItem('Salida', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
-    _MovementItem('Salida', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
-    _MovementItem('Entrada', 'Movimiento pendiente', '-', '-', 'Sucursal', 'Usuario', 'Fecha'),
+    _MovementItem(
+      'Salida',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
+    _MovementItem(
+      'Salida',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
+    _MovementItem(
+      'Entrada',
+      'Movimiento pendiente',
+      '-',
+      '-',
+      'Sucursal',
+      'Usuario',
+      'Fecha',
+    ),
   ];
 
   @override
@@ -409,12 +565,21 @@ class _RecentMovements extends StatelessWidget {
         const Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Últimos movimientos', style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14)),
-            Text('Ver todos', style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12)),
+            Text(
+              'Últimos movimientos',
+              style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
+            ),
+            Text(
+              'Ver todos',
+              style: TextStyle(color: Color(0xFF14B8A6), fontSize: 12),
+            ),
           ],
         ),
         const SizedBox(height: 10),
-        for (final item in _items) ...[_MovementCard(item: item), const SizedBox(height: 8)],
+        for (final item in _items) ...[
+          _MovementCard(item: item),
+          const SizedBox(height: 8),
+        ],
       ],
     );
   }
@@ -446,7 +611,10 @@ class _MovementCard extends StatelessWidget {
                   item.product,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 12),
+                  style: const TextStyle(
+                    color: Color(0xFFF8FAFC),
+                    fontSize: 12,
+                  ),
                 ),
               ),
             ],
@@ -455,7 +623,10 @@ class _MovementCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(item.branch, style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 10)),
+              Text(
+                item.branch,
+                style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 10),
+              ),
               Text(
                 '${item.quantity} → Stock: ${item.stock}',
                 style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
@@ -466,8 +637,14 @@ class _MovementCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(item.user, style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10)),
-              Text(item.date, style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10)),
+              Text(
+                item.user,
+                style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+              ),
+              Text(
+                item.date,
+                style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 10),
+              ),
             ],
           ),
         ],
@@ -509,7 +686,10 @@ class _PrototypeCard extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  const _Badge({required this.text, this.variant = _BadgeVariant.defaultVariant});
+  const _Badge({
+    required this.text,
+    this.variant = _BadgeVariant.defaultVariant,
+  });
 
   final String text;
   final _BadgeVariant variant;
