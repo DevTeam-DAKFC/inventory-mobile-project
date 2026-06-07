@@ -83,7 +83,19 @@ final class RestApiErrorMapper {
     if (data is! Map) return null;
 
     final message = data['message'];
-    return message is String && message.trim().isNotEmpty ? message : null;
+    if (message is! String || message.trim().isEmpty) return null;
+
+    return _localizedBackendMessage(message.trim());
+  }
+
+  static String _localizedBackendMessage(String message) {
+    return switch (message) {
+      'Stock was not found for the requested product and branch.' =>
+        'No existe stock para el producto y la sucursal seleccionados.',
+      'Not enough stock available.' =>
+        'No hay stock suficiente para registrar esta salida.',
+      _ => message,
+    };
   }
 
   static AppErrorCode _fallbackCodeForStatus(int? statusCode) {

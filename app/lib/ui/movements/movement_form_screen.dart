@@ -445,10 +445,8 @@ class _MovementFormView extends ConsumerWidget {
       data: (result) => result.when(
         success: (products) => products
             .map(
-              (product) => MovementSelectOption(
-                id: product.id,
-                label: '${product.name} - SKU: ${product.sku}',
-              ),
+              (product) =>
+                  MovementSelectOption(id: product.id, label: product.name),
             )
             .toList(),
         failure: (_) => const [],
@@ -810,6 +808,7 @@ class _SelectField extends StatelessWidget {
         _FieldLabel(label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
+          key: ValueKey('$label-${value ?? 'empty'}'),
           initialValue: value,
           dropdownColor: const Color(0xFF1F2A30),
           decoration: _inputDecoration(errorText: errorText),

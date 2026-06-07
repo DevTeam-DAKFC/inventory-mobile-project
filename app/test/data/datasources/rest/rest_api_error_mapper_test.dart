@@ -49,7 +49,10 @@ void main() {
       );
 
       expect(mapped.code, AppErrorCode.insufficientStock);
-      expect(mapped.message, 'Not enough stock available.');
+      expect(
+        mapped.message,
+        'No hay stock suficiente para registrar esta salida.',
+      );
     });
 
     test(
