@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../ui/auth/login_screen.dart';
 import '../ui/auth/register_screen.dart';
 import '../ui/alerts/alerts_screen.dart';
+import '../ui/branches/branches_screen.dart';
 import '../ui/home/home_screen.dart';
 import '../ui/movements/movement_form_screen.dart';
 import '../ui/navigation/app_shell.dart';
@@ -61,6 +62,10 @@ GoRouter buildAppRouter(
               GoRoute(
                 path: AppRoutes.home,
                 builder: (context, state) => const HomeScreen(),
+              ),
+              GoRoute(
+                path: AppRoutes.branches,
+                builder: (context, state) => const BranchesScreen(),
               ),
             ],
           ),

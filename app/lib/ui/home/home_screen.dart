@@ -473,7 +473,11 @@ class _QuickActions extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 8),
-        _ActionButton(item: _items[4], centered: true),
+        _ActionButton(
+          item: _items[4],
+          centered: true,
+          onTap: () => context.go(AppRoutes.branches),
+        ),
       ],
     );
   }

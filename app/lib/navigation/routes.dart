@@ -6,6 +6,7 @@ class AppRoutes {
   static const register = '/register';
 
   static const home = '/home';
+  static const branches = '/branches';
   static const products = '/products';
   static const productNew = '/products/new';
   static const stock = '/stock';
