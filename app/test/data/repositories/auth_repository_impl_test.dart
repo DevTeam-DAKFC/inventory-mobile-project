@@ -44,9 +44,7 @@ void main() {
     registerFallbackValue(
       const AuthRegisterRequestDto(name: '', email: '', password: ''),
     );
-    registerFallbackValue(
-      const AuthLoginRequestDto(email: '', password: ''),
-    );
+    registerFallbackValue(const AuthLoginRequestDto(email: '', password: ''));
   });
 
   setUp(() {
@@ -61,12 +59,12 @@ void main() {
 
   group('login', () {
     test('saves token and returns AppSuccess<AppUser> on success', () async {
-      when(() => dataSource.login(any()))
-          .thenAnswer((_) async => _validResponse());
+      when(
+        () => dataSource.login(any()),
+      ).thenAnswer((_) async => _validResponse());
       when(() => storage.saveToken(any())).thenAnswer((_) async {});
 
-      final result =
-          await sut.login(email: 'a@b.com', password: 'pw');
+      final result = await sut.login(email: 'a@b.com', password: 'pw');
 
       expect(result, isA<AppSuccess<AppUser>>());
       expect(result.dataOrNull?.role, UserRole.admin);
@@ -81,20 +79,22 @@ void main() {
       );
     });
 
-    test('returns AppFailure and does not save token on AppException',
-        () async {
-      const exception = AppException(
-        code: AppErrorCode.unauthorized,
-        message: 'bad creds',
-      );
-      when(() => dataSource.login(any())).thenThrow(exception);
+    test(
+      'returns AppFailure and does not save token on AppException',
+      () async {
+        const exception = AppException(
+          code: AppErrorCode.unauthorized,
+          message: 'bad creds',
+        );
+        when(() => dataSource.login(any())).thenThrow(exception);
 
-      final result = await sut.login(email: 'a', password: 'b');
+        final result = await sut.login(email: 'a', password: 'b');
 
-      expect(result, isA<AppFailure<AppUser>>());
-      expect(result.exceptionOrNull?.code, AppErrorCode.unauthorized);
-      verifyNever(() => storage.saveToken(any()));
-    });
+        expect(result, isA<AppFailure<AppUser>>());
+        expect(result.exceptionOrNull?.code, AppErrorCode.unauthorized);
+        verifyNever(() => storage.saveToken(any()));
+      },
+    );
 
     test('wraps non-AppException errors as AppErrorCode.unexpected', () async {
       when(() => dataSource.login(any())).thenThrow(StateError('boom'));
@@ -109,8 +109,9 @@ void main() {
 
   group('register', () {
     test('saves token and returns AppSuccess<AppUser> on success', () async {
-      when(() => dataSource.register(any()))
-          .thenAnswer((_) async => _validResponse(token: 'reg-tok'));
+      when(
+        () => dataSource.register(any()),
+      ).thenAnswer((_) async => _validResponse(token: 'reg-tok'));
       when(() => storage.saveToken(any())).thenAnswer((_) async {});
 
       final result = await sut.register(
@@ -134,11 +135,7 @@ void main() {
       );
       when(() => dataSource.register(any())).thenThrow(exception);
 
-      final result = await sut.register(
-        name: 'n',
-        email: 'e',
-        password: 'p',
-      );
+      final result = await sut.register(name: 'n', email: 'e', password: 'p');
 
       expect(result.exceptionOrNull?.code, AppErrorCode.conflict);
       verifyNever(() => storage.saveToken(any()));
@@ -158,10 +155,7 @@ void main() {
 
     test('still clears the token even when the data source fails', () async {
       when(() => dataSource.logout()).thenThrow(
-        const AppException(
-          code: AppErrorCode.networkError,
-          message: 'down',
-        ),
+        const AppException(code: AppErrorCode.networkError, message: 'down'),
       );
       when(() => storage.clear()).thenAnswer((_) async {});
 

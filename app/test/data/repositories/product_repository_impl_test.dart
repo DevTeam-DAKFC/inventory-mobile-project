@@ -98,7 +98,9 @@ void main() {
   });
 
   test('activates product successfully', () async {
-    when(() => dataSource.activateProduct('product_1')).thenAnswer((_) async {});
+    when(
+      () => dataSource.activateProduct('product_1'),
+    ).thenAnswer((_) async {});
 
     final result = await sut.activateProduct('product_1');
 

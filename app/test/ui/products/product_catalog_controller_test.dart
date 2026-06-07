@@ -99,6 +99,10 @@ final class _FakeProductRepository implements ProductRepository {
       throw UnimplementedError();
 
   @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
   Future<AppResult<Product>> getProduct(String productId) =>
       throw UnimplementedError();
 

@@ -50,8 +50,11 @@ void main() {
           'createdAt': '2026-06-02T20:00:00Z',
         }),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unexpected),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
         ),
       );
     });
@@ -74,15 +77,15 @@ void main() {
 
   group('AuthLoginResponseDto.fromJson', () {
     Map<String, dynamic> validUserJson() => <String, dynamic>{
-          'id': 'user_admin_001',
-          'name': 'María Rodríguez',
-          'email': 'admin@inventario-demo.com',
-          'role': 'admin',
-          'branchIds': ['branch_central'],
-          'isActive': true,
-          'createdAt': '2026-06-02T20:00:00Z',
-          'updatedAt': null,
-        };
+      'id': 'user_admin_001',
+      'name': 'María Rodríguez',
+      'email': 'admin@inventario-demo.com',
+      'role': 'admin',
+      'branchIds': ['branch_central'],
+      'isActive': true,
+      'createdAt': '2026-06-02T20:00:00Z',
+      'updatedAt': null,
+    };
 
     test('parses a valid login response', () {
       final dto = AuthLoginResponseDto.fromJson(<String, dynamic>{
@@ -107,8 +110,11 @@ void main() {
           'user': validUserJson(),
         }),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unexpected),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
         ),
       );
     });
@@ -174,15 +180,9 @@ void main() {
 
   group('AuthLoginRequestDto.toJson', () {
     test('serializes email and password', () {
-      const req = AuthLoginRequestDto(
-        email: 'ana@example.com',
-        password: 'pw',
-      );
+      const req = AuthLoginRequestDto(email: 'ana@example.com', password: 'pw');
 
-      expect(req.toJson(), {
-        'email': 'ana@example.com',
-        'password': 'pw',
-      });
+      expect(req.toJson(), {'email': 'ana@example.com', 'password': 'pw'});
     });
   });
 }

@@ -280,6 +280,10 @@ final class _FakeProductRepository implements ProductRepository {
   }
 
   @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
   Future<AppResult<Product>> getProduct(String productId) {
     requestedProductId = productId;
     return onGet?.call(productId) ??

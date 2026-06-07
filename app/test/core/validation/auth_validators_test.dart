@@ -23,7 +23,10 @@ void main() {
   group('AuthValidators.validateEmail', () {
     test('valid email returns null', () {
       expect(AuthValidators.validateEmail('ana@example.com'), isNull);
-      expect(AuthValidators.validateEmail(' user.name+tag@sub.example.co '), isNull);
+      expect(
+        AuthValidators.validateEmail(' user.name+tag@sub.example.co '),
+        isNull,
+      );
     });
 
     test('invalid email returns error', () {

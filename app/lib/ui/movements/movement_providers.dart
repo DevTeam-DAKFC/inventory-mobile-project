@@ -72,19 +72,19 @@ final activeBranchCatalogProvider = FutureProvider<AppResult<List<Branch>>>((
   return ref.watch(branchesProvider.future);
 });
 
-final activeProductCatalogProvider = FutureProvider<AppResult<List<Product>>>(
-  (ref) async {
-    final result = await ref
-        .watch(productRepositoryProvider)
-        .listProducts(
-          const ProductListQuery(isActive: true, page: 1, pageSize: 100),
-        );
-    return result.when(
-      success: (page) => AppSuccess(page.items),
-      failure: AppFailure.new,
-    );
-  },
-);
+final activeProductCatalogProvider = FutureProvider<AppResult<List<Product>>>((
+  ref,
+) async {
+  final result = await ref
+      .watch(productRepositoryProvider)
+      .listProducts(
+        const ProductListQuery(isActive: true, page: 1, pageSize: 100),
+      );
+  return result.when(
+    success: (page) => AppSuccess(page.items),
+    failure: AppFailure.new,
+  );
+});
 
 final inactiveProductCatalogProvider = FutureProvider<AppResult<List<Product>>>(
   (ref) async {

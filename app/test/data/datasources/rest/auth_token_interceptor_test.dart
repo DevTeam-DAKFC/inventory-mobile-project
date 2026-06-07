@@ -62,10 +62,7 @@ void main() {
 
     await sut.onRequest(options, handler);
 
-    expect(
-      handler.capturedOptions?.headers['Authorization'],
-      'Bearer tok-xyz',
-    );
+    expect(handler.capturedOptions?.headers['Authorization'], 'Bearer tok-xyz');
   });
 
   test('does not override an existing Authorization header', () async {

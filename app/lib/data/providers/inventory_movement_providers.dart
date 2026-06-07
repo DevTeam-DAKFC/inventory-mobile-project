@@ -6,12 +6,13 @@ import '../datasources/rest/rest_api_inventory_movement_data_source.dart';
 import '../datasources/rest/rest_api_stock_lookup_data_source.dart';
 import '../repositories/inventory_movement_repository_impl.dart';
 import '../repositories/stock_lookup_repository_impl.dart';
-import 'health_providers.dart';
+import 'auth_providers.dart';
 
 final inventoryMovementDataSourceProvider =
     Provider<RestApiInventoryMovementDataSource>(
-      (ref) =>
-          RestApiInventoryMovementDataSource(ref.watch(apiClientProvider).dio),
+      (ref) => RestApiInventoryMovementDataSource(
+        ref.watch(authenticatedDioProvider),
+      ),
     );
 
 final inventoryMovementRepositoryProvider =
@@ -22,7 +23,7 @@ final inventoryMovementRepositoryProvider =
     );
 
 final stockLookupDataSourceProvider = Provider<RestApiStockLookupDataSource>(
-  (ref) => RestApiStockLookupDataSource(ref.watch(apiClientProvider).dio),
+  (ref) => RestApiStockLookupDataSource(ref.watch(authenticatedDioProvider)),
 );
 
 final stockLookupRepositoryProvider = Provider<StockLookupRepository>(

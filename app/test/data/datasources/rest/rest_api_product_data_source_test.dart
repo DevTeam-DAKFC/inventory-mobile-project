@@ -163,15 +163,20 @@ void main() {
     },
   );
 
-  test('PATCH /products/{productId}/activate accepts 204 without body', () async {
-    when(
-      () => dio.patch<dynamic>('/products/product_1/activate'),
-    ).thenAnswer((_) async => _response(null, statusCode: 204));
+  test(
+    'PATCH /products/{productId}/activate accepts 204 without body',
+    () async {
+      when(
+        () => dio.patch<dynamic>('/products/product_1/activate'),
+      ).thenAnswer((_) async => _response(null, statusCode: 204));
 
-    await sut.activateProduct('product_1');
+      await sut.activateProduct('product_1');
 
-    verify(() => dio.patch<dynamic>('/products/product_1/activate')).called(1);
-  });
+      verify(
+        () => dio.patch<dynamic>('/products/product_1/activate'),
+      ).called(1);
+    },
+  );
 
   test(
     'POST /products/{productId}/image sends multipart file metadata',

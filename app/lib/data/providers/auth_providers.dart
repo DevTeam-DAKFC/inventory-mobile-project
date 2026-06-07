@@ -9,7 +9,9 @@ import '../repositories/auth_repository_impl.dart';
 import 'health_providers.dart';
 
 /// Secure on-device storage for the access token.
-final tokenStorageProvider = Provider<AuthTokenStorage>((ref) => SecureAuthTokenStorage());
+final tokenStorageProvider = Provider<AuthTokenStorage>(
+  (ref) => SecureAuthTokenStorage(),
+);
 
 final authTokenInterceptorProvider = Provider<AuthTokenInterceptor>(
   (ref) => AuthTokenInterceptor(ref.watch(tokenStorageProvider)),
