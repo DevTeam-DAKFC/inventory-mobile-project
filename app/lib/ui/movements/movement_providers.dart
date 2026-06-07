@@ -12,9 +12,19 @@ import 'movement_reference_resolver.dart';
 
 typedef StockLookupRequest = ({String productId, String branchId});
 
-final movementReferenceResolverProvider = Provider<MovementReferenceResolver>(
-  (ref) => const FallbackMovementReferenceResolver(),
-);
+final movementReferenceResolverProvider = Provider<MovementReferenceResolver>((
+  ref,
+) {
+  final productResult = ref.watch(activeProductCatalogProvider).asData?.value;
+  final branchResult = ref.watch(branchCatalogProvider).asData?.value;
+  final products = productResult?.dataOrNull;
+  final branches = branchResult?.dataOrNull;
+
+  return FallbackMovementReferenceResolver(
+    products: products ?? const [],
+    branches: branches ?? const [],
+  );
+});
 
 final movementHistoryProvider =
     FutureProvider.family<

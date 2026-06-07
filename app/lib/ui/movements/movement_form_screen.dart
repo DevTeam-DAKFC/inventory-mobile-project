@@ -431,9 +431,9 @@ class _MovementFormView extends ConsumerWidget {
                   MovementSelectOption(id: product.id, label: product.name),
             )
             .toList(),
-        failure: (_) => movementProductOptions,
+        failure: (_) => const [],
       ),
-      error: (_, _) => movementProductOptions,
+      error: (_, _) => const [],
       loading: () => const [],
     );
   }
@@ -449,9 +449,9 @@ class _MovementFormView extends ConsumerWidget {
                   MovementSelectOption(id: branch.id, label: branch.name),
             )
             .toList(),
-        failure: (_) => movementBranchOptions,
+        failure: (_) => const [],
       ),
-      error: (_, _) => movementBranchOptions,
+      error: (_, _) => const [],
       loading: () => const [],
     );
   }
@@ -470,6 +470,13 @@ class _MovementFormView extends ConsumerWidget {
       loading: () => loading,
     );
   }
+}
+
+final class MovementSelectOption {
+  const MovementSelectOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
 }
 
 class _MovementTypeSelector extends ConsumerWidget {
