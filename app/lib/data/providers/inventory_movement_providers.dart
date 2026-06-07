@@ -2,12 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/repositories/branch_repository.dart';
 import '../../domain/repositories/inventory_movement_repository.dart';
+import '../../domain/repositories/product_repository.dart';
 import '../../domain/repositories/stock_lookup_repository.dart';
 import '../datasources/rest/rest_api_branch_data_source.dart';
 import '../datasources/rest/rest_api_inventory_movement_data_source.dart';
+import '../datasources/rest/rest_api_product_data_source.dart';
 import '../datasources/rest/rest_api_stock_lookup_data_source.dart';
 import '../repositories/branch_repository_impl.dart';
 import '../repositories/inventory_movement_repository_impl.dart';
+import '../repositories/product_repository_impl.dart';
 import '../repositories/stock_lookup_repository_impl.dart';
 import 'health_providers.dart';
 
@@ -38,4 +41,12 @@ final branchDataSourceProvider = Provider<RestApiBranchDataSource>(
 
 final branchRepositoryProvider = Provider<BranchRepository>(
   (ref) => BranchRepositoryImpl(ref.watch(branchDataSourceProvider)),
+);
+
+final productDataSourceProvider = Provider<RestApiProductDataSource>(
+  (ref) => RestApiProductDataSource(ref.watch(apiClientProvider).dio),
+);
+
+final productRepositoryProvider = Provider<ProductRepository>(
+  (ref) => ProductRepositoryImpl(ref.watch(productDataSourceProvider)),
 );

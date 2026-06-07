@@ -8,8 +8,7 @@ import 'package:inventory_mobile/data/repositories/branch_repository_impl.dart';
 import 'package:inventory_mobile/domain/models/branch.dart';
 import 'package:mocktail/mocktail.dart';
 
-class _MockBranchDataSource extends Mock
-    implements RestApiBranchDataSource {}
+class _MockBranchDataSource extends Mock implements RestApiBranchDataSource {}
 
 BranchRestDto _branchDto({bool isActive = true}) {
   return BranchRestDto(
