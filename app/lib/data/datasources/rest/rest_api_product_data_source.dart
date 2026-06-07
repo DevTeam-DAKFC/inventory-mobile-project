@@ -29,7 +29,7 @@ class RestApiProductDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to load products.',
+        fallbackMessage: 'No se pudieron cargar los productos.',
       );
     } catch (e, stack) {
       throw AppException(
@@ -55,7 +55,7 @@ class RestApiProductDataSource {
     await _patchProductState(
       productId: productId,
       path: '/products/$productId/activate',
-      fallbackMessage: 'Unable to activate product.',
+      fallbackMessage: 'No se pudo activar el producto.',
       unexpectedMessage: 'Unexpected error activating product.',
     );
   }
@@ -64,7 +64,7 @@ class RestApiProductDataSource {
     await _patchProductState(
       productId: productId,
       path: '/products/$productId/deactivate',
-      fallbackMessage: 'Unable to deactivate product.',
+      fallbackMessage: 'No se pudo desactivar el producto.',
       unexpectedMessage: 'Unexpected error deactivating product.',
     );
   }

@@ -125,7 +125,7 @@ void main() {
     expect(state.isSubmitting, isFalse);
     expect(state.createdMovement?.id, 'movement-id');
     expect(state.currentStock?.availableQuantity, 15);
-    expect(state.successMessage, 'Movement registered successfully.');
+    expect(state.successMessage, 'Movimiento registrado correctamente.');
     verify(() => movementRepository.createMovement(any())).called(1);
     verify(
       () => stockLookupRepository.getStockLookup(
@@ -157,7 +157,7 @@ void main() {
     expect(state.errorCode, AppErrorCode.insufficientStock);
     expect(
       state.errorMessage,
-      'Not enough stock available to register this movement.',
+      'No hay stock suficiente para registrar esta salida.',
     );
     verifyNever(
       () => stockLookupRepository.getStockLookup(
@@ -184,5 +184,25 @@ void main() {
     final state = container.read(movementFormViewModelProvider);
     expect(state.currentStock, _stock);
     expect(state.isLoadingStock, isFalse);
+  });
+
+  test('resets form state before starting a new movement', () {
+    final viewModel = container.read(movementFormViewModelProvider.notifier)
+      ..setProductId('product-id')
+      ..setBranchId('branch-id')
+      ..setQuantity(5)
+      ..setReason('Restock')
+      ..setNotes('Initial note');
+
+    viewModel.reset();
+
+    final state = container.read(movementFormViewModelProvider);
+    expect(state.productId, isNull);
+    expect(state.branchId, isNull);
+    expect(state.quantity, isNull);
+    expect(state.reason, isEmpty);
+    expect(state.notes, isNull);
+    expect(state.currentStock, isNull);
+    expect(state.createdMovement, isNull);
   });
 }

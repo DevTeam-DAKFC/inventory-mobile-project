@@ -23,6 +23,10 @@ class MovementFormViewModel extends Notifier<MovementFormState> {
   @override
   MovementFormState build() => const MovementFormState();
 
+  void reset() {
+    state = const MovementFormState();
+  }
+
   void setProductId(String? value) {
     state = state.copyWith(
       productId: value,
@@ -99,7 +103,7 @@ class MovementFormViewModel extends Notifier<MovementFormState> {
       state = state.copyWith(
         fieldErrors: errors,
         errorCode: AppErrorCode.validationError,
-        errorMessage: 'Please review the movement form fields.',
+        errorMessage: 'Revise los campos del formulario de movimiento.',
         clearSuccess: true,
       );
       return;
@@ -136,7 +140,7 @@ class MovementFormViewModel extends Notifier<MovementFormState> {
           isSubmitting: false,
           currentStock: refreshedStock,
           createdMovement: movement,
-          successMessage: 'Movement registered successfully.',
+          successMessage: 'Movimiento registrado correctamente.',
         );
       },
       failure: (exception) async {
@@ -144,7 +148,7 @@ class MovementFormViewModel extends Notifier<MovementFormState> {
           isSubmitting: false,
           errorCode: exception.code,
           errorMessage: exception.code == AppErrorCode.insufficientStock
-              ? 'Not enough stock available to register this movement.'
+              ? 'No hay stock suficiente para registrar esta salida.'
               : exception.message,
         );
       },

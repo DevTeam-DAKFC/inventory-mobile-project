@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../navigation/app_router.dart';
@@ -14,6 +15,9 @@ class InventoryMobileApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Inventory Mobile',
       theme: buildAppTheme(),
+      locale: const Locale('es'),
+      supportedLocales: const [Locale('es'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
     );

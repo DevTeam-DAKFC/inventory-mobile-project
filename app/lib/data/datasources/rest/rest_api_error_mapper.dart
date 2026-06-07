@@ -17,7 +17,7 @@ final class RestApiErrorMapper {
       case DioExceptionType.receiveTimeout:
         return AppException(
           code: AppErrorCode.timeout,
-          message: '$fallbackMessage Request timed out.',
+          message: '$fallbackMessage La solicitud agoto el tiempo de espera.',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -26,7 +26,7 @@ final class RestApiErrorMapper {
       case DioExceptionType.connectionError:
         return AppException(
           code: AppErrorCode.networkError,
-          message: '$fallbackMessage Cannot reach the backend.',
+          message: '$fallbackMessage No se pudo conectar con el backend.',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -35,7 +35,8 @@ final class RestApiErrorMapper {
       case DioExceptionType.unknown:
         return AppException(
           code: AppErrorCode.networkError,
-          message: '$fallbackMessage ${exception.message ?? 'Unknown error.'}',
+          message:
+              '$fallbackMessage ${exception.message ?? 'Error desconocido.'}',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -56,7 +57,8 @@ final class RestApiErrorMapper {
       code: code,
       message:
           _messageFromResponse(response) ??
-          '$fallbackMessage Backend returned status ${response?.statusCode}.',
+          '$fallbackMessage El backend respondio con estado '
+              '${response?.statusCode}.',
       cause: exception,
       stackTrace: stackTrace,
       details: {'statusCode': response?.statusCode},

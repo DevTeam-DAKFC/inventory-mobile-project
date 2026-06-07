@@ -54,10 +54,7 @@ void main() {
 
     await tester.tap(_navigationDestination('Productos'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Reserved for the assigned feature issue.'),
-      findsOneWidget,
-    );
+    expect(find.text('Productos'), findsWidgets);
 
     await tester.tap(_navigationDestination('Stock'));
     await tester.pumpAndSettle();

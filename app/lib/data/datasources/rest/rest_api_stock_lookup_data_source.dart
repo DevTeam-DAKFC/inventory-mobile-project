@@ -24,7 +24,7 @@ class RestApiStockLookupDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to load stock lookup.',
+        fallbackMessage: 'No se pudo cargar el stock actual.',
       );
     } catch (e, stack) {
       throw AppException(

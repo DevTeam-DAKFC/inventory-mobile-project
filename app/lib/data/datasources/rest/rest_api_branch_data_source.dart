@@ -18,7 +18,7 @@ class RestApiBranchDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to load branches.',
+        fallbackMessage: 'No se pudieron cargar las sucursales.',
       );
     } catch (e, stack) {
       throw AppException(
