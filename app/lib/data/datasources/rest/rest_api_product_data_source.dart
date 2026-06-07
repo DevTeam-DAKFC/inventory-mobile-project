@@ -55,6 +55,10 @@ class RestApiProductDataSource {
     );
   }
 
+  Future<void> activateProduct(String productId) async {
+    await _request(() => _dio.patch<dynamic>('/products/$productId/activate'));
+  }
+
   Future<ProductRestDto> uploadProductImage(
     String productId,
     ProductImageInput image,

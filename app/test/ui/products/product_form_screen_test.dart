@@ -265,6 +265,10 @@ final class _FakeProductRepository implements ProductRepository {
       throw UnimplementedError();
 
   @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
   Future<AppResult<PaginatedProducts>> listProducts(ProductListQuery query) =>
       throw UnimplementedError();
 }

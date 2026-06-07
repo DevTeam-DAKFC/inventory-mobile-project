@@ -39,8 +39,7 @@ void main() {
       expect(session.canViewAdminEntries, isTrue);
     });
 
-    test('with collaborator user sets state and derives collaborator role',
-        () {
+    test('with collaborator user sets state and derives collaborator role', () {
       final session = AppSession();
       final collaborator = _user(role: UserRole.collaborator);
 
@@ -99,8 +98,7 @@ void main() {
       expect(session.canViewAdminEntries, isTrue);
     });
 
-    test('signInAsDemoCollaborator populates a non-null collaborator user',
-        () {
+    test('signInAsDemoCollaborator populates a non-null collaborator user', () {
       final session = AppSession()..signInAsDemoCollaborator();
 
       expect(session.user, isNotNull);

@@ -18,28 +18,22 @@ final class AuthRegisterRequestDto {
   final List<String>? branchIds;
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'email': email,
-        'password': password,
-        if (role != null) 'role': role,
-        if (branchIds != null) 'branchIds': branchIds,
-      };
+    'name': name,
+    'email': email,
+    'password': password,
+    if (role != null) 'role': role,
+    if (branchIds != null) 'branchIds': branchIds,
+  };
 }
 
 /// Wire-level payload for `POST /auth/login`.
 final class AuthLoginRequestDto {
-  const AuthLoginRequestDto({
-    required this.email,
-    required this.password,
-  });
+  const AuthLoginRequestDto({required this.email, required this.password});
 
   final String email;
   final String password;
 
-  Map<String, dynamic> toJson() => {
-        'email': email,
-        'password': password,
-      };
+  Map<String, dynamic> toJson() => {'email': email, 'password': password};
 }
 
 /// Wire-level user object embedded in auth responses and returned by
@@ -133,7 +127,8 @@ final class UserDto {
   static AppException _invalid(String field, Object received) {
     return AppException(
       code: AppErrorCode.unexpected,
-      message: 'Invalid user payload: field "$field" is missing or has the '
+      message:
+          'Invalid user payload: field "$field" is missing or has the '
           'wrong type.',
       details: {'received': received},
     );
@@ -184,7 +179,8 @@ final class AuthLoginResponseDto {
   static AppException _invalid(String field, Object received) {
     return AppException(
       code: AppErrorCode.unexpected,
-      message: 'Invalid auth response: field "$field" is missing or has the '
+      message:
+          'Invalid auth response: field "$field" is missing or has the '
           'wrong type.',
       details: {'received': received},
     );

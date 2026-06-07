@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/auth/access_token_provider.dart';
 import '../../core/constants/api_config.dart';
 import '../../core/result/app_result.dart';
 import '../../domain/models/backend_health.dart';
@@ -12,8 +13,15 @@ final apiConfigProvider = Provider<ApiConfig>(
   (ref) => ApiConfig.defaultForApp(),
 );
 
+final accessTokenProvider = Provider<AccessTokenProvider>(
+  (ref) => const DevAccessTokenProvider(),
+);
+
 final apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(ref.watch(apiConfigProvider)),
+  (ref) => ApiClient(
+    ref.watch(apiConfigProvider),
+    accessTokenProvider: ref.watch(accessTokenProvider),
+  ),
 );
 
 final healthDataSourceProvider = Provider<RestApiHealthDataSource>(

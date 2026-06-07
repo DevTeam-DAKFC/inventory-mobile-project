@@ -34,11 +34,13 @@ GoRouter _buildRouter() {
       GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
       GoRoute(
         path: '/login',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('LOGIN_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('LOGIN_STUB'))),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('HOME_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('HOME_STUB'))),
       ),
     ],
     refreshListenable: null,
@@ -50,7 +52,9 @@ GoRouter _buildAuthAwareRouter(AppSession session) {
     initialLocation: '/register',
     refreshListenable: session,
     redirect: (context, state) {
-      final isPublic = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isPublic =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
       if (!session.isAuthenticated && !isPublic) {
         return '/login';
       }
@@ -63,11 +67,13 @@ GoRouter _buildAuthAwareRouter(AppSession session) {
       GoRoute(path: '/register', builder: (_, _) => const RegisterScreen()),
       GoRoute(
         path: '/login',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('LOGIN_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('LOGIN_STUB'))),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('HOME_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('HOME_STUB'))),
       ),
     ],
   );
@@ -118,14 +124,18 @@ void main() {
     session = AppSession();
   });
 
-  testWidgets('renders Spanish inventory-focused copy and the primary CTA', (tester) async {
+  testWidgets('renders Spanish inventory-focused copy and the primary CTA', (
+    tester,
+  ) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
     expect(find.text('Inventario'), findsOneWidget);
     expect(_richTextPlain('Crear cuenta'), findsOneWidget);
     expect(
-      find.text('Registrá tu acceso para gestionar productos y movimientos entre sucursales.'),
+      find.text(
+        'Registrá tu acceso para gestionar productos y movimientos entre sucursales.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Nombre'), findsOneWidget);
@@ -136,70 +146,95 @@ void main() {
     expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 
-  testWidgets('empty submit shows three required-field errors and does not call register', (
+  testWidgets(
+    'empty submit shows three required-field errors and does not call register',
+    (tester) async {
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
+
+      await _tapPrimary(tester);
+      await tester.pump();
+
+      expect(find.text('El nombre es obligatorio.'), findsOneWidget);
+      expect(
+        find.text('El correo electrónico es obligatorio.'),
+        findsOneWidget,
+      );
+      expect(find.text('La contraseña es obligatoria.'), findsOneWidget);
+      verifyNever(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      );
+    },
+  );
+
+  testWidgets(
+    'invalid email shows Spanish email error and does not call register',
+    (tester) async {
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
+      await tester.enterText(find.byType(TextFormField).at(1), 'not-an-email');
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
+      await _tapPrimary(tester);
+      await tester.pump();
+
+      expect(
+        find.text('Ingresa un correo electrónico válido.'),
+        findsOneWidget,
+      );
+      verifyNever(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      );
+    },
+  );
+
+  testWidgets(
+    'short password shows Spanish password error and does not call register',
+    (tester) async {
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'andres@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(2), '1234567');
+      await _tapPrimary(tester);
+      await tester.pump();
+
+      expect(
+        find.text('La contraseña debe tener al menos 8 caracteres.'),
+        findsOneWidget,
+      );
+      verifyNever(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      );
+    },
+  );
+
+  testWidgets('valid submit calls register with trimmed name and email', (
     tester,
   ) async {
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
-
-    await _tapPrimary(tester);
-    await tester.pump();
-
-    expect(find.text('El nombre es obligatorio.'), findsOneWidget);
-    expect(find.text('El correo electrónico es obligatorio.'), findsOneWidget);
-    expect(find.text('La contraseña es obligatoria.'), findsOneWidget);
-    verifyNever(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    );
-  });
-
-  testWidgets('invalid email shows Spanish email error and does not call register', (tester) async {
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'not-an-email');
-    await tester.enterText(find.byType(TextFormField).at(2), 'password123');
-    await _tapPrimary(tester);
-    await tester.pump();
-
-    expect(find.text('Ingresa un correo electrónico válido.'), findsOneWidget);
-    verifyNever(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    );
-  });
-
-  testWidgets('short password shows Spanish password error and does not call register', (
-    tester,
-  ) async {
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'andres@example.com');
-    await tester.enterText(find.byType(TextFormField).at(2), '1234567');
-    await _tapPrimary(tester);
-    await tester.pump();
-
-    expect(find.text('La contraseña debe tener al menos 8 caracteres.'), findsOneWidget);
-    verifyNever(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    );
-  });
-
-  testWidgets('valid submit calls register with trimmed name and email', (tester) async {
     when(
       () => repository.register(
         name: any(named: 'name'),
@@ -212,7 +247,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), '  Andrés Soto  ');
-    await tester.enterText(find.byType(TextFormField).at(1), '  andres@example.com  ');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      '  andres@example.com  ',
+    );
     await tester.enterText(find.byType(TextFormField).at(2), 'password123');
     await _tapPrimary(tester);
     await tester.pumpAndSettle();
@@ -226,7 +264,9 @@ void main() {
     ).called(1);
   });
 
-  testWidgets('loading state shows spinner and prevents duplicate submits', (tester) async {
+  testWidgets('loading state shows spinner and prevents duplicate submits', (
+    tester,
+  ) async {
     final pending = Completer<AppResult<AppUser>>();
     when(
       () => repository.register(
@@ -240,7 +280,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'andres@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'andres@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(2), 'password123');
     await _tapPrimary(tester);
     await tester.pump();
@@ -261,7 +304,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('AppSuccess authenticates the AppSession and routes to /home', (tester) async {
+  testWidgets('AppSuccess authenticates the AppSession and routes to /home', (
+    tester,
+  ) async {
     final user = _collaboratorUser();
     when(
       () => repository.register(
@@ -272,12 +317,19 @@ void main() {
     ).thenAnswer((_) async => AppSuccess(user));
 
     await tester.pumpWidget(
-      _harness(repository: repository, session: session, router: _buildAuthAwareRouter(session)),
+      _harness(
+        repository: repository,
+        session: session,
+        router: _buildAuthAwareRouter(session),
+      ),
     );
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'andres@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'andres@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(2), 'password123');
     await _tapPrimary(tester);
     await tester.pumpAndSettle();
@@ -288,7 +340,9 @@ void main() {
     expect(find.text('Crear cuenta'), findsNothing);
   });
 
-  testWidgets('AppFailure conflict shows the Spanish duplicate-email banner', (tester) async {
+  testWidgets('AppFailure conflict shows the Spanish duplicate-email banner', (
+    tester,
+  ) async {
     when(
       () => repository.register(
         name: any(named: 'name'),
@@ -296,15 +350,19 @@ void main() {
         password: any(named: 'password'),
       ),
     ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.conflict, message: 'duplicate email')),
+      (_) async => const AppFailure(
+        AppException(code: AppErrorCode.conflict, message: 'duplicate email'),
+      ),
     );
 
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'andres@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'andres@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(2), 'password123');
     await _tapPrimary(tester);
     await tester.pumpAndSettle();
@@ -313,31 +371,42 @@ void main() {
     expect(session.isAuthenticated, isFalse);
   });
 
-  testWidgets('AppFailure networkError shows the Spanish no-connection banner', (tester) async {
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.networkError, message: 'no network')),
-    );
+  testWidgets(
+    'AppFailure networkError shows the Spanish no-connection banner',
+    (tester) async {
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.networkError, message: 'no network'),
+        ),
+      );
 
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
-    await tester.enterText(find.byType(TextFormField).at(1), 'andres@example.com');
-    await tester.enterText(find.byType(TextFormField).at(2), 'password123');
-    await _tapPrimary(tester);
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).at(0), 'Andrés Soto');
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'andres@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(2), 'password123');
+      await _tapPrimary(tester);
+      await tester.pumpAndSettle();
 
-    expect(find.text('Sin conexión. Inténtalo de nuevo.'), findsOneWidget);
-  });
+      expect(find.text('Sin conexión. Inténtalo de nuevo.'), findsOneWidget);
+    },
+  );
 
-  testWidgets('tapping "Iniciar sesión" navigates back to /login', (tester) async {
+  testWidgets('tapping "Iniciar sesión" navigates back to /login', (
+    tester,
+  ) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 

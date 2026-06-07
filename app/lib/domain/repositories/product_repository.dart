@@ -20,6 +20,8 @@ abstract class ProductRepository {
 
   Future<AppResult<void>> deactivateProduct(String productId);
 
+  Future<AppResult<void>> activateProduct(String productId);
+
   Future<AppResult<Product>> uploadProductImage(
     String productId,
     ProductImageInput image,

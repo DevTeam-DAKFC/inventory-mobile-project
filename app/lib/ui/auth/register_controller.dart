@@ -34,11 +34,9 @@ class RegisterController extends Notifier<RegisterState> {
     final trimmedName = name.trim();
     final trimmedEmail = email.trim();
 
-    final result = await ref.read(authRepositoryProvider).register(
-          name: trimmedName,
-          email: trimmedEmail,
-          password: password,
-        );
+    final result = await ref
+        .read(authRepositoryProvider)
+        .register(name: trimmedName, email: trimmedEmail, password: password);
 
     final user = result.dataOrNull;
     if (user != null) {
@@ -72,5 +70,5 @@ class RegisterController extends Notifier<RegisterState> {
 
 final registerControllerProvider =
     NotifierProvider.autoDispose<RegisterController, RegisterState>(
-  RegisterController.new,
-);
+      RegisterController.new,
+    );

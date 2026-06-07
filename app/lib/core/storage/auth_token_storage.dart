@@ -19,7 +19,9 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   SecureAuthTokenStorage({FlutterSecureStorage? secureStorage})
     : _storage =
           secureStorage ??
-          const FlutterSecureStorage(aOptions: AndroidOptions(encryptedSharedPreferences: true));
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+          );
 
   final FlutterSecureStorage _storage;
 
@@ -29,7 +31,10 @@ final class SecureAuthTokenStorage implements AuthTokenStorage {
   @override
   Future<void> saveToken(StoredAuthToken token) async {
     await _storage.write(key: _accessTokenKey, value: token.accessToken);
-    await _storage.write(key: _expiresAtKey, value: token.expiresAt.toUtc().toIso8601String());
+    await _storage.write(
+      key: _expiresAtKey,
+      value: token.expiresAt.toUtc().toIso8601String(),
+    );
   }
 
   @override

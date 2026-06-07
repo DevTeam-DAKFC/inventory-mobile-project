@@ -8,12 +8,15 @@ import 'package:mocktail/mocktail.dart';
 
 class _MockDio extends Mock implements Dio {}
 
-Response<dynamic> _okResponse(String path, dynamic data, {int statusCode = 200}) =>
-    Response<dynamic>(
-      requestOptions: RequestOptions(path: path),
-      statusCode: statusCode,
-      data: data,
-    );
+Response<dynamic> _okResponse(
+  String path,
+  dynamic data, {
+  int statusCode = 200,
+}) => Response<dynamic>(
+  requestOptions: RequestOptions(path: path),
+  statusCode: statusCode,
+  data: data,
+);
 
 DioException _dioException(
   String path,
@@ -36,20 +39,20 @@ DioException _dioException(
 }
 
 Map<String, dynamic> _validLoginResponse() => <String, dynamic>{
-      'accessToken': 'tok-123',
-      'tokenType': 'Bearer',
-      'expiresIn': 3600,
-      'user': <String, dynamic>{
-        'id': 'user_admin_001',
-        'name': 'María',
-        'email': 'admin@inventario-demo.com',
-        'role': 'admin',
-        'branchIds': ['branch_central'],
-        'isActive': true,
-        'createdAt': '2026-06-02T20:00:00Z',
-        'updatedAt': null,
-      },
-    };
+  'accessToken': 'tok-123',
+  'tokenType': 'Bearer',
+  'expiresIn': 3600,
+  'user': <String, dynamic>{
+    'id': 'user_admin_001',
+    'name': 'María',
+    'email': 'admin@inventario-demo.com',
+    'role': 'admin',
+    'branchIds': ['branch_central'],
+    'isActive': true,
+    'createdAt': '2026-06-02T20:00:00Z',
+    'updatedAt': null,
+  },
+};
 
 void main() {
   late _MockDio dio;
@@ -66,8 +69,11 @@ void main() {
 
   group('login', () {
     test('returns DTO on a successful response', () async {
-      when(() => dio.post<dynamic>('/auth/login', data: any(named: 'data')))
-          .thenAnswer((_) async => _okResponse('/auth/login', _validLoginResponse()));
+      when(
+        () => dio.post<dynamic>('/auth/login', data: any(named: 'data')),
+      ).thenAnswer(
+        (_) async => _okResponse('/auth/login', _validLoginResponse()),
+      );
 
       final dto = await sut.login(
         const AuthLoginRequestDto(email: 'a@b.com', password: 'pw'),
@@ -79,8 +85,9 @@ void main() {
     });
 
     test('maps 401 with code unauthorized via server body', () async {
-      when(() => dio.post<dynamic>('/auth/login', data: any(named: 'data')))
-          .thenThrow(
+      when(
+        () => dio.post<dynamic>('/auth/login', data: any(named: 'data')),
+      ).thenThrow(
         _dioException(
           '/auth/login',
           DioExceptionType.badResponse,
@@ -88,8 +95,8 @@ void main() {
           body: {
             'error': {
               'code': 'unauthorized',
-              'message': 'Invalid email or password.'
-            }
+              'message': 'Invalid email or password.',
+            },
           },
         ),
       );
@@ -97,47 +104,66 @@ void main() {
       await expectLater(
         sut.login(const AuthLoginRequestDto(email: 'a', password: 'b')),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unauthorized),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
         ),
       );
     });
 
     test('maps connectionTimeout to AppErrorCode.timeout', () async {
-      when(() => dio.post<dynamic>('/auth/login', data: any(named: 'data')))
-          .thenThrow(_dioException('/auth/login', DioExceptionType.connectionTimeout));
+      when(
+        () => dio.post<dynamic>('/auth/login', data: any(named: 'data')),
+      ).thenThrow(
+        _dioException('/auth/login', DioExceptionType.connectionTimeout),
+      );
 
       await expectLater(
         sut.login(const AuthLoginRequestDto(email: 'a', password: 'b')),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.timeout),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.timeout,
+          ),
         ),
       );
     });
 
     test('maps connectionError to AppErrorCode.networkError', () async {
-      when(() => dio.post<dynamic>('/auth/login', data: any(named: 'data')))
-          .thenThrow(_dioException('/auth/login', DioExceptionType.connectionError));
+      when(
+        () => dio.post<dynamic>('/auth/login', data: any(named: 'data')),
+      ).thenThrow(
+        _dioException('/auth/login', DioExceptionType.connectionError),
+      );
 
       await expectLater(
         sut.login(const AuthLoginRequestDto(email: 'a', password: 'b')),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.networkError),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.networkError,
+          ),
         ),
       );
     });
 
     test('maps invalid JSON shape to AppErrorCode.unexpected', () async {
-      when(() => dio.post<dynamic>('/auth/login', data: any(named: 'data')))
-          .thenAnswer((_) async => _okResponse('/auth/login', 'not-json'));
+      when(
+        () => dio.post<dynamic>('/auth/login', data: any(named: 'data')),
+      ).thenAnswer((_) async => _okResponse('/auth/login', 'not-json'));
 
       await expectLater(
         sut.login(const AuthLoginRequestDto(email: 'a', password: 'b')),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unexpected),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
         ),
       );
     });
@@ -145,8 +171,9 @@ void main() {
 
   group('register', () {
     test('returns DTO on a successful 201 response', () async {
-      when(() => dio.post<dynamic>('/auth/register', data: any(named: 'data')))
-          .thenAnswer(
+      when(
+        () => dio.post<dynamic>('/auth/register', data: any(named: 'data')),
+      ).thenAnswer(
         (_) async => _okResponse(
           '/auth/register',
           _validLoginResponse(),
@@ -167,8 +194,9 @@ void main() {
     });
 
     test('maps 409 conflict via server body', () async {
-      when(() => dio.post<dynamic>('/auth/register', data: any(named: 'data')))
-          .thenThrow(
+      when(
+        () => dio.post<dynamic>('/auth/register', data: any(named: 'data')),
+      ).thenThrow(
         _dioException(
           '/auth/register',
           DioExceptionType.badResponse,
@@ -176,8 +204,8 @@ void main() {
           body: {
             'error': {
               'code': 'conflict',
-              'message': 'Email already registered.'
-            }
+              'message': 'Email already registered.',
+            },
           },
         ),
       );
@@ -187,24 +215,25 @@ void main() {
           const AuthRegisterRequestDto(name: 'a', email: 'a', password: 'b'),
         ),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.conflict),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.conflict,
+          ),
         ),
       );
     });
 
     test('maps 400 validation_error via server body', () async {
-      when(() => dio.post<dynamic>('/auth/register', data: any(named: 'data')))
-          .thenThrow(
+      when(
+        () => dio.post<dynamic>('/auth/register', data: any(named: 'data')),
+      ).thenThrow(
         _dioException(
           '/auth/register',
           DioExceptionType.badResponse,
           statusCode: 400,
           body: {
-            'error': {
-              'code': 'validation_error',
-              'message': 'Invalid fields.'
-            }
+            'error': {'code': 'validation_error', 'message': 'Invalid fields.'},
           },
         ),
       );
@@ -214,8 +243,11 @@ void main() {
           const AuthRegisterRequestDto(name: 'a', email: 'a', password: 'b'),
         ),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.validationError),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.validationError,
+          ),
         ),
       );
     });
@@ -223,8 +255,9 @@ void main() {
 
   group('me', () {
     test('returns UserDto on a successful response', () async {
-      when(() => dio.get<dynamic>('/auth/me'))
-          .thenAnswer((_) async => _okResponse('/auth/me', _validLoginResponse()['user']));
+      when(() => dio.get<dynamic>('/auth/me')).thenAnswer(
+        (_) async => _okResponse('/auth/me', _validLoginResponse()['user']),
+      );
 
       final dto = await sut.me();
 
@@ -244,21 +277,28 @@ void main() {
       await expectLater(
         sut.me(),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unauthorized),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
         ),
       );
     });
 
     test('maps invalid payload to AppErrorCode.unexpected', () async {
-      when(() => dio.get<dynamic>('/auth/me'))
-          .thenAnswer((_) async => _okResponse('/auth/me', 'not-json'));
+      when(
+        () => dio.get<dynamic>('/auth/me'),
+      ).thenAnswer((_) async => _okResponse('/auth/me', 'not-json'));
 
       await expectLater(
         sut.me(),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unexpected),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
         ),
       );
     });
@@ -266,8 +306,9 @@ void main() {
 
   group('logout', () {
     test('completes normally on success', () async {
-      when(() => dio.post<dynamic>('/auth/logout'))
-          .thenAnswer((_) async => _okResponse('/auth/logout', null, statusCode: 204));
+      when(() => dio.post<dynamic>('/auth/logout')).thenAnswer(
+        (_) async => _okResponse('/auth/logout', null, statusCode: 204),
+      );
 
       await sut.logout();
 
@@ -286,8 +327,11 @@ void main() {
       await expectLater(
         sut.logout(),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unauthorized),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unauthorized,
+          ),
         ),
       );
     });

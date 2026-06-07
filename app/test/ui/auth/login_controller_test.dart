@@ -73,9 +73,15 @@ void main() {
     final container = _container(repository: repository, session: session);
     final controller = container.read(loginControllerProvider.notifier);
 
-    await controller.submit(email: '  user@example.com  ', password: 'password123');
+    await controller.submit(
+      email: '  user@example.com  ',
+      password: 'password123',
+    );
 
-    verify(() => repository.login(email: 'user@example.com', password: 'password123')).called(1);
+    verify(
+      () =>
+          repository.login(email: 'user@example.com', password: 'password123'),
+    ).called(1);
 
     expect(session.user, same(user));
     expect(session.isAuthenticated, isTrue);
@@ -85,93 +91,130 @@ void main() {
     expect(finalState.errorMessage, isNull);
   });
 
-  test('submit toggles isLoading while the repository call is pending', () async {
-    final pending = Completer<AppResult<AppUser>>();
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer((_) => pending.future);
+  test(
+    'submit toggles isLoading while the repository call is pending',
+    () async {
+      final pending = Completer<AppResult<AppUser>>();
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) => pending.future);
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    final future = controller.submit(email: 'user@example.com', password: 'password123');
+      final future = controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
 
-    expect(container.read(loginControllerProvider).isLoading, isTrue);
+      expect(container.read(loginControllerProvider).isLoading, isTrue);
 
-    pending.complete(AppSuccess(_adminUser()));
-    await future;
+      pending.complete(AppSuccess(_adminUser()));
+      await future;
 
-    expect(container.read(loginControllerProvider).isLoading, isFalse);
-  });
+      expect(container.read(loginControllerProvider).isLoading, isFalse);
+    },
+  );
 
-  test('duplicate submit while loading does not call the repository twice', () async {
-    final pending = Completer<AppResult<AppUser>>();
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer((_) => pending.future);
+  test(
+    'duplicate submit while loading does not call the repository twice',
+    () async {
+      final pending = Completer<AppResult<AppUser>>();
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) => pending.future);
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    final first = controller.submit(email: 'user@example.com', password: 'password123');
-    final second = controller.submit(email: 'user@example.com', password: 'password123');
+      final first = controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
+      final second = controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
 
-    verify(() => repository.login(email: 'user@example.com', password: 'password123')).called(1);
+      verify(
+        () => repository.login(
+          email: 'user@example.com',
+          password: 'password123',
+        ),
+      ).called(1);
 
-    pending.complete(AppSuccess(_adminUser()));
-    await Future.wait([first, second]);
-  });
+      pending.complete(AppSuccess(_adminUser()));
+      await Future.wait([first, second]);
+    },
+  );
 
-  test('AppFailure unauthorized maps to the Spanish credentials message', () async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.unauthorized, message: 'bad creds')),
-    );
+  test(
+    'AppFailure unauthorized maps to the Spanish credentials message',
+    () async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.unauthorized, message: 'bad creds'),
+        ),
+      );
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    await controller.submit(email: 'user@example.com', password: 'wrong-password');
+      await controller.submit(
+        email: 'user@example.com',
+        password: 'wrong-password',
+      );
 
-    final state = container.read(loginControllerProvider);
-    expect(state.errorMessage, 'Acceso inválido. Por favor, inténtelo otra vez.');
-    expect(state.isLoading, isFalse);
-    expect(session.isAuthenticated, isFalse);
-  });
+      final state = container.read(loginControllerProvider);
+      expect(
+        state.errorMessage,
+        'Acceso inválido. Por favor, inténtelo otra vez.',
+      );
+      expect(state.isLoading, isFalse);
+      expect(session.isAuthenticated, isFalse);
+    },
+  );
 
-  test('AppFailure networkError maps to the Spanish no-connection message', () async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.networkError, message: 'no network')),
-    );
+  test(
+    'AppFailure networkError maps to the Spanish no-connection message',
+    () async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.networkError, message: 'no network'),
+        ),
+      );
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    await controller.submit(email: 'user@example.com', password: 'password123');
+      await controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
 
-    expect(
-      container.read(loginControllerProvider).errorMessage,
-      'Sin conexión. Inténtalo de nuevo.',
-    );
-    expect(session.isAuthenticated, isFalse);
-  });
+      expect(
+        container.read(loginControllerProvider).errorMessage,
+        'Sin conexión. Inténtalo de nuevo.',
+      );
+      expect(session.isAuthenticated, isFalse);
+    },
+  );
 
   test('AppFailure timeout maps to the Spanish timeout message', () async {
     when(
@@ -180,7 +223,9 @@ void main() {
         password: any(named: 'password'),
       ),
     ).thenAnswer(
-      (_) async => const AppFailure(AppException(code: AppErrorCode.timeout, message: 'slow')),
+      (_) async => const AppFailure(
+        AppException(code: AppErrorCode.timeout, message: 'slow'),
+      ),
     );
 
     final container = _container(repository: repository, session: session);
@@ -194,43 +239,61 @@ void main() {
     );
   });
 
-  test('AppFailure serviceUnavailable maps to the Spanish unavailable message', () async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.serviceUnavailable, message: 'down')),
-    );
+  test(
+    'AppFailure serviceUnavailable maps to the Spanish unavailable message',
+    () async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.serviceUnavailable, message: 'down'),
+        ),
+      );
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    await controller.submit(email: 'user@example.com', password: 'password123');
+      await controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
 
-    expect(container.read(loginControllerProvider).errorMessage, 'El servidor no está disponible.');
-  });
+      expect(
+        container.read(loginControllerProvider).errorMessage,
+        'El servidor no está disponible.',
+      );
+    },
+  );
 
-  test('AppFailure with an unknown code maps to the generic Spanish message', () async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async => const AppFailure(AppException(code: AppErrorCode.unexpected, message: 'boom')),
-    );
+  test(
+    'AppFailure with an unknown code maps to the generic Spanish message',
+    () async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.unexpected, message: 'boom'),
+        ),
+      );
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(loginControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(loginControllerProvider.notifier);
 
-    await controller.submit(email: 'user@example.com', password: 'password123');
+      await controller.submit(
+        email: 'user@example.com',
+        password: 'password123',
+      );
 
-    expect(
-      container.read(loginControllerProvider).errorMessage,
-      'No pudimos iniciar sesión. Inténtalo de nuevo.',
-    );
-  });
+      expect(
+        container.read(loginControllerProvider).errorMessage,
+        'No pudimos iniciar sesión. Inténtalo de nuevo.',
+      );
+    },
+  );
 }

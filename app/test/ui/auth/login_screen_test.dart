@@ -34,11 +34,13 @@ GoRouter _buildRouter() {
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: '/register',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('REGISTER_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('REGISTER_STUB'))),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('HOME_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('HOME_STUB'))),
       ),
     ],
     refreshListenable: null,
@@ -50,7 +52,9 @@ GoRouter _buildAuthAwareRouter(AppSession session) {
     initialLocation: '/login',
     refreshListenable: session,
     redirect: (context, state) {
-      final isPublic = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      final isPublic =
+          state.matchedLocation == '/login' ||
+          state.matchedLocation == '/register';
       if (!session.isAuthenticated && !isPublic) {
         return '/login';
       }
@@ -63,11 +67,13 @@ GoRouter _buildAuthAwareRouter(AppSession session) {
       GoRoute(path: '/login', builder: (_, _) => const LoginScreen()),
       GoRoute(
         path: '/register',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('REGISTER_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('REGISTER_STUB'))),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, _) => const Scaffold(body: Center(child: Text('HOME_STUB'))),
+        builder: (_, _) =>
+            const Scaffold(body: Center(child: Text('HOME_STUB'))),
       ),
     ],
   );
@@ -108,12 +114,17 @@ void main() {
     session = AppSession();
   });
 
-  testWidgets('renders the auth-shell sign-in copy and the primary CTA', (tester) async {
+  testWidgets('renders the auth-shell sign-in copy and the primary CTA', (
+    tester,
+  ) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
     expect(find.text('Inventario'), findsOneWidget);
     expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
-    expect(find.text('Ingresá para gestionar inventario entre sucursales.'), findsOneWidget);
+    expect(
+      find.text('Ingresá para gestionar inventario entre sucursales.'),
+      findsOneWidget,
+    );
     expect(find.text('Correo electrónico'), findsOneWidget);
     expect(find.text('Contraseña'), findsOneWidget);
     expect(find.text('Iniciar sesión'), findsOneWidget);
@@ -121,22 +132,30 @@ void main() {
     expect(find.text('Crear cuenta'), findsOneWidget);
   });
 
-  testWidgets('empty submit shows required-field errors and does not call login', (tester) async {
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'empty submit shows required-field errors and does not call login',
+    (tester) async {
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(AuthPrimaryButton));
-    await tester.pump();
+      await tester.tap(find.byType(AuthPrimaryButton));
+      await tester.pump();
 
-    expect(find.text('El correo electrónico es obligatorio.'), findsOneWidget);
-    expect(find.text('La contraseña es obligatoria.'), findsOneWidget);
-    verifyNever(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    );
-  });
+      expect(
+        find.text('El correo electrónico es obligatorio.'),
+        findsOneWidget,
+      );
+      expect(find.text('La contraseña es obligatoria.'), findsOneWidget);
+      verifyNever(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      );
+    },
+  );
 
   testWidgets('invalid email shows format error', (tester) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
@@ -160,12 +179,18 @@ void main() {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), '1234567');
     await tester.tap(find.byType(AuthPrimaryButton));
     await tester.pump();
 
-    expect(find.text('La contraseña debe tener al menos 8 caracteres.'), findsOneWidget);
+    expect(
+      find.text('La contraseña debe tener al menos 8 caracteres.'),
+      findsOneWidget,
+    );
     verifyNever(
       () => repository.login(
         email: any(named: 'email'),
@@ -185,15 +210,23 @@ void main() {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), '  user@example.com  ');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      '  user@example.com  ',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), 'password123');
     await tester.tap(find.byType(AuthPrimaryButton));
     await tester.pumpAndSettle();
 
-    verify(() => repository.login(email: 'user@example.com', password: 'password123')).called(1);
+    verify(
+      () =>
+          repository.login(email: 'user@example.com', password: 'password123'),
+    ).called(1);
   });
 
-  testWidgets('loading state disables the button and shows a spinner', (tester) async {
+  testWidgets('loading state disables the button and shows a spinner', (
+    tester,
+  ) async {
     final pending = Completer<AppResult<AppUser>>();
     when(
       () => repository.login(
@@ -205,7 +238,10 @@ void main() {
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), 'password123');
     await tester.tap(find.byType(AuthPrimaryButton));
     await tester.pump();
@@ -215,83 +251,112 @@ void main() {
     // Tapping again must not enqueue a second login call.
     await tester.tap(find.byType(AuthPrimaryButton));
     await tester.pump();
-    verify(() => repository.login(email: 'user@example.com', password: 'password123')).called(1);
+    verify(
+      () =>
+          repository.login(email: 'user@example.com', password: 'password123'),
+    ).called(1);
 
     pending.complete(AppSuccess(_adminUser()));
     await tester.pumpAndSettle();
   });
 
-  testWidgets('AppSuccess calls setAuthenticatedUser and the router lands on /home', (
+  testWidgets(
+    'AppSuccess calls setAuthenticatedUser and the router lands on /home',
+    (tester) async {
+      final user = _adminUser();
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => AppSuccess(user));
+
+      await tester.pumpWidget(
+        _harness(
+          repository: repository,
+          session: session,
+          router: _buildAuthAwareRouter(session),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'user@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.tap(find.byType(AuthPrimaryButton));
+      await tester.pumpAndSettle();
+
+      expect(session.user, same(user));
+      expect(session.isAuthenticated, isTrue);
+      expect(find.text('HOME_STUB'), findsOneWidget);
+      expect(find.text('Iniciar sesión'), findsNothing);
+    },
+  );
+
+  testWidgets('AppFailure unauthorized shows the Spanish credentials banner', (
     tester,
   ) async {
-    final user = _adminUser();
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer((_) async => AppSuccess(user));
-
-    await tester.pumpWidget(
-      _harness(repository: repository, session: session, router: _buildAuthAwareRouter(session)),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
-    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
-    await tester.tap(find.byType(AuthPrimaryButton));
-    await tester.pumpAndSettle();
-
-    expect(session.user, same(user));
-    expect(session.isAuthenticated, isTrue);
-    expect(find.text('HOME_STUB'), findsOneWidget);
-    expect(find.text('Iniciar sesión'), findsNothing);
-  });
-
-  testWidgets('AppFailure unauthorized shows the Spanish credentials banner', (tester) async {
     when(
       () => repository.login(
         email: any(named: 'email'),
         password: any(named: 'password'),
       ),
     ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.unauthorized, message: 'bad creds')),
+      (_) async => const AppFailure(
+        AppException(code: AppErrorCode.unauthorized, message: 'bad creds'),
+      ),
     );
 
     await tester.pumpWidget(_harness(repository: repository, session: session));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
+    await tester.enterText(
+      find.byType(TextFormField).at(0),
+      'user@example.com',
+    );
     await tester.enterText(find.byType(TextFormField).at(1), 'wrong-password');
     await tester.tap(find.byType(AuthPrimaryButton));
     await tester.pumpAndSettle();
 
-    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsOneWidget);
+    expect(
+      find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
+      findsOneWidget,
+    );
     expect(session.isAuthenticated, isFalse);
   });
 
-  testWidgets('AppFailure networkError shows the Spanish no-connection banner', (tester) async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.networkError, message: 'no network')),
-    );
+  testWidgets(
+    'AppFailure networkError shows the Spanish no-connection banner',
+    (tester) async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.networkError, message: 'no network'),
+        ),
+      );
 
-    await tester.pumpWidget(_harness(repository: repository, session: session));
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _harness(repository: repository, session: session),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
-    await tester.enterText(find.byType(TextFormField).at(1), 'password123');
-    await tester.tap(find.byType(AuthPrimaryButton));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'user@example.com',
+      );
+      await tester.enterText(find.byType(TextFormField).at(1), 'password123');
+      await tester.tap(find.byType(AuthPrimaryButton));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Sin conexión. Inténtalo de nuevo.'), findsOneWidget);
-  });
+      expect(find.text('Sin conexión. Inténtalo de nuevo.'), findsOneWidget);
+    },
+  );
 
   testWidgets('tapping "Crear cuenta" navigates to /register', (tester) async {
     await tester.pumpWidget(_harness(repository: repository, session: session));
@@ -305,38 +370,58 @@ void main() {
     expect(find.text('REGISTER_STUB'), findsOneWidget);
   });
 
-  testWidgets('after returning to /login from /home, a previous credentials error is '
-      'not shown again', (tester) async {
-    when(
-      () => repository.login(
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async =>
-          const AppFailure(AppException(code: AppErrorCode.unauthorized, message: 'bad creds')),
-    );
+  testWidgets(
+    'after returning to /login from /home, a previous credentials error is '
+    'not shown again',
+    (tester) async {
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.unauthorized, message: 'bad creds'),
+        ),
+      );
 
-    await tester.pumpWidget(
-      _harness(repository: repository, session: session, router: _buildAuthAwareRouter(session)),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _harness(
+          repository: repository,
+          session: session,
+          router: _buildAuthAwareRouter(session),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'user@example.com');
-    await tester.enterText(find.byType(TextFormField).at(1), 'wrong-password');
-    await tester.tap(find.byType(AuthPrimaryButton));
-    await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byType(TextFormField).at(0),
+        'user@example.com',
+      );
+      await tester.enterText(
+        find.byType(TextFormField).at(1),
+        'wrong-password',
+      );
+      await tester.tap(find.byType(AuthPrimaryButton));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsOneWidget);
+      expect(
+        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
+        findsOneWidget,
+      );
 
-    session.setAuthenticatedUser(_adminUser());
-    await tester.pumpAndSettle();
-    expect(find.text('HOME_STUB'), findsOneWidget);
+      session.setAuthenticatedUser(_adminUser());
+      await tester.pumpAndSettle();
+      expect(find.text('HOME_STUB'), findsOneWidget);
 
-    session.signOut();
-    await tester.pumpAndSettle();
+      session.signOut();
+      await tester.pumpAndSettle();
 
-    expect(find.text('Iniciar sesión'), findsOneWidget);
-    expect(find.text('Acceso inválido. Por favor, inténtelo otra vez.'), findsNothing);
-  });
+      expect(find.text('Iniciar sesión'), findsOneWidget);
+      expect(
+        find.text('Acceso inválido. Por favor, inténtelo otra vez.'),
+        findsNothing,
+      );
+    },
+  );
 }

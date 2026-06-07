@@ -20,10 +20,14 @@ void main() {
     expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
   });
 
-  testWidgets('redirects unauthenticated users away from private routes', (tester) async {
+  testWidgets('redirects unauthenticated users away from private routes', (
+    tester,
+  ) async {
     final session = AppSession();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Iniciar sesión'), findsOneWidget);
@@ -33,7 +37,9 @@ void main() {
   testWidgets('authenticated users reach the main app shell', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Resumen de inventario'), findsOneWidget);
@@ -47,7 +53,9 @@ void main() {
   testWidgets('navigates between core shell screens', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(_navigationDestination('Productos'));
@@ -68,10 +76,14 @@ void main() {
     expect(find.text('Alertas'), findsWidgets);
   });
 
-  testWidgets('shows role state without exposing feature-specific entries', (tester) async {
+  testWidgets('shows role state without exposing feature-specific entries', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoCollaborator();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
@@ -79,10 +91,14 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
-  testWidgets('logout returns the user to the public auth flow', (tester) async {
+  testWidgets('logout returns the user to the public auth flow', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     session.signOut();

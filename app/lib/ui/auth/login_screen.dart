@@ -36,7 +36,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     await ref
         .read(loginControllerProvider.notifier)
-        .submit(email: _emailController.text, password: _passwordController.text);
+        .submit(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
   }
 
   @override
@@ -54,7 +57,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
               child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight - 48,
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 420),
@@ -209,7 +214,11 @@ class _AuthSheet extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0x12FFFFFF)),
         boxShadow: const [
-          BoxShadow(color: Color(0x33000000), blurRadius: 28, offset: Offset(0, 16)),
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 28,
+            offset: Offset(0, 16),
+          ),
         ],
       ),
       child: child,
@@ -234,7 +243,11 @@ class _RegisterPrompt extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 4),
           child: Text(
             '¿No tienes cuenta?',
-            style: TextStyle(color: Color(0xFFA9B4BE), fontSize: 14, height: 1.4),
+            style: TextStyle(
+              color: Color(0xFFA9B4BE),
+              fontSize: 14,
+              height: 1.4,
+            ),
           ),
         ),
         InkWell(
@@ -245,7 +258,9 @@ class _RegisterPrompt extends StatelessWidget {
             child: Text(
               'Crear cuenta',
               style: TextStyle(
-                color: enabled ? const Color(0xFF14B8A6) : const Color(0xFF6F7C86),
+                color: enabled
+                    ? const Color(0xFF14B8A6)
+                    : const Color(0xFF6F7C86),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 height: 1.4,
