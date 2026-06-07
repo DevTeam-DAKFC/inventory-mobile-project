@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/result/app_result.dart';
 import '../../data/providers/inventory_movement_providers.dart';
+import '../../domain/models/branch.dart';
 import '../../domain/models/inventory_movement.dart';
 import '../../domain/models/inventory_movement_filters.dart';
 import '../../domain/models/paginated_result.dart';
@@ -46,3 +47,18 @@ final stockLookupProvider =
             branchId: request.branchId,
           );
     });
+
+final branchCatalogProvider = FutureProvider<AppResult<List<Branch>>>((ref) {
+  return ref.watch(branchRepositoryProvider).getBranches();
+});
+
+final activeBranchCatalogProvider = FutureProvider<AppResult<List<Branch>>>((
+  ref,
+) async {
+  final result = await ref.watch(branchRepositoryProvider).getBranches();
+  return result.when(
+    success: (branches) =>
+        AppSuccess(branches.where((branch) => branch.isActive).toList()),
+    failure: AppFailure.new,
+  );
+});

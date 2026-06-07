@@ -2,10 +2,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/inventory_movement_providers.dart';
+import 'package:inventory_mobile/domain/models/branch.dart';
 import 'package:inventory_mobile/domain/models/inventory_movement.dart';
 import 'package:inventory_mobile/domain/models/inventory_movement_filters.dart';
 import 'package:inventory_mobile/domain/models/paginated_result.dart';
 import 'package:inventory_mobile/domain/models/stock_lookup.dart';
+import 'package:inventory_mobile/domain/repositories/branch_repository.dart';
 import 'package:inventory_mobile/domain/repositories/inventory_movement_repository.dart';
 import 'package:inventory_mobile/domain/repositories/stock_lookup_repository.dart';
 import 'package:inventory_mobile/ui/movements/movement_providers.dart';
@@ -17,9 +19,12 @@ class _MockInventoryMovementRepository extends Mock
 class _MockStockLookupRepository extends Mock
     implements StockLookupRepository {}
 
+class _MockBranchRepository extends Mock implements BranchRepository {}
+
 void main() {
   late _MockInventoryMovementRepository movementRepository;
   late _MockStockLookupRepository stockLookupRepository;
+  late _MockBranchRepository branchRepository;
   late ProviderContainer container;
 
   setUpAll(() {
@@ -29,12 +34,14 @@ void main() {
   setUp(() {
     movementRepository = _MockInventoryMovementRepository();
     stockLookupRepository = _MockStockLookupRepository();
+    branchRepository = _MockBranchRepository();
     container = ProviderContainer(
       overrides: [
         inventoryMovementRepositoryProvider.overrideWithValue(
           movementRepository,
         ),
         stockLookupRepositoryProvider.overrideWithValue(stockLookupRepository),
+        branchRepositoryProvider.overrideWithValue(branchRepository),
       ],
     );
   });
@@ -128,6 +135,34 @@ void main() {
           branchId: 'branch-id',
         ),
       ).called(1);
+    });
+  });
+
+  group('activeBranchCatalogProvider', () {
+    test('loads active branches through the repository', () async {
+      final branches = [
+        Branch(
+          id: 'central-branch',
+          name: 'Central Branch',
+          isActive: true,
+          createdAt: DateTime.utc(2026, 6, 5),
+        ),
+        Branch(
+          id: 'inactive-branch',
+          name: 'Inactive Branch',
+          isActive: false,
+          createdAt: DateTime.utc(2026, 6, 5),
+        ),
+      ];
+      when(
+        () => branchRepository.getBranches(),
+      ).thenAnswer((_) async => AppSuccess(branches));
+
+      final result = await container.read(activeBranchCatalogProvider.future);
+
+      expect(result.dataOrNull, hasLength(1));
+      expect(result.dataOrNull?.single.name, 'Central Branch');
+      verify(() => branchRepository.getBranches()).called(1);
     });
   });
 }
