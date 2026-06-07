@@ -27,7 +27,7 @@ class RestApiInventoryMovementDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to create inventory movement.',
+        fallbackMessage: 'No se pudo registrar el movimiento.',
       );
     } catch (e, stack) {
       throw AppException(
@@ -54,7 +54,7 @@ class RestApiInventoryMovementDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to load inventory movement history.',
+        fallbackMessage: 'No se pudo cargar el historial de movimientos.',
       );
     } catch (e, stack) {
       throw AppException(
@@ -86,7 +86,7 @@ class RestApiInventoryMovementDataSource {
       throw RestApiErrorMapper.mapDioException(
         exception: e,
         stackTrace: stack,
-        fallbackMessage: 'Unable to load inventory movement detail.',
+        fallbackMessage: 'No se pudo cargar el detalle del movimiento.',
       );
     } catch (e, stack) {
       throw AppException(

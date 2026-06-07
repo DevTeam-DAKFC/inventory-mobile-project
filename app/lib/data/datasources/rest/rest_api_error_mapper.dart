@@ -17,7 +17,7 @@ final class RestApiErrorMapper {
       case DioExceptionType.receiveTimeout:
         return AppException(
           code: AppErrorCode.timeout,
-          message: '$fallbackMessage Request timed out.',
+          message: '$fallbackMessage La solicitud agoto el tiempo de espera.',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -26,7 +26,7 @@ final class RestApiErrorMapper {
       case DioExceptionType.connectionError:
         return AppException(
           code: AppErrorCode.networkError,
-          message: '$fallbackMessage Cannot reach the backend.',
+          message: '$fallbackMessage No se pudo conectar con el backend.',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -35,7 +35,8 @@ final class RestApiErrorMapper {
       case DioExceptionType.unknown:
         return AppException(
           code: AppErrorCode.networkError,
-          message: '$fallbackMessage ${exception.message ?? 'Unknown error.'}',
+          message:
+              '$fallbackMessage ${exception.message ?? 'Error desconocido.'}',
           cause: exception,
           stackTrace: stackTrace,
         );
@@ -56,7 +57,8 @@ final class RestApiErrorMapper {
       code: code,
       message:
           _messageFromResponse(response) ??
-          '$fallbackMessage Backend returned status ${response?.statusCode}.',
+          '$fallbackMessage El backend respondio con estado '
+              '${response?.statusCode}.',
       cause: exception,
       stackTrace: stackTrace,
       details: {'statusCode': response?.statusCode},
@@ -81,7 +83,19 @@ final class RestApiErrorMapper {
     if (data is! Map) return null;
 
     final message = data['message'];
-    return message is String && message.trim().isNotEmpty ? message : null;
+    if (message is! String || message.trim().isEmpty) return null;
+
+    return _localizedBackendMessage(message.trim());
+  }
+
+  static String _localizedBackendMessage(String message) {
+    return switch (message) {
+      'Stock was not found for the requested product and branch.' =>
+        'No existe stock para el producto y la sucursal seleccionados.',
+      'Not enough stock available.' =>
+        'No hay stock suficiente para registrar esta salida.',
+      _ => message,
+    };
   }
 
   static AppErrorCode _fallbackCodeForStatus(int? statusCode) {

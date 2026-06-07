@@ -1,10 +1,32 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_mobile/domain/models/branch.dart';
+import 'package:inventory_mobile/domain/models/product.dart';
 import 'package:inventory_mobile/domain/models/stock_lookup.dart';
 import 'package:inventory_mobile/ui/movements/movement_reference_resolver.dart';
 
 void main() {
   group('FallbackMovementReferenceResolver', () {
-    const resolver = FallbackMovementReferenceResolver();
+    final resolver = FallbackMovementReferenceResolver(
+      products: [
+        Product(
+          id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+          name: 'Beans 900g',
+          sku: 'BEANS-001',
+          category: 'Food',
+          minStock: 10,
+          isActive: true,
+          createdAt: DateTime.utc(2026, 6, 5),
+        ),
+      ],
+      branches: [
+        Branch(
+          id: '22222222-2222-2222-2222-222222222222',
+          name: 'North Branch',
+          isActive: true,
+          createdAt: DateTime.utc(2026, 6, 5),
+        ),
+      ],
+    );
     const stockLookup = StockLookup(
       id: 'stock-id',
       availableQuantity: 12,
@@ -32,7 +54,7 @@ void main() {
       );
     });
 
-    test('uses known product labels before falling back to short ids', () {
+    test('uses product catalog labels before falling back to short ids', () {
       expect(
         resolver.productLabel('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb'),
         'Beans 900g',
@@ -50,7 +72,7 @@ void main() {
       );
     });
 
-    test('uses known branch labels before falling back to short ids', () {
+    test('uses branch catalog labels before falling back to short ids', () {
       expect(
         resolver.branchLabel('22222222-2222-2222-2222-222222222222'),
         'North Branch',

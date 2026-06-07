@@ -5,13 +5,19 @@ import 'package:inventory_mobile/app/app.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
+import 'package:inventory_mobile/navigation/session_restore_controller.dart';
 
 void main() {
   testWidgets('shows login as the public entry point', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: InventoryMobileApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [sessionRestoreProvider.overrideWith((ref) async {})],
+        child: const InventoryMobileApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    expect(find.text('Inventory Mobile'), findsOneWidget);
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
   });
 
   testWidgets('redirects unauthenticated users away from private routes', (
@@ -24,7 +30,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
     expect(find.text('Resumen de inventario'), findsNothing);
   });
 
@@ -54,10 +60,8 @@ void main() {
 
     await tester.tap(_navigationDestination('Productos'));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Reserved for the assigned feature issue.'),
-      findsOneWidget,
-    );
+    expect(find.text('Productos'), findsWidgets);
+    expect(find.text('Buscar por nombre, SKU o código...'), findsOneWidget);
 
     await tester.tap(_navigationDestination('Stock'));
     await tester.pumpAndSettle();
@@ -116,12 +120,19 @@ void main() {
     session.signOut();
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 }
 
 Finder _navigationDestination(String label) {
   return find.text(label);
+}
+
+Finder _richTextPlain(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.textSpan?.toPlainText() == text,
+    description: 'Text.rich with plain text "$text"',
+  );
 }
 
 class _RouterTestApp extends StatelessWidget {

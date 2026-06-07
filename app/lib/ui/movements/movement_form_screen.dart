@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/app_error_code.dart';
+import '../../core/result/app_result.dart';
+import '../../domain/models/branch.dart';
 import '../../domain/models/inventory_movement.dart';
 import '../../domain/models/inventory_movement_filters.dart';
+import '../../domain/models/product.dart';
 import 'movement_form_state.dart';
 import 'movement_form_view_model.dart';
 import 'movement_history_state.dart';
@@ -48,6 +51,8 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
     final formState = ref.watch(movementFormViewModelProvider);
     final historyState = ref.watch(movementHistoryViewModelProvider);
     final resolver = ref.watch(movementReferenceResolverProvider);
+    final products = ref.watch(activeProductCatalogProvider);
+    final branches = ref.watch(activeBranchCatalogProvider);
 
     return Scaffold(
       body: DecoratedBox(
@@ -66,9 +71,11 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
                   quantityController: _quantityController,
                   reasonController: _reasonController,
                   notesController: _notesController,
-                  onBack: () => setState(() => _showForm = false),
+                  products: products,
+                  branches: branches,
+                  onBack: _closeForm,
                   onSubmitSuccess: () {
-                    setState(() => _showForm = false);
+                    _closeForm();
                     ref.read(movementHistoryViewModelProvider.notifier).load();
                   },
                 )
@@ -79,7 +86,7 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
                   searchController: _searchController,
                   onSearchChanged: () => setState(() {}),
                   onFilterChanged: _applyFilter,
-                  onOpenForm: () => setState(() => _showForm = true),
+                  onOpenForm: _openForm,
                   onLoadMore: ref
                       .read(movementHistoryViewModelProvider.notifier)
                       .loadNextPage,
@@ -87,6 +94,23 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
         ),
       ),
     );
+  }
+
+  void _openForm() {
+    _resetForm();
+    setState(() => _showForm = true);
+  }
+
+  void _closeForm() {
+    _resetForm();
+    setState(() => _showForm = false);
+  }
+
+  void _resetForm() {
+    _quantityController.clear();
+    _reasonController.clear();
+    _notesController.clear();
+    ref.read(movementFormViewModelProvider.notifier).reset();
   }
 
   void _applyFilter(String filter) {
@@ -153,11 +177,11 @@ class _MovementHistoryView extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
               if (state.isLoading && !state.hasLoaded)
-                const _CenteredStatus(message: 'Loading movement history...')
+                const _CenteredStatus(message: 'Cargando historial...')
               else if (state.errorMessage != null)
                 _ErrorPanel(message: state.errorMessage!)
               else if (state.isEmpty || visibleMovements.isEmpty)
-                const _CenteredStatus(message: 'No movements found')
+                const _CenteredStatus(message: 'No se encontraron movimientos')
               else ...[
                 for (final movement in visibleMovements) ...[
                   _MovementCard(movement: movement, resolver: resolver),
@@ -165,7 +189,7 @@ class _MovementHistoryView extends StatelessWidget {
                 ],
                 if (state.hasNextPage)
                   _PrimaryButton(
-                    label: state.isLoading ? 'Loading...' : 'Load more',
+                    label: state.isLoading ? 'Cargando...' : 'Cargar mas',
                     onPressed: state.isLoading ? null : onLoadMore,
                   ),
               ],
@@ -218,8 +242,6 @@ class _MovementHeader extends StatelessWidget {
               _IconActionButton(icon: Icons.add, onPressed: onOpenForm),
             ],
           ),
-          const SizedBox(height: 16),
-          const _BranchChip(),
           const SizedBox(height: 12),
           _SearchField(
             controller: searchController,
@@ -239,6 +261,8 @@ class _MovementFormView extends ConsumerWidget {
     required this.quantityController,
     required this.reasonController,
     required this.notesController,
+    required this.products,
+    required this.branches,
     required this.onBack,
     required this.onSubmitSuccess,
   });
@@ -247,11 +271,26 @@ class _MovementFormView extends ConsumerWidget {
   final TextEditingController quantityController;
   final TextEditingController reasonController;
   final TextEditingController notesController;
+  final AsyncValue<AppResult<List<Product>>> products;
+  final AsyncValue<AppResult<List<Branch>>> branches;
   final VoidCallback onBack;
   final VoidCallback onSubmitSuccess;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final productOptions = _productOptions(products);
+    final branchOptions = _branchOptions(branches);
+    final productLoadMessage = _catalogLoadMessage(
+      products,
+      loading: 'Cargando productos activos...',
+      failurePrefix: 'No se pudieron cargar los productos.',
+    );
+    final branchLoadMessage = _catalogLoadMessage(
+      branches,
+      loading: 'Cargando sucursales activas...',
+      failurePrefix: 'No se pudieron cargar las sucursales.',
+    );
+
     ref.listen<MovementFormState>(movementFormViewModelProvider, (
       previous,
       next,
@@ -299,7 +338,7 @@ class _MovementFormView extends ConsumerWidget {
                 label: 'Producto *',
                 value: state.productId,
                 hint: 'Seleccionar producto',
-                options: movementProductOptions,
+                options: productOptions,
                 errorText:
                     state.fieldErrors[MovementFormViewModel.productField],
                 onChanged: (value) {
@@ -311,12 +350,16 @@ class _MovementFormView extends ConsumerWidget {
                       .loadCurrentStock();
                 },
               ),
+              if (productLoadMessage != null) ...[
+                const SizedBox(height: 8),
+                _InlineStatus(message: productLoadMessage),
+              ],
               const SizedBox(height: 20),
               _SelectField(
                 label: 'Sucursal *',
                 value: state.branchId,
                 hint: 'Seleccionar sucursal',
-                options: movementBranchOptions,
+                options: branchOptions,
                 errorText: state.fieldErrors[MovementFormViewModel.branchField],
                 onChanged: (value) {
                   ref
@@ -327,6 +370,10 @@ class _MovementFormView extends ConsumerWidget {
                       .loadCurrentStock();
                 },
               ),
+              if (branchLoadMessage != null) ...[
+                const SizedBox(height: 8),
+                _InlineStatus(message: branchLoadMessage),
+              ],
               const SizedBox(height: 20),
               _TextInput(
                 label: 'Cantidad *',
@@ -363,7 +410,8 @@ class _MovementFormView extends ConsumerWidget {
                 _MovementSummary(state: state)
               else
                 const _InfoPanel(
-                  message: 'Select a product and branch to load current stock.',
+                  message:
+                      'Seleccione un producto y una sucursal para cargar el stock actual.',
                 ),
               if (state.errorMessage != null) ...[
                 const SizedBox(height: 16),
@@ -375,7 +423,7 @@ class _MovementFormView extends ConsumerWidget {
               const SizedBox(height: 24),
               _PrimaryButton(
                 label: state.isSubmitting
-                    ? 'Registering...'
+                    ? 'Registrando...'
                     : 'Registrar movimiento',
                 onPressed: state.canSubmit
                     ? ref.read(movementFormViewModelProvider.notifier).submit
@@ -387,6 +435,64 @@ class _MovementFormView extends ConsumerWidget {
       ],
     );
   }
+
+  List<MovementSelectOption> _productOptions(
+    AsyncValue<AppResult<List<Product>>> catalog,
+  ) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (products) => products
+            .map(
+              (product) =>
+                  MovementSelectOption(id: product.id, label: product.name),
+            )
+            .toList(),
+        failure: (_) => const [],
+      ),
+      error: (_, _) => const [],
+      loading: () => const [],
+    );
+  }
+
+  List<MovementSelectOption> _branchOptions(
+    AsyncValue<AppResult<List<Branch>>> catalog,
+  ) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (branches) => branches
+            .map(
+              (branch) =>
+                  MovementSelectOption(id: branch.id, label: branch.name),
+            )
+            .toList(),
+        failure: (_) => const [],
+      ),
+      error: (_, _) => const [],
+      loading: () => const [],
+    );
+  }
+
+  String? _catalogLoadMessage<T>(
+    AsyncValue<AppResult<List<T>>> catalog, {
+    required String loading,
+    required String failurePrefix,
+  }) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (_) => null,
+        failure: (exception) => '$failurePrefix ${exception.message}',
+      ),
+      error: (_, _) => failurePrefix,
+      loading: () => loading,
+    );
+  }
+}
+
+final class MovementSelectOption {
+  const MovementSelectOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
 }
 
 class _MovementTypeSelector extends ConsumerWidget {
@@ -457,8 +563,14 @@ class _MovementSummary extends StatelessWidget {
             style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
           ),
           const SizedBox(height: 12),
+          _SummaryRow(label: 'Producto', value: stock.product.name),
+          const SizedBox(height: 8),
+          _SummaryRow(label: 'SKU', value: stock.product.sku),
+          const SizedBox(height: 8),
+          _SummaryRow(label: 'Sucursal', value: stock.branch.name),
+          const SizedBox(height: 8),
           _SummaryRow(
-            label: 'Stock actual en ${stock.branch.name}',
+            label: 'Stock actual',
             value: '${stock.availableQuantity}',
           ),
           const SizedBox(height: 8),
@@ -694,6 +806,7 @@ class _SelectField extends StatelessWidget {
         _FieldLabel(label),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
+          key: ValueKey('$label-${value ?? 'empty'}'),
           initialValue: value,
           dropdownColor: const Color(0xFF1F2A30),
           decoration: _inputDecoration(errorText: errorText),
@@ -912,37 +1025,6 @@ class _PrimaryButton extends StatelessWidget {
   }
 }
 
-class _BranchChip extends StatelessWidget {
-  const _BranchChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1F2A30),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0x0FFFFFFF)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Central Branch',
-              style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, color: Color(0xFF6F7C86), size: 16),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.label,
@@ -992,6 +1074,20 @@ class _InfoPanel extends StatelessWidget {
         message,
         style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 13),
       ),
+    );
+  }
+}
+
+class _InlineStatus extends StatelessWidget {
+  const _InlineStatus({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 12),
     );
   }
 }
