@@ -46,9 +46,9 @@ void main() {
       find.byKey(const Key('product-image-placeholder-1')),
       findsOneWidget,
     );
-    expect(find.byKey(const Key('branch-selector')), findsOneWidget);
-    expect(find.text('Tienda Central'), findsOneWidget);
-    expect(find.text('Agotados'), findsOneWidget);
+    expect(find.byKey(const Key('branch-selector')), findsNothing);
+    expect(find.text('Tienda Central'), findsNothing);
+    expect(find.text('Agotados'), findsNothing);
   });
 
   testWidgets('renders empty and failure states', (tester) async {
@@ -90,20 +90,6 @@ void main() {
     await tester.tap(find.text('Activos'));
     await tester.pumpAndSettle();
     expect(repository.queries.last.isActive, isTrue);
-  });
-
-  testWidgets('does not apply a fake sold-out filter', (tester) async {
-    final repository = _FakeProductRepository(
-      (_) async => AppSuccess(_page([])),
-    );
-    await _pumpScreen(tester, repository);
-    await tester.pumpAndSettle();
-
-    expect(repository.queries, hasLength(1));
-    await tester.tap(find.text('Agotados'));
-    await tester.pumpAndSettle();
-
-    expect(repository.queries, hasLength(1));
   });
 
   testWidgets('renders a cover image when the product has one', (tester) async {

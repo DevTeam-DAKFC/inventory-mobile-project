@@ -242,8 +242,6 @@ class _MovementHeader extends StatelessWidget {
               _IconActionButton(icon: Icons.add, onPressed: onOpenForm),
             ],
           ),
-          const SizedBox(height: 16),
-          const _BranchChip(),
           const SizedBox(height: 12),
           _SearchField(
             controller: searchController,
@@ -1023,37 +1021,6 @@ class _PrimaryButton extends StatelessWidget {
         minimumSize: const Size.fromHeight(48),
       ),
       child: Text(label),
-    );
-  }
-}
-
-class _BranchChip extends StatelessWidget {
-  const _BranchChip();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1F2A30),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0x0FFFFFFF)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Central Branch',
-              style: TextStyle(color: Color(0xFFF8FAFC), fontSize: 14),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, color: Color(0xFF6F7C86), size: 16),
-          ],
-        ),
-      ),
     );
   }
 }
