@@ -2,12 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/app_error_code.dart';
 import '../../data/providers/import_batch_providers.dart';
+import '../../domain/models/import_batch.dart';
 import '../../domain/models/product_import_file.dart';
 import 'import_flow_state.dart';
 import 'import_providers.dart';
 
 final importFlowViewModelProvider =
-    NotifierProvider<ImportFlowViewModel, ImportFlowState>(
+    NotifierProvider.autoDispose<ImportFlowViewModel, ImportFlowState>(
       ImportFlowViewModel.new,
     );
 
@@ -80,7 +81,10 @@ class ImportFlowViewModel extends Notifier<ImportFlowState> {
         state = state.copyWith(
           isUploading: false,
           createdBatch: batch,
-          successMessage: 'CSV import uploaded successfully.',
+          clearSelectedFile: true,
+          successMessage: batch.status == ImportStatus.completed
+              ? 'Importación completada correctamente.'
+              : null,
         );
 
         if (batch.hasErrors) {

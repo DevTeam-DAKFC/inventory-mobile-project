@@ -14,14 +14,16 @@ import 'package:mocktail/mocktail.dart';
 class _MockImportBatchRepository extends Mock
     implements ImportBatchRepository {}
 
-ImportBatch _batch({int failedRows = 0}) {
+ImportBatch _batch({int failedRows = 0, ImportStatus? status}) {
   return ImportBatch(
     id: 'batch-id',
     fileName: 'products.csv',
     importedBy: 'user-id',
-    status: failedRows > 0
-        ? ImportStatus.completedWithErrors
-        : ImportStatus.completed,
+    status:
+        status ??
+        (failedRows > 0
+            ? ImportStatus.completedWithErrors
+            : ImportStatus.completed),
     totalRows: 3,
     processedRows: 3,
     importedRows: 3 - failedRows,
@@ -91,9 +93,10 @@ void main() {
 
     final state = container.read(importFlowViewModelProvider);
     expect(state.isUploading, isFalse);
+    expect(state.selectedFile, isNull);
     expect(state.createdBatch?.id, 'batch-id');
     expect(state.batchErrors, isEmpty);
-    expect(state.successMessage, 'CSV import uploaded successfully.');
+    expect(state.successMessage, 'Importación completada correctamente.');
     verify(() => repository.uploadProductCsv(_file)).called(1);
     verifyNever(
       () => repository.getImportBatchErrors(
@@ -134,8 +137,68 @@ void main() {
 
     final state = container.read(importFlowViewModelProvider);
     expect(state.createdBatch?.hasErrors, isTrue);
+    expect(state.selectedFile, isNull);
+    expect(state.successMessage, isNull);
     expect(state.batchErrors, [error]);
     verify(() => repository.getImportBatchErrors('batch-id')).called(1);
+  });
+
+  test('does not show a success message when the batch failed', () async {
+    when(() => repository.uploadProductCsv(any())).thenAnswer(
+      (_) async =>
+          AppSuccess(_batch(failedRows: 3, status: ImportStatus.failed)),
+    );
+    when(() => repository.getImportBatchErrors('batch-id')).thenAnswer(
+      (_) async => const AppSuccess(
+        PaginatedResult<ImportBatchError>(
+          items: [],
+          page: 1,
+          pageSize: 20,
+          totalCount: 0,
+        ),
+      ),
+    );
+
+    final viewModel = container.read(importFlowViewModelProvider.notifier)
+      ..selectFile(_file);
+
+    await viewModel.submit();
+
+    final state = container.read(importFlowViewModelProvider);
+    expect(state.createdBatch?.status, ImportStatus.failed);
+    expect(state.selectedFile, isNull);
+    expect(state.successMessage, isNull);
+    verify(() => repository.getImportBatchErrors('batch-id')).called(1);
+  });
+
+  test('clears the current import result', () async {
+    when(() => repository.uploadProductCsv(any())).thenAnswer(
+      (_) async =>
+          AppSuccess(_batch(failedRows: 3, status: ImportStatus.failed)),
+    );
+    when(() => repository.getImportBatchErrors('batch-id')).thenAnswer(
+      (_) async => const AppSuccess(
+        PaginatedResult<ImportBatchError>(
+          items: [],
+          page: 1,
+          pageSize: 20,
+          totalCount: 0,
+        ),
+      ),
+    );
+
+    final viewModel = container.read(importFlowViewModelProvider.notifier)
+      ..selectFile(_file);
+
+    await viewModel.submit();
+    viewModel.clear();
+
+    final state = container.read(importFlowViewModelProvider);
+    expect(state.selectedFile, isNull);
+    expect(state.createdBatch, isNull);
+    expect(state.batchErrors, isEmpty);
+    expect(state.errorMessage, isNull);
+    expect(state.successMessage, isNull);
   });
 
   test('shows backend upload failure', () async {

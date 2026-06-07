@@ -54,26 +54,36 @@ class ImportProductsScreen extends ConsumerWidget {
                       const SizedBox(height: 16),
                       _ImportErrorsCard(errors: state.batchErrors),
                     ],
+                    if (state.createdBatch != null) ...[
+                      const SizedBox(height: 16),
+                      _ImportOutcomePanel(batch: state.createdBatch!),
+                      const SizedBox(height: 12),
+                      _SecondaryButton(
+                        label: 'Limpiar resultado',
+                        icon: Icons.close,
+                        onPressed: ref
+                            .read(importFlowViewModelProvider.notifier)
+                            .clear,
+                      ),
+                    ],
                     if (state.errorMessage != null) ...[
                       const SizedBox(height: 16),
                       _ErrorPanel(message: state.errorMessage!),
                     ],
-                    if (state.successMessage != null) ...[
-                      const SizedBox(height: 16),
-                      _SuccessPanel(message: state.successMessage!),
-                    ],
                     const SizedBox(height: 16),
                     _RecentImportsSection(recentImports: recentImports),
-                    const SizedBox(height: 20),
-                    _PrimaryButton(
-                      label: state.isUploading ? 'Uploading...' : 'Subir CSV',
-                      icon: Icons.upload_file,
-                      onPressed: state.canUpload
-                          ? ref
-                                .read(importFlowViewModelProvider.notifier)
-                                .submit
-                          : null,
-                    ),
+                    if (state.selectedFile != null || state.isUploading) ...[
+                      const SizedBox(height: 20),
+                      _PrimaryButton(
+                        label: state.isUploading ? 'Subiendo...' : 'Subir CSV',
+                        icon: Icons.upload_file,
+                        onPressed: state.canUpload
+                            ? ref
+                                  .read(importFlowViewModelProvider.notifier)
+                                  .submit
+                            : null,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -137,9 +147,7 @@ class _RecentImportRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = batch.hasErrors
-        ? const Color(0xFFF59E0B)
-        : const Color(0xFF22C55E);
+    final color = _statusColor(batch.status);
 
     return Container(
       padding: const EdgeInsets.all(10),
@@ -326,9 +334,7 @@ class _BatchSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = batch.hasErrors
-        ? const Color(0xFFF59E0B)
-        : const Color(0xFF22C55E);
+    final statusColor = _statusColor(batch.status);
 
     return _PrototypeCard(
       child: Column(
@@ -416,6 +422,36 @@ class _ImportErrorsCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _ImportOutcomePanel extends StatelessWidget {
+  const _ImportOutcomePanel({required this.batch});
+
+  final ImportBatch batch;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _statusColor(batch.status);
+    final message = switch (batch.status) {
+      ImportStatus.completed => 'Importación completada correctamente.',
+      ImportStatus.completedWithErrors =>
+        'La importación terminó con errores. Revisa las filas fallidas y sube un archivo corregido si es necesario.',
+      ImportStatus.failed =>
+        'La importación falló. Revisa los errores y sube un archivo corregido.',
+      ImportStatus.pending || ImportStatus.processing =>
+        'La importación está en proceso. Actualiza el historial para revisar el resultado.',
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(message, style: TextStyle(color: color, fontSize: 13)),
     );
   }
 }
@@ -542,6 +578,15 @@ String _statusLabel(ImportStatus status) {
     ImportStatus.completed => 'Completado',
     ImportStatus.failed => 'Fallido',
     ImportStatus.completedWithErrors => 'Con errores',
+  };
+}
+
+Color _statusColor(ImportStatus status) {
+  return switch (status) {
+    ImportStatus.completed => const Color(0xFF22C55E),
+    ImportStatus.failed => const Color(0xFFEF4444),
+    ImportStatus.completedWithErrors => const Color(0xFFF59E0B),
+    ImportStatus.pending || ImportStatus.processing => const Color(0xFFF59E0B),
   };
 }
 
@@ -697,30 +742,6 @@ class _ErrorPanel extends StatelessWidget {
       child: Text(
         message,
         style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
-      ),
-    );
-  }
-}
-
-class _SuccessPanel extends StatelessWidget {
-  const _SuccessPanel({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF22C55E).withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
-        ),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(color: Color(0xFF22C55E), fontSize: 13),
       ),
     );
   }
