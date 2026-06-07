@@ -1,13 +1,14 @@
 import '../../core/errors/app_error_code.dart';
 import '../../core/errors/app_exception.dart';
 
+/// Wire-level representation of `BranchResponse` from `GET /branches`.
 final class BranchRestDto {
   const BranchRestDto({
     required this.id,
     required this.name,
     required this.isActive,
-    required this.createdAt,
     this.address,
+    this.createdAt,
     this.updatedAt,
   });
 
@@ -15,63 +16,61 @@ final class BranchRestDto {
   final String name;
   final String? address;
   final bool isActive;
-  final DateTime createdAt;
+  final DateTime? createdAt;
   final DateTime? updatedAt;
 
   factory BranchRestDto.fromJson(Map<String, dynamic> json) {
+    final rawId = json['id'] ?? json['branchId'];
+    final name = json['name'];
+    final address = json['address'];
+    final isActive = json['isActive'];
+
+    if (rawId is! String && rawId is! num) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        message:
+            'Invalid branch response: field "id" is missing or has an invalid type.',
+        details: {'received': json},
+      );
+    }
+    if (name is! String) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        message:
+            'Invalid branch response: field "name" is missing or not a string.',
+        details: {'received': json},
+      );
+    }
+    if (address != null && address is! String) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        message:
+            'Invalid branch response: field "address" must be a string or null.',
+        details: {'received': json},
+      );
+    }
+    if (isActive is! bool) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        message:
+            'Invalid branch response: field "isActive" is missing or not a boolean.',
+        details: {'received': json},
+      );
+    }
+
     return BranchRestDto(
-      id: _requiredString(json, 'id'),
-      name: _requiredString(json, 'name'),
-      address: _optionalString(json, 'address'),
-      isActive: _requiredBool(json, 'isActive'),
-      createdAt: _requiredDateTime(json, 'createdAt'),
-      updatedAt: _optionalDateTime(json, 'updatedAt'),
+      id: rawId.toString(),
+      name: name,
+      address: address,
+      isActive: isActive,
+      createdAt: _tryParseDate(json['createdAt']),
+      updatedAt: _tryParseDate(json['updatedAt']),
     );
   }
-}
 
-String _requiredString(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is String && value.isNotEmpty) return value;
-  throw _invalidField(field, json);
-}
-
-String? _optionalString(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value == null) return null;
-  if (value is String) return value;
-  throw _invalidField(field, json);
-}
-
-bool _requiredBool(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is bool) return value;
-  throw _invalidField(field, json);
-}
-
-DateTime _requiredDateTime(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is String) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed != null) return parsed;
+  static DateTime? _tryParseDate(Object? value) {
+    if (value == null) return null;
+    if (value is! String || value.isEmpty) return null;
+    return DateTime.tryParse(value);
   }
-  throw _invalidField(field, json);
-}
-
-DateTime? _optionalDateTime(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value == null) return null;
-  if (value is String) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed != null) return parsed;
-  }
-  throw _invalidField(field, json);
-}
-
-AppException _invalidField(String field, Map<String, dynamic> json) {
-  return AppException(
-    code: AppErrorCode.unexpected,
-    message: 'Invalid branch response: field "$field" is invalid.',
-    details: {'received': json},
-  );
 }

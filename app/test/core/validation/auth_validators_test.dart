@@ -23,10 +23,7 @@ void main() {
   group('AuthValidators.validateEmail', () {
     test('valid email returns null', () {
       expect(AuthValidators.validateEmail('ana@example.com'), isNull);
-      expect(
-        AuthValidators.validateEmail(' user.name+tag@sub.example.co '),
-        isNull,
-      );
+      expect(AuthValidators.validateEmail(' user.name+tag@sub.example.co '), isNull);
     });
 
     test('invalid email returns error', () {
@@ -44,14 +41,17 @@ void main() {
   });
 
   group('AuthValidators.validatePassword', () {
-    test('valid password returns null', () {
-      expect(AuthValidators.validatePassword('secret1'), isNull);
-      expect(AuthValidators.validatePassword('123456'), isNull);
+    test('password with 8 or more characters returns null', () {
+      expect(AuthValidators.validatePassword('12345678'), isNull);
+      expect(AuthValidators.validatePassword('a-strong-password'), isNull);
     });
 
-    test('short password returns error', () {
+    test('password shorter than 8 characters returns error', () {
       expect(AuthValidators.validatePassword('abc'), isNotNull);
-      expect(AuthValidators.validatePassword('12345'), isNotNull);
+      expect(AuthValidators.validatePassword('1234567'), isNotNull);
+
+      expect(AuthValidators.validatePassword('123456'), isNotNull);
+      expect(AuthValidators.validatePassword('secret1'), isNotNull);
     });
 
     test('empty password returns error', () {

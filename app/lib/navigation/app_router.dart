@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../ui/auth/login_screen.dart';
 import '../ui/auth/register_screen.dart';
 import '../ui/alerts/alerts_screen.dart';
+import '../ui/branches/branches_screen.dart';
 import '../ui/home/home_screen.dart';
 import '../ui/movements/movement_form_screen.dart';
 import '../ui/navigation/app_shell.dart';
 import '../ui/navigation/not_found_screen.dart';
 import '../ui/products/products_screen.dart';
+import '../ui/products/product_detail_screen.dart';
+import '../ui/products/product_form_screen.dart';
 import '../ui/stock/stock_screen.dart';
 import 'app_session.dart';
 import 'routes.dart';
@@ -60,6 +63,10 @@ GoRouter buildAppRouter(
                 path: AppRoutes.home,
                 builder: (context, state) => const HomeScreen(),
               ),
+              GoRoute(
+                path: AppRoutes.branches,
+                builder: (context, state) => const BranchesScreen(),
+              ),
             ],
           ),
           StatefulShellBranch(
@@ -67,6 +74,26 @@ GoRouter buildAppRouter(
               GoRoute(
                 path: AppRoutes.products,
                 builder: (context, state) => const ProductsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => const ProductFormScreen(),
+                  ),
+                  GoRoute(
+                    path: ':productId',
+                    builder: (context, state) => ProductDetailScreen(
+                      productId: state.pathParameters['productId']!,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'edit',
+                        builder: (context, state) => ProductFormScreen(
+                          productId: state.pathParameters['productId'],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

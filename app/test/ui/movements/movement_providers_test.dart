@@ -1,12 +1,16 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/data/providers/branch_providers.dart';
 import 'package:inventory_mobile/data/providers/inventory_movement_providers.dart';
+import 'package:inventory_mobile/data/providers/product_providers.dart';
 import 'package:inventory_mobile/domain/models/branch.dart';
 import 'package:inventory_mobile/domain/models/inventory_movement.dart';
 import 'package:inventory_mobile/domain/models/inventory_movement_filters.dart';
+import 'package:inventory_mobile/domain/models/paginated_products.dart';
 import 'package:inventory_mobile/domain/models/paginated_result.dart';
 import 'package:inventory_mobile/domain/models/product.dart';
+import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/stock_lookup.dart';
 import 'package:inventory_mobile/domain/repositories/branch_repository.dart';
 import 'package:inventory_mobile/domain/repositories/inventory_movement_repository.dart';
@@ -34,6 +38,7 @@ void main() {
 
   setUpAll(() {
     registerFallbackValue(const InventoryMovementFilters());
+    registerFallbackValue(const ProductListQuery());
   });
 
   setUp(() {
@@ -154,22 +159,16 @@ void main() {
           isActive: true,
           createdAt: DateTime.utc(2026, 6, 5),
         ),
-        Branch(
-          id: 'inactive-branch',
-          name: 'Inactive Branch',
-          isActive: false,
-          createdAt: DateTime.utc(2026, 6, 5),
-        ),
       ];
       when(
-        () => branchRepository.getBranches(),
+        () => branchRepository.getBranches(isActive: true),
       ).thenAnswer((_) async => AppSuccess(branches));
 
       final result = await container.read(activeBranchCatalogProvider.future);
 
       expect(result.dataOrNull, hasLength(1));
       expect(result.dataOrNull?.single.name, 'Central Branch');
-      verify(() => branchRepository.getBranches()).called(1);
+      verify(() => branchRepository.getBranches(isActive: true)).called(1);
     });
   });
 
@@ -186,30 +185,22 @@ void main() {
           createdAt: DateTime.utc(2026, 6, 5),
         ),
       ];
-      final page = PaginatedResult<Product>(
+      const query = ProductListQuery(isActive: true, page: 1, pageSize: 100);
+      final page = PaginatedProducts(
         items: products,
+        total: 1,
         page: 1,
         pageSize: 100,
-        totalCount: 1,
+        hasNextPage: false,
       );
       when(
-        () => productRepository.getProducts(
-          isActive: true,
-          page: 1,
-          pageSize: 100,
-        ),
+        () => productRepository.listProducts(query),
       ).thenAnswer((_) async => AppSuccess(page));
 
       final result = await container.read(activeProductCatalogProvider.future);
 
       expect(result.dataOrNull, products);
-      verify(
-        () => productRepository.getProducts(
-          isActive: true,
-          page: 1,
-          pageSize: 100,
-        ),
-      ).called(1);
+      verify(() => productRepository.listProducts(query)).called(1);
     });
   });
 }

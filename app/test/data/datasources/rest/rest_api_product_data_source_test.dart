@@ -1,43 +1,17 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/data/datasources/rest/rest_api_product_data_source.dart';
+import 'package:inventory_mobile/data/dto/product_requests.dart';
+import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
+import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockDio extends Mock implements Dio {}
-
-Response<dynamic> _response(String path, dynamic data, {int statusCode = 200}) {
-  return Response<dynamic>(
-    requestOptions: RequestOptions(path: path),
-    statusCode: statusCode,
-    data: data,
-  );
-}
-
-DioException _badResponse(String path, int statusCode, dynamic data) {
-  final requestOptions = RequestOptions(path: path);
-  return DioException(
-    requestOptions: requestOptions,
-    type: DioExceptionType.badResponse,
-    response: Response<dynamic>(
-      requestOptions: requestOptions,
-      statusCode: statusCode,
-      data: data,
-    ),
-  );
-}
-
-Map<String, dynamic> _productJson({bool isActive = true}) => {
-  'id': 'product-id',
-  'name': 'Rice 1kg',
-  'sku': 'RICE-001',
-  'category': 'Food',
-  'minStock': 10,
-  'isActive': isActive,
-  'createdAt': '2026-06-05T20:00:00Z',
-  'updatedAt': null,
-};
 
 void main() {
   late _MockDio dio;
@@ -48,83 +22,220 @@ void main() {
     sut = RestApiProductDataSource(dio);
   });
 
-  group('getProducts', () {
-    test('loads paginated products with active filter', () async {
-      const query = {'isActive': true, 'page': 1, 'pageSize': 100};
+  test('GET /products without filters sends empty query parameters', () async {
+    when(
+      () => dio.get<dynamic>('/products', queryParameters: <String, dynamic>{}),
+    ).thenAnswer((_) async => _response(_pageJson()));
+
+    final result = await sut.listProducts(const ProductListQuery());
+
+    expect(result.items, hasLength(1));
+  });
+
+  test('GET /products sends all filters and omits empty strings', () async {
+    when(
+      () => dio.get<dynamic>(
+        '/products',
+        queryParameters: <String, dynamic>{
+          'q': 'rice',
+          'category': 'Abarrotes',
+          'isActive': false,
+          'lowStockOnly': true,
+          'page': 2,
+          'pageSize': 10,
+        },
+      ),
+    ).thenAnswer((_) async => _response(_pageJson()));
+
+    await sut.listProducts(
+      const ProductListQuery(
+        q: ' rice ',
+        category: 'Abarrotes',
+        isActive: false,
+        lowStockOnly: true,
+        page: 2,
+        pageSize: 10,
+      ),
+    );
+
+    verify(
+      () => dio.get<dynamic>(
+        '/products',
+        queryParameters: <String, dynamic>{
+          'q': 'rice',
+          'category': 'Abarrotes',
+          'isActive': false,
+          'lowStockOnly': true,
+          'page': 2,
+          'pageSize': 10,
+        },
+      ),
+    ).called(1);
+  });
+
+  test('GET /products omits whitespace-only filters', () async {
+    when(
+      () => dio.get<dynamic>('/products', queryParameters: <String, dynamic>{}),
+    ).thenAnswer((_) async => _response(_pageJson()));
+
+    await sut.listProducts(const ProductListQuery(q: ' ', category: '  '));
+
+    verify(
+      () => dio.get<dynamic>('/products', queryParameters: <String, dynamic>{}),
+    ).called(1);
+  });
+
+  test('GET /products/{productId} parses Product', () async {
+    when(
+      () => dio.get<dynamic>('/products/product_1'),
+    ).thenAnswer((_) async => _response(_productJson()));
+
+    final product = await sut.getProduct('product_1');
+
+    expect(product.id, 'product_1');
+  });
+
+  test(
+    'GET /products/{productId} rejects a map with non-string keys',
+    () async {
       when(
-        () => dio.get<dynamic>('/products', queryParameters: query),
-      ).thenAnswer(
-        (_) async => _response('/products', {
-          'items': [_productJson()],
-          'total': 1,
-          'page': 1,
-          'pageSize': 100,
-          'hasNextPage': false,
-        }),
-      );
-
-      final dto = await sut.getProducts(isActive: true);
-
-      expect(dto.items, hasLength(1));
-      expect(dto.items.single.name, 'Rice 1kg');
-      verify(
-        () => dio.get<dynamic>('/products', queryParameters: query),
-      ).called(1);
-    });
-
-    test('maps backend failures', () async {
-      const query = {'isActive': false, 'page': 1, 'pageSize': 100};
-      when(
-        () => dio.get<dynamic>('/products', queryParameters: query),
-      ).thenThrow(
-        _badResponse('/products', 401, {
-          'code': 'unauthorized',
-          'message': 'Unauthorized.',
-        }),
-      );
+        () => dio.get<dynamic>('/products/product_1'),
+      ).thenAnswer((_) async => _response(<Object, Object>{1: 'invalid'}));
 
       await expectLater(
-        sut.getProducts(isActive: false),
+        sut.getProduct('product_1'),
         throwsA(
           isA<AppException>().having(
-            (e) => e.code,
+            (error) => error.code,
             'code',
-            AppErrorCode.unauthorized,
+            AppErrorCode.unexpected,
           ),
         ),
       );
-    });
+    },
+  );
+
+  test('POST /products serializes request', () async {
+    const request = ProductCreateRequest(
+      name: 'Arroz',
+      sku: 'ARR-001',
+      category: 'Abarrotes',
+      minStock: 10,
+    );
+    when(
+      () => dio.post<dynamic>('/products', data: request.toJson()),
+    ).thenAnswer((_) async => _response(_productJson(), statusCode: 201));
+
+    await sut.createProduct(request);
+
+    verify(
+      () => dio.post<dynamic>('/products', data: request.toJson()),
+    ).called(1);
   });
 
-  group('activateProduct', () {
-    test('patches activate endpoint', () async {
-      when(
-        () => dio.patch<dynamic>('/products/product-id/activate'),
-      ).thenAnswer(
-        (_) async => _response('/products/product-id/activate', null),
-      );
+  test('PATCH /products/{productId} serializes only update fields', () async {
+    const request = ProductUpdateRequest(
+      UpdateProductInput(name: PatchField.value('Nuevo nombre')),
+    );
+    when(
+      () => dio.patch<dynamic>('/products/product_1', data: request.toJson()),
+    ).thenAnswer((_) async => _response(_productJson()));
 
-      await sut.activateProduct('product-id');
+    await sut.updateProduct('product_1', request);
+
+    verify(
+      () => dio.patch<dynamic>('/products/product_1', data: request.toJson()),
+    ).called(1);
+  });
+
+  test(
+    'PATCH /products/{productId}/deactivate accepts 204 without body',
+    () async {
+      when(
+        () => dio.patch<dynamic>('/products/product_1/deactivate'),
+      ).thenAnswer((_) async => _response(null, statusCode: 204));
+
+      await sut.deactivateProduct('product_1');
 
       verify(
-        () => dio.patch<dynamic>('/products/product-id/activate'),
+        () => dio.patch<dynamic>('/products/product_1/deactivate'),
       ).called(1);
-    });
+    },
+  );
+
+  test('PATCH /products/{productId}/activate accepts 204 without body', () async {
+    when(
+      () => dio.patch<dynamic>('/products/product_1/activate'),
+    ).thenAnswer((_) async => _response(null, statusCode: 204));
+
+    await sut.activateProduct('product_1');
+
+    verify(() => dio.patch<dynamic>('/products/product_1/activate')).called(1);
   });
 
-  group('deactivateProduct', () {
-    test('patches deactivate endpoint', () async {
+  test(
+    'POST /products/{productId}/image sends multipart file metadata',
+    () async {
+      late FormData capturedFormData;
       when(
-        () => dio.patch<dynamic>('/products/product-id/deactivate'),
-      ).thenAnswer(
-        (_) async => _response('/products/product-id/deactivate', null),
+        () => dio.post<dynamic>(
+          '/products/product_1/image',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((invocation) async {
+        capturedFormData = invocation.namedArguments[#data] as FormData;
+        return _response(
+          _productJson()..['imageUrl'] = '/uploads/products/product_1.jpg',
+        );
+      });
+
+      final product = await sut.uploadProductImage(
+        'product_1',
+        ProductImageInput(
+          fileName: 'product.jpg',
+          bytes: _jpegBytes(),
+          mimeType: 'image/jpeg',
+        ),
       );
 
-      await sut.deactivateProduct('product-id');
-
-      verify(
-        () => dio.patch<dynamic>('/products/product-id/deactivate'),
-      ).called(1);
-    });
-  });
+      final fileEntry = capturedFormData.files.single;
+      expect(fileEntry.key, 'file');
+      expect(fileEntry.value.filename, 'product.jpg');
+      expect(fileEntry.value.contentType.toString(), 'image/jpeg');
+      expect(capturedFormData.fields, isEmpty);
+      expect(product.imageUrl, '/uploads/products/product_1.jpg');
+    },
+  );
 }
+
+Response<dynamic> _response(dynamic data, {int statusCode = 200}) {
+  return Response<dynamic>(
+    requestOptions: RequestOptions(path: '/products'),
+    statusCode: statusCode,
+    data: data,
+  );
+}
+
+Map<String, dynamic> _pageJson() => <String, dynamic>{
+  'items': [_productJson()],
+  'total': 1,
+  'page': 1,
+  'pageSize': 20,
+  'hasNextPage': false,
+};
+
+Map<String, dynamic> _productJson() => <String, dynamic>{
+  'id': 'product_1',
+  'name': 'Arroz',
+  'sku': 'ARR-001',
+  'barcode': null,
+  'category': 'Abarrotes',
+  'description': null,
+  'imageUrl': null,
+  'minStock': 10,
+  'isActive': true,
+  'createdAt': '2026-06-02T20:00:00Z',
+  'updatedAt': null,
+};
+
+Uint8List _jpegBytes() => Uint8List.fromList([0xFF, 0xD8, 0xFF, 0x00]);

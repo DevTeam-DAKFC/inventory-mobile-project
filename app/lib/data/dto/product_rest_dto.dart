@@ -1,6 +1,7 @@
 import '../../core/errors/app_error_code.dart';
 import '../../core/errors/app_exception.dart';
 
+/// Wire-level representation of a Product response.
 final class ProductRestDto {
   const ProductRestDto({
     required this.id,
@@ -43,56 +44,65 @@ final class ProductRestDto {
       updatedAt: _optionalDateTime(json, 'updatedAt'),
     );
   }
-}
 
-String _requiredString(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is String && value.isNotEmpty) return value;
-  throw _invalidField(field, json);
-}
-
-String? _optionalString(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value == null) return null;
-  if (value is String) return value;
-  throw _invalidField(field, json);
-}
-
-int _requiredInt(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is int) return value;
-  throw _invalidField(field, json);
-}
-
-bool _requiredBool(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is bool) return value;
-  throw _invalidField(field, json);
-}
-
-DateTime _requiredDateTime(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value is String) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed != null) return parsed;
+  static String _requiredString(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value is String) return value;
+    throw _invalidField(json, field, 'string');
   }
-  throw _invalidField(field, json);
-}
 
-DateTime? _optionalDateTime(Map<String, dynamic> json, String field) {
-  final value = json[field];
-  if (value == null) return null;
-  if (value is String) {
-    final parsed = DateTime.tryParse(value);
-    if (parsed != null) return parsed;
+  static String? _optionalString(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value == null || value is String) return value as String?;
+    throw _invalidField(json, field, 'string or null');
   }
-  throw _invalidField(field, json);
-}
 
-AppException _invalidField(String field, Map<String, dynamic> json) {
-  return AppException(
-    code: AppErrorCode.unexpected,
-    message: 'Invalid product response: field "$field" is invalid.',
-    details: {'received': json},
-  );
+  static int _requiredInt(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value is int) return value;
+    throw _invalidField(json, field, 'integer');
+  }
+
+  static bool _requiredBool(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value is bool) return value;
+    throw _invalidField(json, field, 'boolean');
+  }
+
+  static DateTime _requiredDateTime(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value is String) {
+      final parsed = _parseUtcDateTime(value);
+      if (parsed != null) return parsed;
+    }
+    throw _invalidField(json, field, 'ISO-8601 date-time string');
+  }
+
+  static DateTime? _optionalDateTime(Map<String, dynamic> json, String field) {
+    final value = json[field];
+    if (value == null) return null;
+    if (value is String) {
+      final parsed = _parseUtcDateTime(value);
+      if (parsed != null) return parsed;
+    }
+    throw _invalidField(json, field, 'ISO-8601 date-time string or null');
+  }
+
+  static DateTime? _parseUtcDateTime(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null || !parsed.isUtc) return null;
+    return parsed.toUtc();
+  }
+
+  static AppException _invalidField(
+    Map<String, dynamic> json,
+    String field,
+    String expected,
+  ) {
+    return AppException(
+      code: AppErrorCode.unexpected,
+      message: 'Invalid product response: field "$field" must be $expected.',
+      details: {'received': json},
+    );
+  }
 }

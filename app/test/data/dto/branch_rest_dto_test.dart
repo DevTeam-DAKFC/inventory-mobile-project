@@ -1,49 +1,46 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/data/dto/branch_rest_dto.dart';
 
 void main() {
   group('BranchRestDto', () {
-    test('parses branch JSON with optional fields', () {
-      final dto = BranchRestDto.fromJson({
-        'id': 'branch-id',
-        'name': 'Central Branch',
-        'address': 'Main street',
+    test('parses branch response with numeric id', () {
+      final dto = BranchRestDto.fromJson(<String, dynamic>{
+        'id': 1,
+        'name': 'Sucursal Central',
+        'address': 'San Jose centro',
         'isActive': true,
-        'createdAt': '2026-06-05T20:00:00Z',
-        'updatedAt': '2026-06-05T21:00:00Z',
       });
 
-      expect(dto.id, 'branch-id');
-      expect(dto.name, 'Central Branch');
-      expect(dto.address, 'Main street');
+      expect(dto.id, '1');
+      expect(dto.name, 'Sucursal Central');
+      expect(dto.address, 'San Jose centro');
       expect(dto.isActive, isTrue);
-      expect(dto.updatedAt, DateTime.parse('2026-06-05T21:00:00Z'));
     });
 
-    test('allows nullable optional fields', () {
-      final dto = BranchRestDto.fromJson({
-        'id': 'branch-id',
-        'name': 'Central Branch',
+    test('parses branchId when id is not present', () {
+      final dto = BranchRestDto.fromJson(<String, dynamic>{
+        'branchId': 'branch_north',
+        'name': 'Sucursal Norte',
         'address': null,
         'isActive': true,
-        'createdAt': '2026-06-05T20:00:00Z',
-        'updatedAt': null,
       });
 
+      expect(dto.id, 'branch_north');
       expect(dto.address, isNull);
-      expect(dto.updatedAt, isNull);
     });
 
-    test('throws AppException for invalid required fields', () {
+    test('throws AppException when required fields are missing', () {
       expect(
-        () => BranchRestDto.fromJson({
-          'id': 'branch-id',
-          'name': '',
-          'isActive': true,
-          'createdAt': '2026-06-05T20:00:00Z',
-        }),
-        throwsA(isA<AppException>()),
+        () => BranchRestDto.fromJson(<String, dynamic>{'name': 'Sucursal'}),
+        throwsA(
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
+        ),
       );
     });
   });

@@ -5,35 +5,35 @@ import 'package:inventory_mobile/app/app.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
+import 'package:inventory_mobile/navigation/session_restore_controller.dart';
 
 void main() {
   testWidgets('shows login as the public entry point', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: InventoryMobileApp()));
-
-    expect(find.text('Inventory Mobile'), findsOneWidget);
-    expect(find.text('Sign in to continue'), findsOneWidget);
-  });
-
-  testWidgets('redirects unauthenticated users away from private routes', (
-    tester,
-  ) async {
-    final session = AppSession();
-
     await tester.pumpWidget(
-      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+      ProviderScope(
+        overrides: [sessionRestoreProvider.overrideWith((ref) async {})],
+        child: const InventoryMobileApp(),
+      ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
+  });
+
+  testWidgets('redirects unauthenticated users away from private routes', (tester) async {
+    final session = AppSession();
+
+    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Iniciar sesión'), findsOneWidget);
     expect(find.text('Resumen de inventario'), findsNothing);
   });
 
   testWidgets('authenticated users reach the main app shell', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(
-      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
-    );
+    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
     await tester.pumpAndSettle();
 
     expect(find.text('Resumen de inventario'), findsOneWidget);
@@ -47,14 +47,13 @@ void main() {
   testWidgets('navigates between core shell screens', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(
-      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
-    );
+    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
     await tester.pumpAndSettle();
 
     await tester.tap(_navigationDestination('Productos'));
     await tester.pumpAndSettle();
     expect(find.text('Productos'), findsWidgets);
+    expect(find.text('Buscar por nombre, SKU o código...'), findsOneWidget);
 
     await tester.tap(_navigationDestination('Stock'));
     await tester.pumpAndSettle();
@@ -69,14 +68,10 @@ void main() {
     expect(find.text('Alertas'), findsWidgets);
   });
 
-  testWidgets('shows role state without exposing feature-specific entries', (
-    tester,
-  ) async {
+  testWidgets('shows role state without exposing feature-specific entries', (tester) async {
     final session = AppSession()..signInAsDemoCollaborator();
 
-    await tester.pumpWidget(
-      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
-    );
+    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
@@ -84,25 +79,28 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
-  testWidgets('logout returns the user to the public auth flow', (
-    tester,
-  ) async {
+  testWidgets('logout returns the user to the public auth flow', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(
-      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
-    );
+    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
     await tester.pumpAndSettle();
 
     session.signOut();
     await tester.pumpAndSettle();
 
-    expect(find.text('Sign in to continue'), findsOneWidget);
+    expect(find.text('Iniciar sesión'), findsOneWidget);
   });
 }
 
 Finder _navigationDestination(String label) {
   return find.text(label);
+}
+
+Finder _richTextPlain(String text) {
+  return find.byWidgetPredicate(
+    (widget) => widget is Text && widget.textSpan?.toPlainText() == text,
+    description: 'Text.rich with plain text "$text"',
+  );
 }
 
 class _RouterTestApp extends StatelessWidget {

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../data/providers/product_providers.dart';
 import '../../domain/models/product.dart';
-import 'product_catalog_state.dart';
-import 'product_catalog_view_model.dart';
+import '../../navigation/routes.dart';
+import 'product_catalog_controller.dart';
 
 class ProductsScreen extends ConsumerStatefulWidget {
   const ProductsScreen({super.key});
@@ -13,17 +15,34 @@ class ProductsScreen extends ConsumerStatefulWidget {
 }
 
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
+  final _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(productCatalogViewModelProvider.notifier).load();
+    _scrollController.addListener(_onScroll);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(productCatalogProvider.notifier).loadInitial();
     });
   }
 
   @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.extentAfter < 240) {
+      ref.read(productCatalogProvider.notifier).loadMore();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final state = ref.watch(productCatalogViewModelProvider);
+    final state = ref.watch(productCatalogProvider);
 
     return Scaffold(
       body: DecoratedBox(
@@ -38,8 +57,18 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
           bottom: false,
           child: Column(
             children: [
-              const _ProductsHeader(),
-              Expanded(child: _ProductsContent(state: state)),
+              _CatalogHeader(state: state),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: ref.read(productCatalogProvider.notifier).reload,
+                  color: _Colors.accent,
+                  backgroundColor: _Colors.surfaceElevated,
+                  child: _CatalogContent(
+                    state: state,
+                    scrollController: _scrollController,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -48,27 +77,116 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   }
 }
 
-class _ProductsHeader extends StatelessWidget {
-  const _ProductsHeader();
+class _CatalogHeader extends ConsumerWidget {
+  const _CatalogHeader({required this.state});
+
+  final ProductCatalogState state;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(productCatalogProvider.notifier);
+
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
       decoration: const BoxDecoration(
-        color: Color(0xFF12181C),
-        border: Border(bottom: BorderSide(color: Color(0x0FFFFFFF))),
+        color: _Colors.surface,
+        border: Border(bottom: BorderSide(color: _Colors.border)),
       ),
-      child: const Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
-            child: Text(
-              'Productos',
-              style: TextStyle(
-                color: Color(0xFFF8FAFC),
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Productos',
+                style: TextStyle(
+                  color: _Colors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
+              InkWell(
+                key: const Key('add-product-button'),
+                onTap: () async {
+                  final saved = await context.push<bool>(AppRoutes.productNew);
+                  if (saved == true) controller.reload();
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: _Colors.accent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    color: _Colors.background,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const _BranchSelector(),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40,
+            child: TextField(
+              key: const Key('product-search-field'),
+              onChanged: controller.setSearchQuery,
+              style: const TextStyle(color: _Colors.textPrimary, fontSize: 15),
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre, SKU o código...',
+                hintStyle: const TextStyle(
+                  color: _Colors.textMuted,
+                  fontSize: 15,
+                ),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: _Colors.textMuted,
+                  size: 18,
+                ),
+                prefixIconConstraints: const BoxConstraints(minWidth: 40),
+                filled: true,
+                fillColor: _Colors.surfaceSoft,
+                contentPadding: const EdgeInsets.only(right: 16),
+                enabledBorder: _inputBorder,
+                focusedBorder: _inputBorder.copyWith(
+                  borderSide: const BorderSide(color: _Colors.accent),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _FilterChip(
+                  text: 'Todos',
+                  selected: state.filter == ProductCatalogFilter.all,
+                  onTap: () => controller.setFilter(ProductCatalogFilter.all),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  text: 'Activos',
+                  selected: state.filter == ProductCatalogFilter.active,
+                  onTap: () =>
+                      controller.setFilter(ProductCatalogFilter.active),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  text: 'Stock bajo',
+                  selected: state.filter == ProductCatalogFilter.lowStock,
+                  onTap: () =>
+                      controller.setFilter(ProductCatalogFilter.lowStock),
+                ),
+                const SizedBox(width: 8),
+                const _FilterChip(text: 'Agotados'),
+              ],
             ),
           ),
         ],
@@ -77,133 +195,258 @@ class _ProductsHeader extends StatelessWidget {
   }
 }
 
-class _ProductsContent extends ConsumerWidget {
-  const _ProductsContent({required this.state});
+class _BranchSelector extends StatelessWidget {
+  const _BranchSelector();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        key: const Key('branch-selector'),
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: _Colors.surfaceSoft,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _Colors.border),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Tienda Central',
+              style: TextStyle(color: _Colors.textPrimary, fontSize: 14),
+            ),
+            SizedBox(width: 8),
+            Icon(Icons.keyboard_arrow_down, color: _Colors.textMuted, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CatalogContent extends ConsumerWidget {
+  const _CatalogContent({required this.state, required this.scrollController});
 
   final ProductCatalogState state;
+  final ScrollController scrollController;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ListView(
+    if (state.isLoading) {
+      return const _ScrollableCentered(
+        child: CircularProgressIndicator(color: _Colors.accent),
+      );
+    }
+    if (state.error != null) {
+      return _ScrollableCentered(
+        child: _ErrorView(
+          message: state.error!.message,
+          onRetry: ref.read(productCatalogProvider.notifier).reload,
+        ),
+      );
+    }
+    if (state.isEmpty) {
+      return const _ScrollableCentered(
+        child: Text(
+          'No se encontraron productos',
+          style: TextStyle(color: _Colors.textMuted, fontSize: 14),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      key: const Key('product-list'),
+      controller: scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      children: [
-        if (state.isLoading && !state.hasLoaded)
-          const _CenteredStatus(message: 'Loading products...')
-        else if (state.errorMessage != null)
-          _ErrorPanel(message: state.errorMessage!)
-        else if (state.isEmpty)
-          const _CenteredStatus(message: 'No products found')
-        else ...[
-          if (state.successMessage != null) ...[
-            _SuccessPanel(message: state.successMessage!),
-            const SizedBox(height: 12),
-          ],
-          for (final product in state.products) ...[
-            _ProductCard(product: product, disabled: state.isChangingState),
-            const SizedBox(height: 12),
-          ],
-        ],
-      ],
+      itemCount: state.products.length + 1,
+      separatorBuilder: (_, _) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        if (index < state.products.length) {
+          final product = state.products[index];
+          return _ProductCard(product: product);
+        }
+        if (state.isLoadingMore) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Center(
+              child: CircularProgressIndicator(color: _Colors.accent),
+            ),
+          );
+        }
+        if (state.loadMoreError != null) {
+          return TextButton(
+            onPressed: ref.read(productCatalogProvider.notifier).loadMore,
+            child: const Text('No se pudo cargar más. Reintentar'),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 }
 
 class _ProductCard extends ConsumerWidget {
-  const _ProductCard({required this.product, required this.disabled});
+  const _ProductCard({required this.product});
 
   final Product product;
-  final bool disabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final color = product.isActive
-        ? const Color(0xFF22C55E)
-        : const Color(0xFFF59E0B);
-    final actionLabel = product.isActive ? 'Deactivate' : 'Activate';
-
-    return _PrototypeCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              _Badge(
-                text: product.isActive ? 'Activo' : 'Inactivo',
-                color: color,
+    final resolver = ref.watch(publicAssetUrlResolverProvider);
+    return InkWell(
+      onTap: () async {
+        final changed = await context.push<bool>(
+          AppRoutes.productDetail(product.id),
+        );
+        if (changed == true) {
+          ref.read(productCatalogProvider.notifier).reload();
+        }
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        key: Key('product-card-${product.id}'),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _Colors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _Colors.border),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ProductImage(
+              productId: product.id,
+              imageUrl: resolver.resolve(product.imageUrl),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          product.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      Icon(
+                        key: Key('product-chevron-${product.id}'),
+                        Icons.chevron_right,
+                        color: _Colors.textMuted,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          product.sku,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text(
+                          '·',
+                          style: TextStyle(
+                            color: _Colors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      Flexible(
+                        child: Text(
+                          product.category,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: _Colors.textMuted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [_StatusBadge(isActive: product.isActive)],
+                  ),
+                ],
               ),
-              const Spacer(),
-              Text(
-                product.sku,
-                style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            product.name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xFFF8FAFC), fontSize: 16),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            product.category,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 12),
-          ),
-          const SizedBox(height: 14),
-          _SecondaryButton(
-            label: disabled ? 'Updating...' : actionLabel,
-            icon: product.isActive
-                ? Icons.block_outlined
-                : Icons.check_circle_outline,
-            onPressed: disabled
-                ? null
-                : () {
-                    final viewModel = ref.read(
-                      productCatalogViewModelProvider.notifier,
-                    );
-                    if (product.isActive) {
-                      viewModel.deactivateProduct(product.id);
-                    } else {
-                      viewModel.activateProduct(product.id);
-                    }
-                  },
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _PrototypeCard extends StatelessWidget {
-  const _PrototypeCard({required this.child});
+class _ProductImage extends StatelessWidget {
+  const _ProductImage({required this.productId, this.imageUrl});
 
-  final Widget child;
+  final String productId;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF12181C),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x0FFFFFFF)),
+    Widget placeholder() => Center(
+      key: Key('product-image-placeholder-$productId'),
+      child: const Icon(
+        Icons.inventory_2_outlined,
+        color: _Colors.accent,
+        size: 24,
       ),
-      child: child,
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: ColoredBox(
+        color: _Colors.surfaceSoft,
+        child: SizedBox(
+          width: 64,
+          height: 72,
+          child: imageUrl == null
+              ? placeholder()
+              : Image.network(
+                  key: Key('product-image-$productId'),
+                  imageUrl!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => placeholder(),
+                ),
+        ),
+      ),
     );
   }
 }
 
-class _Badge extends StatelessWidget {
-  const _Badge({required this.text, required this.color});
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.isActive});
 
-  final String text;
-  final Color color;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
+    final color = isActive ? _Colors.success : _Colors.danger;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
@@ -212,103 +455,129 @@ class _Badge extends StatelessWidget {
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Text(
-        text.toUpperCase(),
+        isActive ? 'ACTIVO' : 'INACTIVO',
         style: TextStyle(
           color: color,
           fontSize: 10,
           fontWeight: FontWeight.w500,
+          letterSpacing: 0.25,
         ),
       ),
     );
   }
 }
 
-class _SecondaryButton extends StatelessWidget {
-  const _SecondaryButton({
-    required this.label,
-    required this.icon,
-    required this.onPressed,
-  });
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({required this.text, this.selected = false, this.onTap});
 
-  final String label;
-  final IconData icon;
-  final VoidCallback? onPressed;
+  final String text;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFFF8FAFC),
-        minimumSize: const Size.fromHeight(44),
-        side: const BorderSide(color: Color(0x0FFFFFFF)),
-      ),
-    );
-  }
-}
-
-class _SuccessPanel extends StatelessWidget {
-  const _SuccessPanel({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF22C55E).withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF22C55E).withValues(alpha: 0.3),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? _Colors.accentSoft : _Colors.surfaceSoft,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? _Colors.accentBorder : _Colors.border,
+          ),
+        ),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: onTap == null
+                ? _Colors.textMuted
+                : selected
+                ? _Colors.accent
+                : _Colors.textSecondary,
+            fontSize: 14,
+          ),
         ),
       ),
-      child: Text(
-        message,
-        style: const TextStyle(color: Color(0xFF22C55E), fontSize: 13),
-      ),
     );
   }
 }
 
-class _ErrorPanel extends StatelessWidget {
-  const _ErrorPanel({required this.message});
+class _ScrollableCentered extends StatelessWidget {
+  const _ScrollableCentered({required this.child});
 
-  final String message;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEF4444).withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFFEF4444).withValues(alpha: 0.3),
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: SizedBox(
+          height: constraints.maxHeight,
+          child: Center(child: child),
         ),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(color: Color(0xFFEF4444), fontSize: 13),
       ),
     );
   }
 }
 
-class _CenteredStatus extends StatelessWidget {
-  const _CenteredStatus({required this.message});
+class _ErrorView extends StatelessWidget {
+  const _ErrorView({required this.message, required this.onRetry});
 
   final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 48),
-      child: Center(
-        child: Text(message, style: const TextStyle(color: Color(0xFF6F7C86))),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.error_outline, color: _Colors.danger, size: 36),
+          const SizedBox(height: 12),
+          const Text(
+            'No se pudieron cargar los productos',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: _Colors.textPrimary, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: _Colors.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh, size: 18),
+            label: const Text('Reintentar'),
+          ),
+        ],
       ),
     );
   }
+}
+
+const _inputBorder = OutlineInputBorder(
+  borderRadius: BorderRadius.all(Radius.circular(8)),
+  borderSide: BorderSide(color: _Colors.border),
+);
+
+abstract final class _Colors {
+  static const background = Color(0xFF0C1013);
+  static const surface = Color(0xFF12181C);
+  static const surfaceElevated = Color(0xFF182126);
+  static const surfaceSoft = Color(0xFF1F2A30);
+  static const textPrimary = Color(0xFFF8FAFC);
+  static const textSecondary = Color(0xFFA9B4BE);
+  static const textMuted = Color(0xFF6F7C86);
+  static const border = Color(0x0FFFFFFF);
+  static const accent = Color(0xFF14B8A6);
+  static const accentSoft = Color(0x2414B8A6);
+  static const accentBorder = Color(0x5214B8A6);
+  static const success = Color(0xFF22C55E);
+  static const danger = Color(0xFFEF4444);
 }

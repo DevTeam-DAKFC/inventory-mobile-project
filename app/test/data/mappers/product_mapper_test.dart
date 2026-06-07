@@ -1,59 +1,41 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:inventory_mobile/data/dto/paginated_product_rest_dto.dart';
+import 'package:inventory_mobile/data/dto/paginated_products_rest_dto.dart';
 import 'package:inventory_mobile/data/dto/product_rest_dto.dart';
 import 'package:inventory_mobile/data/mappers/product_mapper.dart';
 
 void main() {
-  group('ProductMapper', () {
-    test('maps product DTO to domain model', () {
-      final dto = ProductRestDto(
-        id: 'product-id',
-        name: 'Rice 1kg',
-        sku: 'RICE-001',
-        barcode: '7441000000011',
-        category: 'Food',
-        description: 'White rice',
-        imageUrl: 'https://example.com/rice.png',
-        minStock: 10,
-        isActive: true,
-        createdAt: DateTime.utc(2026, 6, 5, 20),
-        updatedAt: DateTime.utc(2026, 6, 5, 21),
-      );
+  final dto = ProductRestDto(
+    id: 'product_1',
+    name: 'Arroz',
+    sku: 'ARR-001',
+    category: 'Abarrotes',
+    minStock: 10,
+    isActive: true,
+    createdAt: DateTime.utc(2026, 6, 2),
+    imageUrl: 'https://example.com/product.jpg',
+  );
 
-      final domain = ProductMapper.toDomain(dto);
+  test('maps ProductRestDto to Product without stock quantities', () {
+    final product = ProductMapper.toDomain(dto);
 
-      expect(domain.id, 'product-id');
-      expect(domain.name, 'Rice 1kg');
-      expect(domain.sku, 'RICE-001');
-      expect(domain.barcode, '7441000000011');
-      expect(domain.minStock, 10);
-      expect(domain.isActive, isTrue);
-    });
+    expect(product.id, 'product_1');
+    expect(product.imageUrl, 'https://example.com/product.jpg');
+    expect(product.minStock, 10);
+  });
 
-    test('maps paginated products DTO to domain result', () {
-      final dto = PaginatedProductRestDto(
-        items: [
-          ProductRestDto(
-            id: 'product-id',
-            name: 'Rice 1kg',
-            sku: 'RICE-001',
-            category: 'Food',
-            minStock: 10,
-            isActive: true,
-            createdAt: DateTime.utc(2026, 6, 5, 20),
-          ),
-        ],
+  test('maps paginated DTO metadata and products', () {
+    final page = ProductMapper.pageToDomain(
+      PaginatedProductsRestDto(
+        items: [dto],
         total: 1,
         page: 1,
-        pageSize: 100,
+        pageSize: 20,
         hasNextPage: false,
-      );
+      ),
+    );
 
-      final domain = ProductMapper.toPaginatedDomain(dto);
-
-      expect(domain.items, hasLength(1));
-      expect(domain.items.single.name, 'Rice 1kg');
-      expect(domain.totalCount, 1);
-    });
+    expect(page.items.single.id, 'product_1');
+    expect(page.total, 1);
+    expect(page.hasNextPage, isFalse);
   });
 }
