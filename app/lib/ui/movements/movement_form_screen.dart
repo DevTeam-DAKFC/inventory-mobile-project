@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/errors/app_error_code.dart';
+import '../../core/result/app_result.dart';
+import '../../domain/models/branch.dart';
 import '../../domain/models/inventory_movement.dart';
 import '../../domain/models/inventory_movement_filters.dart';
+import '../../domain/models/product.dart';
 import 'movement_form_state.dart';
 import 'movement_form_view_model.dart';
 import 'movement_history_state.dart';
@@ -48,6 +51,8 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
     final formState = ref.watch(movementFormViewModelProvider);
     final historyState = ref.watch(movementHistoryViewModelProvider);
     final resolver = ref.watch(movementReferenceResolverProvider);
+    final products = ref.watch(activeProductCatalogProvider);
+    final branches = ref.watch(activeBranchCatalogProvider);
 
     return Scaffold(
       body: DecoratedBox(
@@ -66,6 +71,8 @@ class _MovementFormScreenState extends ConsumerState<MovementFormScreen> {
                   quantityController: _quantityController,
                   reasonController: _reasonController,
                   notesController: _notesController,
+                  products: products,
+                  branches: branches,
                   onBack: () => setState(() => _showForm = false),
                   onSubmitSuccess: () {
                     setState(() => _showForm = false);
@@ -239,6 +246,8 @@ class _MovementFormView extends ConsumerWidget {
     required this.quantityController,
     required this.reasonController,
     required this.notesController,
+    required this.products,
+    required this.branches,
     required this.onBack,
     required this.onSubmitSuccess,
   });
@@ -247,11 +256,26 @@ class _MovementFormView extends ConsumerWidget {
   final TextEditingController quantityController;
   final TextEditingController reasonController;
   final TextEditingController notesController;
+  final AsyncValue<AppResult<List<Product>>> products;
+  final AsyncValue<AppResult<List<Branch>>> branches;
   final VoidCallback onBack;
   final VoidCallback onSubmitSuccess;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final productOptions = _productOptions(products);
+    final branchOptions = _branchOptions(branches);
+    final productLoadMessage = _catalogLoadMessage(
+      products,
+      loading: 'Loading active products...',
+      failurePrefix: 'Using fallback products.',
+    );
+    final branchLoadMessage = _catalogLoadMessage(
+      branches,
+      loading: 'Loading active branches...',
+      failurePrefix: 'Using fallback branches.',
+    );
+
     ref.listen<MovementFormState>(movementFormViewModelProvider, (
       previous,
       next,
@@ -299,7 +323,7 @@ class _MovementFormView extends ConsumerWidget {
                 label: 'Producto *',
                 value: state.productId,
                 hint: 'Seleccionar producto',
-                options: movementProductOptions,
+                options: productOptions,
                 errorText:
                     state.fieldErrors[MovementFormViewModel.productField],
                 onChanged: (value) {
@@ -311,12 +335,16 @@ class _MovementFormView extends ConsumerWidget {
                       .loadCurrentStock();
                 },
               ),
+              if (productLoadMessage != null) ...[
+                const SizedBox(height: 8),
+                _InlineStatus(message: productLoadMessage),
+              ],
               const SizedBox(height: 20),
               _SelectField(
                 label: 'Sucursal *',
                 value: state.branchId,
                 hint: 'Seleccionar sucursal',
-                options: movementBranchOptions,
+                options: branchOptions,
                 errorText: state.fieldErrors[MovementFormViewModel.branchField],
                 onChanged: (value) {
                   ref
@@ -327,6 +355,10 @@ class _MovementFormView extends ConsumerWidget {
                       .loadCurrentStock();
                 },
               ),
+              if (branchLoadMessage != null) ...[
+                const SizedBox(height: 8),
+                _InlineStatus(message: branchLoadMessage),
+              ],
               const SizedBox(height: 20),
               _TextInput(
                 label: 'Cantidad *',
@@ -385,6 +417,57 @@ class _MovementFormView extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  List<MovementSelectOption> _productOptions(
+    AsyncValue<AppResult<List<Product>>> catalog,
+  ) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (products) => products
+            .map(
+              (product) =>
+                  MovementSelectOption(id: product.id, label: product.name),
+            )
+            .toList(),
+        failure: (_) => movementProductOptions,
+      ),
+      error: (_, _) => movementProductOptions,
+      loading: () => const [],
+    );
+  }
+
+  List<MovementSelectOption> _branchOptions(
+    AsyncValue<AppResult<List<Branch>>> catalog,
+  ) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (branches) => branches
+            .map(
+              (branch) =>
+                  MovementSelectOption(id: branch.id, label: branch.name),
+            )
+            .toList(),
+        failure: (_) => movementBranchOptions,
+      ),
+      error: (_, _) => movementBranchOptions,
+      loading: () => const [],
+    );
+  }
+
+  String? _catalogLoadMessage<T>(
+    AsyncValue<AppResult<List<T>>> catalog, {
+    required String loading,
+    required String failurePrefix,
+  }) {
+    return catalog.when(
+      data: (result) => result.when(
+        success: (_) => null,
+        failure: (exception) => '$failurePrefix ${exception.message}',
+      ),
+      error: (_, _) => failurePrefix,
+      loading: () => loading,
     );
   }
 }
@@ -992,6 +1075,20 @@ class _InfoPanel extends StatelessWidget {
         message,
         style: const TextStyle(color: Color(0xFFA9B4BE), fontSize: 13),
       ),
+    );
+  }
+}
+
+class _InlineStatus extends StatelessWidget {
+  const _InlineStatus({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      message,
+      style: const TextStyle(color: Color(0xFF6F7C86), fontSize: 12),
     );
   }
 }
