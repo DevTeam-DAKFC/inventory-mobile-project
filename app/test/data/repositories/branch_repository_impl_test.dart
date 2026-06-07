@@ -25,7 +25,7 @@ void main() {
 
   group('getBranches', () {
     test('returns AppSuccess with mapped domain branches', () async {
-      when(dataSource.getBranches).thenAnswer(
+      when(() => dataSource.getBranches()).thenAnswer(
         (_) async => const [
           BranchRestDto(
             id: '1',
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('returns AppFailure when data source throws AppException', () async {
-      when(dataSource.getBranches).thenThrow(
+      when(() => dataSource.getBranches()).thenThrow(
         const AppException(
           code: AppErrorCode.networkError,
           message: 'Could not load branches.',
@@ -101,7 +101,6 @@ void main() {
         (_) async => const BranchRestDto(
           id: '1',
           name: 'Sucursal Central',
-          address: 'San Jose centro',
           isActive: false,
         ),
       );
@@ -109,7 +108,24 @@ void main() {
       final result = await sut.deactivateBranch('1');
 
       expect(result, isA<AppSuccess>());
-      expect(result.dataOrNull!.isActive, isFalse);
+      expect(result, isA<AppSuccess<void>>());
+    });
+  });
+
+  group('reactivateBranch', () {
+    test('returns AppSuccess with reactivated branch', () async {
+      when(() => dataSource.reactivateBranch('1')).thenAnswer(
+        (_) async => const BranchRestDto(
+          id: '1',
+          name: 'Sucursal Central',
+          isActive: true,
+        ),
+      );
+
+      final result = await sut.reactivateBranch('1');
+
+      expect(result, isA<AppSuccess>());
+      expect(result, isA<AppSuccess<void>>());
     });
   });
 }

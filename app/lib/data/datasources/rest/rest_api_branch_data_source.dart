@@ -10,10 +10,15 @@ class RestApiBranchDataSource {
 
   final Dio _dio;
 
-  Future<List<BranchRestDto>> getBranches() async {
+  Future<List<BranchRestDto>> getBranches({bool? isActive}) async {
     final Response<dynamic> response;
     try {
-      response = await _dio.get<dynamic>('/branches');
+      response = isActive == null
+          ? await _dio.get<dynamic>('/branches')
+          : await _dio.get<dynamic>(
+              '/branches',
+              queryParameters: <String, dynamic>{'active': isActive},
+            );
     } on DioException catch (e, stack) {
       throw _mapDioException(e, stack);
     } catch (e, stack) {
@@ -34,7 +39,7 @@ class RestApiBranchDataSource {
       );
     }
 
-    return data
+    final branches = data
         .map((item) {
           if (item is! Map) {
             throw AppException(
@@ -46,6 +51,14 @@ class RestApiBranchDataSource {
           }
           return BranchRestDto.fromJson(Map<String, dynamic>.from(item));
         })
+        .toList(growable: false);
+
+    if (isActive == null) {
+      return branches;
+    }
+
+    return branches
+        .where((branch) => branch.isActive == isActive)
         .toList(growable: false);
   }
 
@@ -92,11 +105,22 @@ class RestApiBranchDataSource {
   }
 
   Future<BranchRestDto> deactivateBranch(String branchId) async {
-    final Response<dynamic> response;
     try {
-      response = await _dio.patch<dynamic>('/branches/$branchId/deactivate');
+      final response = await _dio.patch<dynamic>(
+        '/branches/$branchId/deactivate',
+      );
+      final branch = _parseBranchResponse(response.data);
+      if (branch.isActive) {
+        throw const AppException(
+          code: AppErrorCode.unexpected,
+          message: 'The backend did not confirm branch deactivation.',
+        );
+      }
+      return branch;
     } on DioException catch (e, stack) {
       throw _mapDioException(e, stack);
+    } on AppException {
+      rethrow;
     } catch (e, stack) {
       throw AppException(
         code: AppErrorCode.unexpected,
@@ -105,8 +129,33 @@ class RestApiBranchDataSource {
         stackTrace: stack,
       );
     }
+  }
 
-    return _parseBranchResponse(response.data);
+  Future<BranchRestDto> reactivateBranch(String branchId) async {
+    try {
+      final response = await _dio.patch<dynamic>(
+        '/branches/$branchId/activate',
+      );
+      final branch = _parseBranchResponse(response.data);
+      if (!branch.isActive) {
+        throw const AppException(
+          code: AppErrorCode.unexpected,
+          message: 'El backend no confirmó la reactivación de la sucursal.',
+        );
+      }
+      return branch;
+    } on DioException catch (e, stack) {
+      throw _mapDioException(e, stack);
+    } on AppException {
+      rethrow;
+    } catch (e, stack) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        message: 'Unexpected error reactivating branch.',
+        cause: e,
+        stackTrace: stack,
+      );
+    }
   }
 
   BranchRestDto _parseBranchResponse(dynamic data) {
@@ -135,19 +184,22 @@ class RestApiBranchDataSource {
 
     if (e.type == DioExceptionType.badResponse) {
       final statusCode = e.response?.statusCode;
-      final code = switch (statusCode) {
-        401 => AppErrorCode.unauthorized,
-        403 => AppErrorCode.forbidden,
-        404 => AppErrorCode.notFound,
-        503 => AppErrorCode.serviceUnavailable,
-        _ => AppErrorCode.networkError,
-      };
+      final errorBody = _extractErrorBody(e.response?.data);
+      final serverCode = errorBody?['code'] as String?;
+      final serverMessage = errorBody?['message'] as String?;
 
       return AppException(
-        code: code,
-        message: 'Backend returned unexpected status $statusCode.',
+        code: _statusToCode(statusCode, serverCode),
+        message:
+            serverMessage ??
+            'Backend returned status ${statusCode ?? 'unknown'} for branches.',
         cause: e,
         stackTrace: stack,
+        details: {
+          'statusCode': ?statusCode,
+          'serverCode': ?serverCode,
+          'serverBody': ?errorBody,
+        },
       );
     }
 
@@ -157,5 +209,44 @@ class RestApiBranchDataSource {
       cause: e,
       stackTrace: stack,
     );
+  }
+
+  static Map<String, dynamic>? _extractErrorBody(dynamic raw) {
+    if (raw is! Map) {
+      return null;
+    }
+    final response = Map<String, dynamic>.from(raw);
+    final error = response['error'];
+    if (error is Map) {
+      return Map<String, dynamic>.from(error);
+    }
+    return null;
+  }
+
+  static AppErrorCode _statusToCode(int? statusCode, String? serverCode) {
+    switch (serverCode) {
+      case 'validation_error':
+        return AppErrorCode.validationError;
+      case 'unauthorized':
+        return AppErrorCode.unauthorized;
+      case 'forbidden':
+        return AppErrorCode.forbidden;
+      case 'not_found':
+        return AppErrorCode.notFound;
+      case 'conflict':
+        return AppErrorCode.conflict;
+      case 'service_unavailable':
+        return AppErrorCode.serviceUnavailable;
+    }
+
+    return switch (statusCode) {
+      400 => AppErrorCode.validationError,
+      401 => AppErrorCode.unauthorized,
+      403 => AppErrorCode.forbidden,
+      404 => AppErrorCode.notFound,
+      409 => AppErrorCode.conflict,
+      503 => AppErrorCode.serviceUnavailable,
+      _ => AppErrorCode.unexpected,
+    };
   }
 }

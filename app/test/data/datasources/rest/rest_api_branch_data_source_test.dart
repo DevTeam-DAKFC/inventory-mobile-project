@@ -20,7 +20,11 @@ Response<dynamic> _createdResponse(dynamic data) => Response<dynamic>(
   data: data,
 );
 
-DioException _dioException(DioExceptionType type, {int? statusCode}) {
+DioException _dioException(
+  DioExceptionType type, {
+  int? statusCode,
+  dynamic data,
+}) {
   final requestOptions = RequestOptions(path: '/branches');
   return DioException(
     requestOptions: requestOptions,
@@ -30,6 +34,7 @@ DioException _dioException(DioExceptionType type, {int? statusCode}) {
         : Response<dynamic>(
             requestOptions: requestOptions,
             statusCode: statusCode,
+            data: data,
           ),
   );
 }
@@ -63,6 +68,55 @@ void main() {
       expect(branches.single.name, 'Sucursal Central');
     });
 
+    test('sends active status filter and parses list response', () async {
+      when(
+        () => dio.get<dynamic>('/branches', queryParameters: {'active': false}),
+      ).thenAnswer(
+        (_) async => _okResponse([
+          {
+            'id': 2,
+            'name': 'Sucursal Cerrada',
+            'address': null,
+            'isActive': false,
+          },
+        ]),
+      );
+
+      final branches = await sut.getBranches(isActive: false);
+
+      expect(branches.single.isActive, isFalse);
+    });
+
+    test(
+      'filters out branches that do not match the requested status',
+      () async {
+        when(
+          () =>
+              dio.get<dynamic>('/branches', queryParameters: {'active': false}),
+        ).thenAnswer(
+          (_) async => _okResponse([
+            {
+              'id': 1,
+              'name': 'Sucursal Activa',
+              'address': null,
+              'isActive': true,
+            },
+            {
+              'id': 2,
+              'name': 'Sucursal Inactiva',
+              'address': null,
+              'isActive': false,
+            },
+          ]),
+        );
+
+        final branches = await sut.getBranches(isActive: false);
+
+        expect(branches, hasLength(1));
+        expect(branches.single.name, 'Sucursal Inactiva');
+      },
+    );
+
     test('maps 401 badResponse to unauthorized', () async {
       when(
         () => dio.get<dynamic>('/branches'),
@@ -75,6 +129,77 @@ void main() {
             (e) => e.code,
             'code',
             AppErrorCode.unauthorized,
+          ),
+        ),
+      );
+    });
+
+    for (final entry in <int, AppErrorCode>{
+      400: AppErrorCode.validationError,
+      403: AppErrorCode.forbidden,
+      404: AppErrorCode.notFound,
+      409: AppErrorCode.conflict,
+      503: AppErrorCode.serviceUnavailable,
+      500: AppErrorCode.unexpected,
+    }.entries) {
+      test('maps ${entry.key} badResponse to ${entry.value.value}', () async {
+        when(() => dio.get<dynamic>('/branches')).thenThrow(
+          _dioException(DioExceptionType.badResponse, statusCode: entry.key),
+        );
+
+        await expectLater(
+          sut.getBranches(),
+          throwsA(
+            isA<AppException>().having(
+              (error) => error.code,
+              'code',
+              entry.value,
+            ),
+          ),
+        );
+      });
+    }
+
+    test('preserves backend conflict message', () async {
+      when(() => dio.get<dynamic>('/branches')).thenThrow(
+        _dioException(
+          DioExceptionType.badResponse,
+          statusCode: 409,
+          data: {
+            'error': {
+              'code': 'conflict',
+              'message': 'Ya existe una sucursal con ese nombre.',
+            },
+          },
+        ),
+      );
+
+      await expectLater(
+        sut.getBranches(),
+        throwsA(
+          isA<AppException>()
+              .having((error) => error.code, 'code', AppErrorCode.conflict)
+              .having(
+                (error) => error.message,
+                'message',
+                'Ya existe una sucursal con ese nombre.',
+              ),
+        ),
+      );
+    });
+
+    test('maps connectionError to networkError', () async {
+      when(
+        () => dio.get<dynamic>('/branches'),
+      ).thenThrow(_dioException(DioExceptionType.connectionError));
+
+      await expectLater(
+        sut.getBranches(),
+        throwsA(
+          isA<AppException>().having(
+            (error) => error.code,
+            'code',
+            AppErrorCode.networkError,
           ),
         ),
       );
@@ -201,6 +326,43 @@ void main() {
       final branch = await sut.deactivateBranch('1');
 
       expect(branch.isActive, isFalse);
+    });
+  });
+
+  group('reactivateBranch', () {
+    test('patches activate endpoint and validates active response', () async {
+      when(() => dio.patch<dynamic>('/branches/1/activate')).thenAnswer(
+        (_) async => _okResponse({
+          'id': 1,
+          'name': 'Sucursal Central',
+          'address': 'San Jose centro',
+          'isActive': true,
+        }),
+      );
+
+      await expectLater(sut.reactivateBranch('1'), completes);
+    });
+
+    test('fails when backend ignores the requested active state', () async {
+      when(() => dio.patch<dynamic>('/branches/1/activate')).thenAnswer(
+        (_) async => _okResponse({
+          'id': 1,
+          'name': 'Sucursal Central',
+          'address': 'San Jose centro',
+          'isActive': false,
+        }),
+      );
+
+      await expectLater(
+        sut.reactivateBranch('1'),
+        throwsA(
+          isA<AppException>().having(
+            (error) => error.message,
+            'message',
+            contains('no confirmó la reactivación'),
+          ),
+        ),
+      );
     });
   });
 }

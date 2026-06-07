@@ -14,9 +14,9 @@ final class BranchRepositoryImpl implements BranchRepository {
   final RestApiBranchDataSource _dataSource;
 
   @override
-  Future<AppResult<List<Branch>>> getBranches() async {
+  Future<AppResult<List<Branch>>> getBranches({bool? isActive}) async {
     try {
-      final dtos = await _dataSource.getBranches();
+      final dtos = await _dataSource.getBranches(isActive: isActive);
       return AppSuccess(
         dtos.map(BranchMapper.toDomain).toList(growable: false),
       );
@@ -63,11 +63,40 @@ final class BranchRepositoryImpl implements BranchRepository {
   }
 
   @override
-  Future<AppResult<Branch>> deactivateBranch(String branchId) async {
-    return _writeBranch(
+  Future<AppResult<void>> deactivateBranch(String branchId) async {
+    return _writeStatus(
       operation: () => _dataSource.deactivateBranch(branchId),
       unexpectedMessage: 'Unexpected error deactivating branch.',
     );
+  }
+
+  @override
+  Future<AppResult<void>> reactivateBranch(String branchId) async {
+    return _writeStatus(
+      operation: () => _dataSource.reactivateBranch(branchId),
+      unexpectedMessage: 'Unexpected error reactivating branch.',
+    );
+  }
+
+  Future<AppResult<void>> _writeStatus({
+    required Future<Object?> Function() operation,
+    required String unexpectedMessage,
+  }) async {
+    try {
+      await operation();
+      return const AppSuccess(null);
+    } on AppException catch (e) {
+      return AppFailure(e);
+    } catch (e, stack) {
+      return AppFailure(
+        AppException(
+          code: AppErrorCode.unexpected,
+          message: unexpectedMessage,
+          cause: e,
+          stackTrace: stack,
+        ),
+      );
+    }
   }
 
   Future<AppResult<Branch>> _writeBranch({
