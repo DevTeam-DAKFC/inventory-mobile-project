@@ -29,8 +29,7 @@ void main() {
       expect(user.isActive, isTrue);
     });
 
-    test('maps collaborator user with empty branchIds and null updatedAt',
-        () {
+    test('maps collaborator user with empty branchIds and null updatedAt', () {
       const dto = UserDto(
         id: 'user_collaborator_001',
         name: 'Carlos',
@@ -64,8 +63,11 @@ void main() {
       expect(
         () => AuthUserMapper.toDomain(dto),
         throwsA(
-          isA<AppException>()
-              .having((e) => e.code, 'code', AppErrorCode.unexpected),
+          isA<AppException>().having(
+            (e) => e.code,
+            'code',
+            AppErrorCode.unexpected,
+          ),
         ),
       );
     });
@@ -82,10 +84,7 @@ void main() {
         updatedAt: null,
       );
 
-      expect(
-        () => AuthUserMapper.toDomain(dto),
-        throwsA(isA<AppException>()),
-      );
+      expect(() => AuthUserMapper.toDomain(dto), throwsA(isA<AppException>()));
     });
   });
 }

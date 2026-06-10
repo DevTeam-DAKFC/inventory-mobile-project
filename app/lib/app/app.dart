@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../navigation/app_router.dart';
@@ -17,20 +18,31 @@ class InventoryMobileApp extends ConsumerWidget {
       loading: () => MaterialApp(
         title: 'Inventory Mobile',
         theme: buildAppTheme(),
+        locale: const Locale('es'),
+        supportedLocales: _supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         debugShowCheckedModeBanner: false,
         home: const SessionRestoreScreen(),
       ),
       error: (error, stackTrace) => MaterialApp(
         title: 'Inventory Mobile',
         theme: buildAppTheme(),
+        locale: const Locale('es'),
+        supportedLocales: _supportedLocales,
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         debugShowCheckedModeBanner: false,
-        home: _SessionRestoreErrorScreen(onRetry: () => ref.invalidate(sessionRestoreProvider)),
+        home: _SessionRestoreErrorScreen(
+          onRetry: () => ref.invalidate(sessionRestoreProvider),
+        ),
       ),
       data: (_) {
         final router = ref.watch(appRouterProvider);
         return MaterialApp.router(
           title: 'Inventory Mobile',
           theme: buildAppTheme(),
+          locale: const Locale('es'),
+          supportedLocales: _supportedLocales,
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           routerConfig: router,
           debugShowCheckedModeBanner: false,
         );
@@ -38,6 +50,8 @@ class InventoryMobileApp extends ConsumerWidget {
     );
   }
 }
+
+const _supportedLocales = [Locale('es'), Locale('en')];
 
 class _SessionRestoreErrorScreen extends StatelessWidget {
   const _SessionRestoreErrorScreen({required this.onRetry});
@@ -56,10 +70,14 @@ class _SessionRestoreErrorScreen extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, size: 56, color: theme.colorScheme.error),
+                Icon(
+                  Icons.error_outline,
+                  size: 56,
+                  color: theme.colorScheme.error,
+                ),
                 const SizedBox(height: 16),
                 Text(
-                  'Could not start the app.',
+                  'No se pudo iniciar la aplicacion.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium,
                 ),
@@ -67,7 +85,7 @@ class _SessionRestoreErrorScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
+                  label: const Text('Reintentar'),
                 ),
               ],
             ),

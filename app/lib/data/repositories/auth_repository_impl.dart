@@ -34,9 +34,14 @@ final class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<AppResult<AppUser>> login({required String email, required String password}) async {
+  Future<AppResult<AppUser>> login({
+    required String email,
+    required String password,
+  }) async {
     return _runAuth(
-      () => _dataSource.login(AuthLoginRequestDto(email: email, password: password)),
+      () => _dataSource.login(
+        AuthLoginRequestDto(email: email, password: password),
+      ),
       failureMessage: 'Unexpected error during login.',
     );
   }

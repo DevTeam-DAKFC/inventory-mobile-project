@@ -13,7 +13,11 @@ class SessionRestoreScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.inventory_2, size: 48, color: theme.colorScheme.primary),
+              Icon(
+                Icons.inventory_2,
+                size: 48,
+                color: theme.colorScheme.primary,
+              ),
               const SizedBox(height: 16),
               const SizedBox(
                 width: 24,

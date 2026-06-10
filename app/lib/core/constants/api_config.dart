@@ -14,11 +14,18 @@ final class ApiConfig {
 
   /// override when present; otherwise derives the URL from the current
   /// [defaultTargetPlatform].
-  factory ApiConfig.defaultForApp() =>
-      ApiConfig.resolve(providedBaseUrl: _envBaseUrl, platform: defaultTargetPlatform);
+  factory ApiConfig.defaultForApp() => ApiConfig.resolve(
+    providedBaseUrl: _envBaseUrl,
+    platform: defaultTargetPlatform,
+  );
 
-  factory ApiConfig.resolve({required String providedBaseUrl, required TargetPlatform platform}) {
-    final raw = providedBaseUrl.isEmpty ? defaultBaseUrlFor(platform) : providedBaseUrl;
+  factory ApiConfig.resolve({
+    required String providedBaseUrl,
+    required TargetPlatform platform,
+  }) {
+    final raw = providedBaseUrl.isEmpty
+        ? defaultBaseUrlFor(platform)
+        : providedBaseUrl;
     return ApiConfig(baseUrl: _stripTrailingSlash(raw));
   }
 

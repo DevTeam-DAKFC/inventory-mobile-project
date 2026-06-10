@@ -18,26 +18,33 @@ AppUser _adminUser() => AppUser(
 );
 
 void main() {
-  testWidgets('shows the restoring screen while sessionRestoreProvider is pending', (tester) async {
-    final pending = Completer<void>();
+  testWidgets(
+    'shows the restoring screen while sessionRestoreProvider is pending',
+    (tester) async {
+      final pending = Completer<void>();
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [sessionRestoreProvider.overrideWith((ref) => pending.future)],
-        child: const InventoryMobileApp(),
-      ),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            sessionRestoreProvider.overrideWith((ref) => pending.future),
+          ],
+          child: const InventoryMobileApp(),
+        ),
+      );
+      await tester.pump();
 
-    expect(find.text('Restoring session...'), findsOneWidget);
-    expect(find.text('Iniciar sesión'), findsNothing);
+      expect(find.text('Restoring session...'), findsOneWidget);
+      expect(find.text('Iniciar sesión'), findsNothing);
 
-    // Resolve the pending future so the test exits cleanly.
-    pending.complete();
-    await tester.pumpAndSettle();
-  });
+      // Resolve the pending future so the test exits cleanly.
+      pending.complete();
+      await tester.pumpAndSettle();
+    },
+  );
 
-  testWidgets('shows the login screen once restore completes with no token', (tester) async {
+  testWidgets('shows the login screen once restore completes with no token', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [sessionRestoreProvider.overrideWith((ref) async {})],
@@ -50,7 +57,9 @@ void main() {
     expect(find.text('Restoring session...'), findsNothing);
   });
 
-  testWidgets('shows the home content when restore authenticates the session', (tester) async {
+  testWidgets('shows the home content when restore authenticates the session', (
+    tester,
+  ) async {
     final session = AppSession()..setAuthenticatedUser(_adminUser());
 
     await tester.pumpWidget(

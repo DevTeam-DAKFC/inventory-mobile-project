@@ -5,8 +5,7 @@ import 'package:inventory_mobile/data/mappers/backend_health_mapper.dart';
 void main() {
   group('BackendHealthMapper', () {
     test('maps DTO to BackendHealth domain model', () {
-      const dto =
-          BackendHealthRestDto(status: 'ok', service: 'Inventory.Api');
+      const dto = BackendHealthRestDto(status: 'ok', service: 'Inventory.Api');
 
       final domain = BackendHealthMapper.toDomain(dto);
 

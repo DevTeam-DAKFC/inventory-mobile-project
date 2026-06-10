@@ -60,95 +60,23 @@ void main() {
     expect(state.errorMessage, isNull);
   });
 
-  test(
-    'submit success trims name and email, calls the repository exactly once '
-    'and authenticates the AppSession',
-    () async {
-      final user = _collaboratorUser();
-      when(
-        () => repository.register(
-          name: any(named: 'name'),
-          email: any(named: 'email'),
-          password: any(named: 'password'),
-        ),
-      ).thenAnswer((_) async => AppSuccess(user));
-
-      final container = _container(repository: repository, session: session);
-      final controller = container.read(registerControllerProvider.notifier);
-
-      await controller.submit(
-        name: '  Andrés Soto  ',
-        email: '  andres.soto@inventario-demo.com  ',
-        password: 'password123',
-      );
-
-      verify(
-        () => repository.register(
-          name: 'Andrés Soto',
-          email: 'andres.soto@inventario-demo.com',
-          password: 'password123',
-        ),
-      ).called(1);
-
-      expect(session.user, same(user));
-      expect(session.isAuthenticated, isTrue);
-
-      final finalState = container.read(registerControllerProvider);
-      expect(finalState.isLoading, isFalse);
-      expect(finalState.errorMessage, isNull);
-    },
-  );
-
-  test('submit toggles isLoading while the repository future is pending',
-      () async {
-    final pending = Completer<AppResult<AppUser>>();
+  test('submit success trims name and email, calls the repository exactly once '
+      'and authenticates the AppSession', () async {
+    final user = _collaboratorUser();
     when(
       () => repository.register(
         name: any(named: 'name'),
         email: any(named: 'email'),
         password: any(named: 'password'),
       ),
-    ).thenAnswer((_) => pending.future);
+    ).thenAnswer((_) async => AppSuccess(user));
 
     final container = _container(repository: repository, session: session);
     final controller = container.read(registerControllerProvider.notifier);
 
-    final future = controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
-
-    expect(container.read(registerControllerProvider).isLoading, isTrue);
-
-    pending.complete(AppSuccess(_collaboratorUser()));
-    await future;
-
-    expect(container.read(registerControllerProvider).isLoading, isFalse);
-  });
-
-  test('duplicate submit while loading does not call the repository twice',
-      () async {
-    final pending = Completer<AppResult<AppUser>>();
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer((_) => pending.future);
-
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(registerControllerProvider.notifier);
-
-    final first = controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
-    final second = controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
+    await controller.submit(
+      name: '  Andrés Soto  ',
+      email: '  andres.soto@inventario-demo.com  ',
       password: 'password123',
     );
 
@@ -160,125 +88,209 @@ void main() {
       ),
     ).called(1);
 
-    pending.complete(AppSuccess(_collaboratorUser()));
-    await Future.wait([first, second]);
+    expect(session.user, same(user));
+    expect(session.isAuthenticated, isTrue);
+
+    final finalState = container.read(registerControllerProvider);
+    expect(finalState.isLoading, isFalse);
+    expect(finalState.errorMessage, isNull);
   });
 
-  test('AppFailure unauthorized maps to the Spanish credentials message',
-      () async {
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async => const AppFailure(
-        AppException(code: AppErrorCode.unauthorized, message: 'rejected'),
-      ),
-    );
+  test(
+    'submit toggles isLoading while the repository future is pending',
+    () async {
+      final pending = Completer<AppResult<AppUser>>();
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) => pending.future);
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(registerControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
 
-    await controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
+      final future = controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
 
-    final state = container.read(registerControllerProvider);
-    expect(state.errorMessage, 'No pudimos validar tus credenciales.');
-    expect(state.isLoading, isFalse);
-    expect(session.isAuthenticated, isFalse);
-  });
+      expect(container.read(registerControllerProvider).isLoading, isTrue);
 
-  test('AppFailure validationError maps to the Spanish field-review message',
-      () async {
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async => const AppFailure(
-        AppException(code: AppErrorCode.validationError, message: 'bad fields'),
-      ),
-    );
+      pending.complete(AppSuccess(_collaboratorUser()));
+      await future;
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(registerControllerProvider.notifier);
+      expect(container.read(registerControllerProvider).isLoading, isFalse);
+    },
+  );
 
-    await controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
+  test(
+    'duplicate submit while loading does not call the repository twice',
+    () async {
+      final pending = Completer<AppResult<AppUser>>();
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) => pending.future);
 
-    expect(
-      container.read(registerControllerProvider).errorMessage,
-      'Revisa los campos ingresados.',
-    );
-  });
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
 
-  test('AppFailure conflict maps to the Spanish duplicate-email message',
-      () async {
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async => const AppFailure(
-        AppException(code: AppErrorCode.conflict, message: 'already exists'),
-      ),
-    );
+      final first = controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
+      final second = controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(registerControllerProvider.notifier);
+      verify(
+        () => repository.register(
+          name: 'Andrés Soto',
+          email: 'andres.soto@inventario-demo.com',
+          password: 'password123',
+        ),
+      ).called(1);
 
-    await controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
+      pending.complete(AppSuccess(_collaboratorUser()));
+      await Future.wait([first, second]);
+    },
+  );
 
-    final state = container.read(registerControllerProvider);
-    expect(state.errorMessage, 'Ese correo ya está registrado.');
-    expect(session.isAuthenticated, isFalse);
-  });
+  test(
+    'AppFailure unauthorized maps to the Spanish credentials message',
+    () async {
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.unauthorized, message: 'rejected'),
+        ),
+      );
 
-  test('AppFailure networkError maps to the Spanish no-connection message',
-      () async {
-    when(
-      () => repository.register(
-        name: any(named: 'name'),
-        email: any(named: 'email'),
-        password: any(named: 'password'),
-      ),
-    ).thenAnswer(
-      (_) async => const AppFailure(
-        AppException(code: AppErrorCode.networkError, message: 'no network'),
-      ),
-    );
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(registerControllerProvider.notifier);
+      await controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
 
-    await controller.submit(
-      name: 'Andrés Soto',
-      email: 'andres.soto@inventario-demo.com',
-      password: 'password123',
-    );
+      final state = container.read(registerControllerProvider);
+      expect(state.errorMessage, 'No pudimos validar tus credenciales.');
+      expect(state.isLoading, isFalse);
+      expect(session.isAuthenticated, isFalse);
+    },
+  );
 
-    expect(
-      container.read(registerControllerProvider).errorMessage,
-      'Sin conexión. Inténtalo de nuevo.',
-    );
-    expect(session.isAuthenticated, isFalse);
-  });
+  test(
+    'AppFailure validationError maps to the Spanish field-review message',
+    () async {
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(
+            code: AppErrorCode.validationError,
+            message: 'bad fields',
+          ),
+        ),
+      );
+
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
+
+      await controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
+
+      expect(
+        container.read(registerControllerProvider).errorMessage,
+        'Revisa los campos ingresados.',
+      );
+    },
+  );
+
+  test(
+    'AppFailure conflict maps to the Spanish duplicate-email message',
+    () async {
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.conflict, message: 'already exists'),
+        ),
+      );
+
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
+
+      await controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
+
+      final state = container.read(registerControllerProvider);
+      expect(state.errorMessage, 'Ese correo ya está registrado.');
+      expect(session.isAuthenticated, isFalse);
+    },
+  );
+
+  test(
+    'AppFailure networkError maps to the Spanish no-connection message',
+    () async {
+      when(
+        () => repository.register(
+          name: any(named: 'name'),
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer(
+        (_) async => const AppFailure(
+          AppException(code: AppErrorCode.networkError, message: 'no network'),
+        ),
+      );
+
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(registerControllerProvider.notifier);
+
+      await controller.submit(
+        name: 'Andrés Soto',
+        email: 'andres.soto@inventario-demo.com',
+        password: 'password123',
+      );
+
+      expect(
+        container.read(registerControllerProvider).errorMessage,
+        'Sin conexión. Inténtalo de nuevo.',
+      );
+      expect(session.isAuthenticated, isFalse);
+    },
+  );
 
   test('AppFailure timeout maps to the Spanish timeout message', () async {
     when(
@@ -319,10 +331,7 @@ void main() {
         ),
       ).thenAnswer(
         (_) async => const AppFailure(
-          AppException(
-            code: AppErrorCode.serviceUnavailable,
-            message: 'down',
-          ),
+          AppException(code: AppErrorCode.serviceUnavailable, message: 'down'),
         ),
       );
 

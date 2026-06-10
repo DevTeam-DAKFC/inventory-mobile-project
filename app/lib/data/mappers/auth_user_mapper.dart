@@ -46,7 +46,8 @@ final class AuthUserMapper {
     if (parsed == null) {
       throw AppException(
         code: AppErrorCode.unexpected,
-        message: 'Invalid user payload: field "$field" is not a valid '
+        message:
+            'Invalid user payload: field "$field" is not a valid '
             'ISO-8601 date-time.',
         details: {'received': value, 'userId': dto.id},
       );

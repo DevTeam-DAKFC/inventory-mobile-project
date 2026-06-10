@@ -49,7 +49,10 @@ ThemeData buildAppTheme() {
       fillColor: elevatedSurface,
     ),
     textTheme: const TextTheme(
-      headlineMedium: TextStyle(color: primaryText, fontWeight: FontWeight.w700),
+      headlineMedium: TextStyle(
+        color: primaryText,
+        fontWeight: FontWeight.w700,
+      ),
       headlineSmall: TextStyle(color: primaryText, fontWeight: FontWeight.w700),
       titleLarge: TextStyle(color: primaryText, fontWeight: FontWeight.w700),
       titleMedium: TextStyle(color: primaryText, fontWeight: FontWeight.w600),

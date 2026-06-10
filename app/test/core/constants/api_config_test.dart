@@ -69,15 +69,17 @@ void main() {
         expect(config.baseUrl, 'http://10.0.2.2:5225');
       });
 
-      test('falls back to the non-Android default when provided URL is empty',
-          () {
-        final config = ApiConfig.resolve(
-          providedBaseUrl: '',
-          platform: TargetPlatform.iOS,
-        );
+      test(
+        'falls back to the non-Android default when provided URL is empty',
+        () {
+          final config = ApiConfig.resolve(
+            providedBaseUrl: '',
+            platform: TargetPlatform.iOS,
+          );
 
-        expect(config.baseUrl, 'http://localhost:5225');
-      });
+          expect(config.baseUrl, 'http://localhost:5225');
+        },
+      );
     });
   });
 }

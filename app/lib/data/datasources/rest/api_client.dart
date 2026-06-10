@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 
+import '../../../core/auth/access_token_provider.dart';
 import '../../../core/constants/api_config.dart';
 
 final class ApiClient {
-  ApiClient(this.config) : dio = _buildDio(config);
+  ApiClient(this.config, {AccessTokenProvider? accessTokenProvider})
+    : dio = _buildDio(config, accessTokenProvider);
 
   final ApiConfig config;
   final Dio dio;
@@ -11,8 +13,11 @@ final class ApiClient {
   static const Duration defaultConnectTimeout = Duration(seconds: 10);
   static const Duration defaultReceiveTimeout = Duration(seconds: 15);
 
-  static Dio _buildDio(ApiConfig config) {
-    return Dio(
+  static Dio _buildDio(
+    ApiConfig config,
+    AccessTokenProvider? accessTokenProvider,
+  ) {
+    final dio = Dio(
       BaseOptions(
         baseUrl: config.baseUrl,
         connectTimeout: defaultConnectTimeout,
@@ -21,5 +26,21 @@ final class ApiClient {
         headers: const {'Accept': 'application/json'},
       ),
     );
+
+    if (accessTokenProvider != null) {
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            final token = await accessTokenProvider.getAccessToken();
+            if (token != null && token.isNotEmpty) {
+              options.headers['Authorization'] = 'Bearer $token';
+            }
+            handler.next(options);
+          },
+        ),
+      );
+    }
+
+    return dio;
   }
 }

@@ -1,132 +1,129 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
-import 'package:inventory_mobile/data/providers/auth_providers.dart';
-import 'package:inventory_mobile/domain/repositories/auth_repository.dart';
-import 'package:inventory_mobile/navigation/app_session.dart';
+import 'package:inventory_mobile/data/providers/product_providers.dart';
+import 'package:inventory_mobile/domain/models/paginated_products.dart';
+import 'package:inventory_mobile/domain/models/product.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
+import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_mutations.dart';
+import 'package:inventory_mobile/domain/repositories/product_repository.dart';
 import 'package:inventory_mobile/ui/home/home_screen.dart';
-import 'package:mocktail/mocktail.dart';
+import 'package:inventory_mobile/ui/products/product_form_screen.dart';
 
-import '../../support/test_theme.dart';
+void main() {
+  testWidgets('loads active and low-stock totals for the home KPIs', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository();
+    await _pumpHome(tester, repository);
+    await tester.pumpAndSettle();
 
-class _MockAuthRepository extends Mock implements AuthRepository {}
+    expect(find.text('17'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('-'), findsNWidgets(2));
+    expect(repository.queries, hasLength(2));
 
-GoRouter _buildAuthAwareRouter(AppSession session) {
-  return GoRouter(
-    initialLocation: '/home',
-    refreshListenable: session,
-    redirect: (context, state) {
-      final isPublic = state.matchedLocation == '/login';
-      if (!session.isAuthenticated && !isPublic) {
-        return '/login';
-      }
-      if (session.isAuthenticated && isPublic) {
-        return '/home';
-      }
-      return null;
-    },
-    routes: [
-      GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
-      GoRoute(
-        path: '/login',
-        builder: (_, _) =>
-            const Scaffold(body: Center(child: Text('LOGIN_STUB'))),
+    final activeQuery = repository.queries.firstWhere(
+      (query) => query.isActive == true,
+    );
+    expect(activeQuery.page, 1);
+    expect(activeQuery.pageSize, 1);
+
+    final lowStockQuery = repository.queries.firstWhere(
+      (query) => query.lowStockOnly == true,
+    );
+    expect(lowStockQuery.page, 1);
+    expect(lowStockQuery.pageSize, 1);
+  });
+
+  testWidgets('opens the existing product creation form from quick actions', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository();
+    final router = GoRouter(
+      initialLocation: '/home',
+      routes: [
+        GoRoute(path: '/home', builder: (_, _) => const HomeScreen()),
+        GoRoute(
+          path: '/products/new',
+          builder: (_, _) => const ProductFormScreen(),
+        ),
+      ],
+    );
+    addTearDown(router.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [productRepositoryProvider.overrideWithValue(repository)],
+        child: MaterialApp.router(routerConfig: router),
       ),
-    ],
-  );
+    );
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Nuevo producto'));
+    await tester.tap(find.text('Nuevo producto'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('product-name-field')), findsOneWidget);
+  });
 }
 
-Widget _harness({
-  required _MockAuthRepository repository,
-  required AppSession session,
-}) {
-  return ProviderScope(
-    overrides: [
-      authRepositoryProvider.overrideWithValue(repository),
-      appSessionProvider.overrideWithValue(session),
-    ],
-    child: MaterialApp.router(
-      theme: buildTestTheme(),
-      routerConfig: _buildAuthAwareRouter(session),
+Future<void> _pumpHome(WidgetTester tester, ProductRepository repository) {
+  return tester.pumpWidget(
+    ProviderScope(
+      overrides: [productRepositoryProvider.overrideWithValue(repository)],
+      child: const MaterialApp(home: HomeScreen()),
     ),
   );
 }
 
-void main() {
-  late _MockAuthRepository repository;
-  late AppSession session;
+final class _FakeProductRepository implements ProductRepository {
+  final queries = <ProductListQuery>[];
 
-  setUp(() {
-    repository = _MockAuthRepository();
-    session = AppSession()..signInAsDemoAdmin();
-  });
+  @override
+  Future<AppResult<PaginatedProducts>> listProducts(
+    ProductListQuery query,
+  ) async {
+    queries.add(query);
+    return AppSuccess(
+      PaginatedProducts(
+        items: const [],
+        total: query.isActive == true ? 17 : 4,
+        page: 1,
+        pageSize: 1,
+        hasNextPage: false,
+      ),
+    );
+  }
 
-  testWidgets(
-    'shows the "Cerrar sesión" action with a logout icon when authenticated',
-    (tester) async {
-      await tester.pumpWidget(
-        _harness(repository: repository, session: session),
-      );
-      await tester.pumpAndSettle();
+  @override
+  Future<AppResult<Product>> createProduct(CreateProductInput input) =>
+      throw UnimplementedError();
 
-      expect(find.byTooltip('Cerrar sesión'), findsOneWidget);
-      expect(find.byIcon(Icons.logout), findsOneWidget);
-    },
-  );
+  @override
+  Future<AppResult<void>> deactivateProduct(String productId) =>
+      throw UnimplementedError();
 
-  testWidgets(
-    'tapping "Cerrar sesión" calls AuthRepository.logout, signs out the '
-    'AppSession and the router redirects to /login',
-    (tester) async {
-      when(
-        () => repository.logout(),
-      ).thenAnswer((_) async => const AppSuccess<void>(null));
+  @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
 
-      await tester.pumpWidget(
-        _harness(repository: repository, session: session),
-      );
-      await tester.pumpAndSettle();
+  @override
+  Future<AppResult<Product>> getProduct(String productId) =>
+      throw UnimplementedError();
 
-      expect(session.isAuthenticated, isTrue);
+  @override
+  Future<AppResult<Product>> updateProduct(
+    String productId,
+    UpdateProductInput input,
+  ) => throw UnimplementedError();
 
-      await tester.tap(find.byTooltip('Cerrar sesión'));
-      await tester.pumpAndSettle();
-
-      verify(() => repository.logout()).called(1);
-      expect(session.isAuthenticated, isFalse);
-      expect(session.user, isNull);
-      expect(find.text('LOGIN_STUB'), findsOneWidget);
-    },
-  );
-
-  testWidgets(
-    'duplicate taps while logout is loading do not trigger duplicate logout '
-    'calls',
-    (tester) async {
-      final pending = Completer<AppResult<void>>();
-      when(() => repository.logout()).thenAnswer((_) => pending.future);
-
-      await tester.pumpWidget(
-        _harness(repository: repository, session: session),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.byTooltip('Cerrar sesión'));
-      await tester.pump();
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      await tester.tap(find.byTooltip('Cerrar sesión'));
-      await tester.pump();
-
-      verify(() => repository.logout()).called(1);
-
-      pending.complete(const AppSuccess<void>(null));
-      await tester.pumpAndSettle();
-    },
-  );
+  @override
+  Future<AppResult<Product>> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  ) => throw UnimplementedError();
 }
