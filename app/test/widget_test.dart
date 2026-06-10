@@ -91,6 +91,22 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
+  testWidgets('authenticated admin can reach CSV import flow', (tester) async {
+    final session = AppSession()..signInAsDemoAdmin();
+
+    await tester.pumpWidget(
+      _RouterTestApp(
+        session: session,
+        initialLocation: AppRoutes.productImport,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Importar productos'), findsOneWidget);
+    expect(find.text('Seleccionar archivo'), findsOneWidget);
+    expect(find.text('Formato esperado'), findsOneWidget);
+  });
+
   testWidgets('logout returns the user to the public auth flow', (
     tester,
   ) async {

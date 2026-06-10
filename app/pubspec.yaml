@@ -43,6 +43,7 @@ dependencies:
   shared_preferences: ^2.5.5
   flutter_secure_storage: ^9.2.2
   image_picker: ^1.2.2
+  file_picker: ^10.3.7
   csv: ^8.0.0
 
 dev_dependencies:
