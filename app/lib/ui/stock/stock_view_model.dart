@@ -1,8 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/stock_config.dart';
+import '../../core/errors/app_error_code.dart';
+import '../../core/errors/app_exception.dart';
+import '../../core/result/app_result.dart';
 import '../../data/providers/stock_providers.dart';
 import '../../domain/models/stock_overview_item.dart';
+import 'stock_error_message_mapper.dart';
 import 'stock_state.dart';
 
 final stockViewModelProvider =
@@ -10,18 +16,17 @@ final stockViewModelProvider =
 
 class StockViewModel extends AsyncNotifier<StockState> {
   StockBranchOption _selectedBranch = StockConfig.defaultDevelopmentBranch;
+  int _requestSequence = 0;
 
   @override
-  Future<StockState> build() => _loadStock(_selectedBranch);
+  StockState build() {
+    final branch = _selectedBranch;
+    unawaited(_loadSelectedBranch(branch));
+    return StockLoading(branchId: branch.id, branchName: branch.name);
+  }
 
   Future<void> refresh() async {
-    state = AsyncData(
-      StockLoading(
-        branchId: _selectedBranch.id,
-        branchName: _selectedBranch.name,
-      ),
-    );
-    state = await AsyncValue.guard(() => _loadStock(_selectedBranch));
+    await _loadSelectedBranch(_selectedBranch);
   }
 
   Future<void> selectBranch(String branchId) async {
@@ -31,25 +36,48 @@ class StockViewModel extends AsyncNotifier<StockState> {
     }
 
     _selectedBranch = nextBranch;
-    state = AsyncData(
-      StockLoading(branchId: nextBranch.id, branchName: nextBranch.name),
-    );
-    state = await AsyncValue.guard(() => _loadStock(nextBranch));
+    await _loadSelectedBranch(nextBranch);
   }
 
-  Future<StockState> _loadStock(StockBranchOption branch) async {
-    final repository = ref.watch(stockRepositoryProvider);
-    final result = await repository.getStockByBranch(branch.id);
+  Future<void> _loadSelectedBranch(StockBranchOption branch) async {
+    final requestId = ++_requestSequence;
+    state = AsyncData(
+      StockLoading(branchId: branch.id, branchName: branch.name),
+    );
 
-    return result.when(
+    final repository = ref.read(stockRepositoryProvider);
+    final result = await repository.getStockByBranch(branch.id).catchError((
+      Object error,
+      StackTrace stack,
+    ) {
+      return AppFailure<List<StockOverviewItem>>(
+        AppException(
+          code: AppErrorCode.unexpected,
+          message: 'Unexpected error loading stock.',
+          cause: error,
+          stackTrace: stack,
+        ),
+      );
+    });
+
+    if (!_isCurrentRequest(requestId, branch.id)) {
+      return;
+    }
+
+    final nextState = result.when(
       success: (items) => _successState(branch, items),
       failure: (exception) => StockError(
         branchId: branch.id,
         branchName: branch.name,
-        message: exception.message,
+        message: StockErrorMessageMapper.fromException(exception),
         code: exception.code.value,
+        technicalMessage: exception.message,
       ),
     );
+
+    if (_isCurrentRequest(requestId, branch.id)) {
+      state = AsyncData(nextState);
+    }
   }
 
   StockState _successState(
@@ -69,5 +97,9 @@ class StockViewModel extends AsyncNotifier<StockState> {
       branchName: branchName,
       items: items,
     );
+  }
+
+  bool _isCurrentRequest(int requestId, String branchId) {
+    return requestId == _requestSequence && branchId == _selectedBranch.id;
   }
 }

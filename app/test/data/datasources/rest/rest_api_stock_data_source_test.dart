@@ -160,6 +160,39 @@ void main() {
       );
     });
 
+    for (final entry in <int, AppErrorCode>{
+      400: AppErrorCode.validationError,
+      401: AppErrorCode.unauthorized,
+      404: AppErrorCode.notFound,
+      409: AppErrorCode.conflict,
+      500: AppErrorCode.unexpected,
+      503: AppErrorCode.serviceUnavailable,
+    }.entries) {
+      test('maps ${entry.key} badResponse to ${entry.value}', () async {
+        when(
+          () => dio.get<dynamic>(
+            '/stock',
+            queryParameters: {'branchId': _developmentBranchId},
+          ),
+        ).thenThrow(
+          _dioException(DioExceptionType.badResponse, statusCode: entry.key),
+        );
+
+        await expectLater(
+          sut.fetchStockByBranch(_developmentBranchId),
+          throwsA(
+            isA<AppException>()
+                .having((e) => e.code, 'code', entry.value)
+                .having(
+                  (e) => e.details?['statusCode'],
+                  'statusCode',
+                  entry.key,
+                ),
+          ),
+        );
+      });
+    }
+
     test('maps invalid JSON shape to AppErrorCode.unexpected', () async {
       when(
         () => dio.get<dynamic>(

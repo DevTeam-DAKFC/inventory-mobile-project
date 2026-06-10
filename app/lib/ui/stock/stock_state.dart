@@ -36,10 +36,12 @@ final class StockError extends StockState {
     required this.branchName,
     required this.message,
     required this.code,
+    required this.technicalMessage,
   });
 
   final String branchId;
   final String branchName;
   final String message;
   final String code;
+  final String technicalMessage;
 }

@@ -77,6 +77,7 @@ class RestApiStockDataSource {
               'Backend returned unexpected status ${e.response?.statusCode}.',
           cause: e,
           stackTrace: stack,
+          details: {'statusCode': e.response?.statusCode},
         );
       case DioExceptionType.connectionError:
         return AppException(
@@ -103,8 +104,10 @@ class RestApiStockDataSource {
       401 => AppErrorCode.unauthorized,
       403 => AppErrorCode.forbidden,
       404 => AppErrorCode.notFound,
+      409 => AppErrorCode.conflict,
+      500 => AppErrorCode.unexpected,
       503 => AppErrorCode.serviceUnavailable,
-      _ => AppErrorCode.networkError,
+      _ => AppErrorCode.unexpected,
     };
   }
 }

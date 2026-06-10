@@ -169,7 +169,65 @@ void main() {
       expect(find.text(StockConfig.developmentBranchName), findsOneWidget);
     });
 
-    testWidgets('shows the expected error state when selected branch fails', (
+    testWidgets('ignores an older branch response that arrives late', (
+      tester,
+    ) async {
+      final centralCompleter = Completer<AppResult<List<StockOverviewItem>>>();
+      final warehouseCompleter =
+          Completer<AppResult<List<StockOverviewItem>>>();
+      final repository = _FakeStockRepository({
+        StockConfig.developmentBranchId: centralCompleter.future,
+        StockConfig.developmentBranches[1].id: warehouseCompleter.future,
+      });
+
+      await _pumpStockScreen(tester, repository, settle: false);
+      await _selectWarehouseBranch(tester, settle: false);
+
+      warehouseCompleter.complete(
+        AppSuccess([
+          StockOverviewItem(
+            id: 'warehouse',
+            productId: 'product-flour',
+            productName: 'Warehouse Flour',
+            branchId: StockConfig.developmentBranches[1].id,
+            branchName: 'Warehouse Branch',
+            availableQuantity: 9,
+            minStock: 3,
+            isLowStock: false,
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Warehouse Branch'), findsWidgets);
+      expect(find.text('Warehouse Flour'), findsOneWidget);
+
+      centralCompleter.complete(
+        const AppSuccess([
+          StockOverviewItem(
+            id: 'central',
+            productId: 'product-coffee',
+            productName: 'Coffee Beans',
+            branchId: StockConfig.developmentBranchId,
+            branchName: 'Central Branch',
+            availableQuantity: 8,
+            minStock: 3,
+            isLowStock: false,
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      expect(repository.requestedBranchIds, [
+        StockConfig.developmentBranchId,
+        StockConfig.developmentBranches[1].id,
+      ]);
+      expect(find.text('Warehouse Branch'), findsWidgets);
+      expect(find.text('Warehouse Flour'), findsOneWidget);
+      expect(find.text('Coffee Beans'), findsNothing);
+    });
+
+    testWidgets('shows a friendly network error for selected branch failures', (
       tester,
     ) async {
       final repository = _FakeStockRepository({
@@ -202,26 +260,105 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('network_error: Cannot reach the backend.'),
+        find.text('No fue posible conectar con el servidor.'),
         findsOneWidget,
       );
+      expect(find.textContaining('network_error'), findsNothing);
+      expect(find.textContaining('Cannot reach the backend'), findsNothing);
       expect(find.text('Warehouse Branch'), findsWidgets);
       expect(find.widgetWithText(FilledButton, 'Reintentar'), findsOneWidget);
     });
+
+    for (final scenario in <_ErrorScenario>[
+      _ErrorScenario(
+        name: '401',
+        exception: AppException(
+          code: AppErrorCode.unauthorized,
+          message: 'Backend returned unexpected status 401.',
+          details: {'statusCode': 401},
+        ),
+        expectedMessage: 'Tu sesión expiró. Inicia sesión nuevamente.',
+      ),
+      _ErrorScenario(
+        name: '403',
+        exception: AppException(
+          code: AppErrorCode.forbidden,
+          message: 'Backend returned unexpected status 403.',
+          details: {'statusCode': 403},
+        ),
+        expectedMessage: 'No tienes permisos para consultar el stock.',
+      ),
+      _ErrorScenario(
+        name: '404',
+        exception: AppException(
+          code: AppErrorCode.notFound,
+          message: 'Backend returned unexpected status 404.',
+          details: {'statusCode': 404},
+        ),
+        expectedMessage:
+            'No se encontró información de stock para esta sucursal.',
+      ),
+      _ErrorScenario(
+        name: '500',
+        exception: AppException(
+          code: AppErrorCode.unexpected,
+          message: 'Backend returned unexpected status 500.',
+          details: {'statusCode': 500},
+        ),
+        expectedMessage: 'Ocurrió un error interno. Inténtalo más tarde.',
+      ),
+      _ErrorScenario(
+        name: '503',
+        exception: AppException(
+          code: AppErrorCode.serviceUnavailable,
+          message: 'Backend returned unexpected status 503.',
+          details: {'statusCode': 503},
+        ),
+        expectedMessage: 'El servicio no está disponible. Inténtalo más tarde.',
+      ),
+    ]) {
+      testWidgets('shows friendly message for ${scenario.name}', (
+        tester,
+      ) async {
+        final repository = _FakeStockRepository({
+          StockConfig.developmentBranchId: AppFailure<List<StockOverviewItem>>(
+            scenario.exception,
+          ),
+        });
+
+        await _pumpStockScreen(tester, repository);
+
+        expect(find.text(scenario.expectedMessage), findsOneWidget);
+        expect(
+          find.textContaining(scenario.exception.code.value),
+          findsNothing,
+        );
+        expect(find.textContaining(scenario.exception.message), findsNothing);
+        expect(find.textContaining('AppException'), findsNothing);
+      });
+    }
   });
 }
 
 Future<void> _pumpStockScreen(
   WidgetTester tester,
-  _FakeStockRepository repository,
-) async {
+  _FakeStockRepository repository, {
+  bool settle = true,
+}) async {
   await tester.pumpWidget(
     ProviderScope(
       overrides: [stockRepositoryProvider.overrideWithValue(repository)],
-      child: const MaterialApp(home: Material(child: StockScreen())),
+      child: MaterialApp(
+        theme: ThemeData(useMaterial3: false),
+        home: const Material(child: StockScreen()),
+      ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump();
+  }
 }
 
 Future<void> _selectWarehouseBranch(
@@ -229,13 +366,29 @@ Future<void> _selectWarehouseBranch(
   bool settle = true,
 }) async {
   await tester.tap(find.byType(DropdownButton<String>));
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    await tester.pump(const Duration(seconds: 1));
+  }
   await tester.tap(find.text('Warehouse Branch').last);
   if (settle) {
     await tester.pumpAndSettle();
   } else {
     await tester.pump();
   }
+}
+
+final class _ErrorScenario {
+  const _ErrorScenario({
+    required this.name,
+    required this.exception,
+    required this.expectedMessage,
+  });
+
+  final String name;
+  final AppException exception;
+  final String expectedMessage;
 }
 
 final class _FakeStockRepository implements StockRepository {

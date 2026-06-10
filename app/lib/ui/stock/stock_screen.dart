@@ -57,7 +57,8 @@ class _StockScreenState extends ConsumerState<StockScreen> {
                 loading: () => const _LoadingState(),
                 error: (error, _) => _ErrorState(
                   title: 'No se pudieron cargar las existencias',
-                  detail: error.toString(),
+                  detail:
+                      'No fue posible cargar las existencias. Inténtalo nuevamente.',
                   onRetry: () =>
                       ref.read(stockViewModelProvider.notifier).refresh(),
                 ),
@@ -81,9 +82,9 @@ class _StockScreenState extends ConsumerState<StockScreen> {
         message: 'No se encontraron existencias',
         onRefresh: () => ref.read(stockViewModelProvider.notifier).refresh(),
       ),
-      StockError(:final code, :final message) => _ErrorState(
+      StockError(:final message) => _ErrorState(
         title: 'No se pudieron cargar las existencias',
-        detail: '$code: $message',
+        detail: message,
         onRetry: () => ref.read(stockViewModelProvider.notifier).refresh(),
       ),
     };

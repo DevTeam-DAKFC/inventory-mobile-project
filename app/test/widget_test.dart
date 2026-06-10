@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/app/app.dart';
+import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/data/providers/stock_providers.dart';
+import 'package:inventory_mobile/domain/models/stock_overview_item.dart';
+import 'package:inventory_mobile/domain/repositories/stock_repository.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
 import 'package:inventory_mobile/navigation/session_restore_controller.dart';
+
+import 'support/test_theme.dart';
 
 void main() {
   testWidgets('shows login as the public entry point', (tester) async {
@@ -20,10 +26,14 @@ void main() {
     expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
   });
 
-  testWidgets('redirects unauthenticated users away from private routes', (tester) async {
+  testWidgets('redirects unauthenticated users away from private routes', (
+    tester,
+  ) async {
     final session = AppSession();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Iniciar sesión'), findsOneWidget);
@@ -33,7 +43,9 @@ void main() {
   testWidgets('authenticated users reach the main app shell', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Resumen de inventario'), findsOneWidget);
@@ -47,12 +59,17 @@ void main() {
   testWidgets('navigates between core shell screens', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(_navigationDestination('Productos'));
     await tester.pumpAndSettle();
-    expect(find.text('Reserved for the assigned feature issue.'), findsOneWidget);
+    expect(
+      find.text('Reserved for the assigned feature issue.'),
+      findsOneWidget,
+    );
 
     await tester.tap(_navigationDestination('Stock'));
     await tester.pumpAndSettle();
@@ -67,10 +84,14 @@ void main() {
     expect(find.text('Alertas'), findsWidgets);
   });
 
-  testWidgets('shows role state without exposing feature-specific entries', (tester) async {
+  testWidgets('shows role state without exposing feature-specific entries', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoCollaborator();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
@@ -78,10 +99,14 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
-  testWidgets('logout returns the user to the public auth flow', (tester) async {
+  testWidgets('logout returns the user to the public auth flow', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     session.signOut();
@@ -111,10 +136,23 @@ class _RouterTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      overrides: [appSessionProvider.overrideWithValue(session)],
+      overrides: [
+        appSessionProvider.overrideWithValue(session),
+        stockRepositoryProvider.overrideWithValue(_FakeStockRepository()),
+      ],
       child: MaterialApp.router(
+        theme: buildTestTheme(),
         routerConfig: buildAppRouter(session, initialLocation: initialLocation),
       ),
     );
+  }
+}
+
+final class _FakeStockRepository implements StockRepository {
+  @override
+  Future<AppResult<List<StockOverviewItem>>> getStockByBranch(
+    String branchId,
+  ) async {
+    return const AppSuccess([]);
   }
 }
