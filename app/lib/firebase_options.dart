@@ -26,7 +26,10 @@ class DefaultFirebaseOptions {
       case TargetPlatform.android:
         return android;
       case TargetPlatform.iOS:
-        return ios;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for ios - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.macOS:
         throw UnsupportedError(
           'DefaultFirebaseOptions have not been configured for macos - '
@@ -50,19 +53,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDfySinuAvlfvPlI2IvYJM_I5P9uvh53pE',
-    appId: '1:255840275918:android:074b2c4ae80dfdc12e6f9f',
-    messagingSenderId: '255840275918',
-    projectId: 'unaroom-7d68b',
-    storageBucket: 'unaroom-7d68b.firebasestorage.app',
-  );
-
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBnrw0lBG8_zgLYLaGO_z3AEdN1rcwjhOY',
-    appId: '1:255840275918:ios:3f9d141206897fea2e6f9f',
-    messagingSenderId: '255840275918',
-    projectId: 'unaroom-7d68b',
-    storageBucket: 'unaroom-7d68b.firebasestorage.app',
-    iosBundleId: 'com.example.inventoryMobile',
+    apiKey: 'AIzaSyBMkCNl-d-ggZU0kk_WsREru08Uh-9p_tI',
+    appId: '1:748275523258:android:40afb1979a1c8cc696ac83',
+    messagingSenderId: '748275523258',
+    projectId: 'inventory-mobile-2d717',
+    storageBucket: 'inventory-mobile-2d717.firebasestorage.app',
   );
 }

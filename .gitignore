@@ -50,3 +50,7 @@ GoogleService-Info.plist
 
 /Protipo Investigación
 docs/prototype/
+
+google-services.json
+!app/android/app/google-services.json
+GoogleService-Info.plist
