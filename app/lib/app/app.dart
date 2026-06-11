@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../data/providers/notification_providers.dart';
 import '../navigation/app_router.dart';
 import '../navigation/session_restore_controller.dart';
 import '../ui/foundation/session_restore_screen.dart';
@@ -36,6 +37,7 @@ class InventoryMobileApp extends ConsumerWidget {
         ),
       ),
       data: (_) {
+        ref.watch(notificationReceptionBootstrapProvider);
         final router = ref.watch(appRouterProvider);
         return MaterialApp.router(
           title: 'Inventory Mobile',

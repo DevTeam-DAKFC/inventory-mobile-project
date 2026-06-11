@@ -143,6 +143,8 @@ NotificationToken _notificationToken(String id) {
 
 final class _FakeFirebaseMessagingGateway implements FirebaseMessagingGateway {
   final refreshController = StreamController<String>.broadcast();
+  final messageController = StreamController<PushMessage>.broadcast();
+  final openedController = StreamController<PushMessage>.broadcast();
 
   String? token;
   Object? permissionError;
@@ -156,6 +158,15 @@ final class _FakeFirebaseMessagingGateway implements FirebaseMessagingGateway {
   }
 
   @override
+  Future<PushMessage?> getInitialMessage() async => null;
+
+  @override
+  Stream<PushMessage> get onMessage => messageController.stream;
+
+  @override
+  Stream<PushMessage> get onMessageOpenedApp => openedController.stream;
+
+  @override
   Stream<String> get onTokenRefresh => refreshController.stream;
 
   @override
@@ -164,7 +175,11 @@ final class _FakeFirebaseMessagingGateway implements FirebaseMessagingGateway {
     if (permissionError case final error?) throw error;
   }
 
-  Future<void> dispose() => refreshController.close();
+  Future<void> dispose() async {
+    await refreshController.close();
+    await messageController.close();
+    await openedController.close();
+  }
 }
 
 final class _FakeNotificationTokenRepository

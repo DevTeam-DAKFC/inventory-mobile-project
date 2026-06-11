@@ -54,6 +54,15 @@ final class _FakeMessagingGateway implements FirebaseMessagingGateway {
   Future<String?> getToken() async => 'fcm-token';
 
   @override
+  Future<PushMessage?> getInitialMessage() async => null;
+
+  @override
+  Stream<PushMessage> get onMessage => const Stream.empty();
+
+  @override
+  Stream<PushMessage> get onMessageOpenedApp => const Stream.empty();
+
+  @override
   Stream<String> get onTokenRefresh => const Stream.empty();
 
   @override
