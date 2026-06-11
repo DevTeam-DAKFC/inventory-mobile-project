@@ -41,6 +41,25 @@ final class PushNotificationService {
     await _registerToken(token: token!, userId: userId!);
   }
 
+  Future<void> unregisterCurrentRegistration() async {
+    try {
+      final registration = await _storage.read();
+      if (registration != null) {
+        await _repository.deleteNotificationToken(
+          registration.notificationTokenId,
+        );
+      }
+    } catch (_) {
+      // Token deletion is best-effort and must never block logout.
+    } finally {
+      try {
+        await _storage.clear();
+      } catch (_) {
+        // Storage cleanup failures must never block logout.
+      }
+    }
+  }
+
   void startTokenRefreshListener(CurrentNotificationUserId currentUserId) {
     _tokenRefreshSubscription?.cancel();
     _tokenRefreshSubscription = _messaging.onTokenRefresh.listen(

@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/errors/app_error_code.dart';
 import '../core/storage/auth_token_storage.dart';
 import '../data/providers/auth_providers.dart';
+import '../data/providers/notification_providers.dart';
 import '../domain/repositories/auth_repository.dart';
+import '../notifications/notification_session_coordinator.dart';
 import 'app_session.dart';
 
 class SessionRestoreController {
@@ -11,12 +13,14 @@ class SessionRestoreController {
     required this._tokenStorage,
     required this._authRepository,
     required this._appSession,
+    required this._notificationSessionCoordinator,
     this._now = DateTime.now,
   });
 
   final AuthTokenStorage _tokenStorage;
   final AuthRepository _authRepository;
   final AppSession _appSession;
+  final NotificationSessionCoordinator _notificationSessionCoordinator;
   final DateTime Function() _now;
 
   Future<void> restore() async {
@@ -34,6 +38,9 @@ class SessionRestoreController {
     final user = result.dataOrNull;
     if (user != null) {
       _appSession.setAuthenticatedUser(user);
+      try {
+        await _notificationSessionCoordinator.onAuthenticated(user.id);
+      } catch (_) {}
       return;
     }
 
@@ -49,6 +56,9 @@ final sessionRestoreControllerProvider = Provider<SessionRestoreController>(
     tokenStorage: ref.watch(tokenStorageProvider),
     authRepository: ref.watch(authRepositoryProvider),
     appSession: ref.watch(appSessionProvider),
+    notificationSessionCoordinator: ref.watch(
+      notificationSessionCoordinatorProvider,
+    ),
   ),
 );
 

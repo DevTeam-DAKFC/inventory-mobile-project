@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/storage/notification_registration_storage.dart';
 import '../../domain/repositories/notification_token_repository.dart';
 import '../../notifications/firebase_messaging_gateway.dart';
+import '../../notifications/notification_session_coordinator.dart';
 import '../../notifications/push_notification_service.dart';
 import '../datasources/rest/rest_api_notification_token_data_source.dart';
 import '../repositories/notification_token_repository_impl.dart';
@@ -42,3 +43,10 @@ final pushNotificationServiceProvider = Provider<PushNotificationService>((
   ref.onDispose(service.dispose);
   return service;
 });
+
+final notificationSessionCoordinatorProvider =
+    Provider<NotificationSessionCoordinator>(
+      (ref) => DefaultNotificationSessionCoordinator(
+        () => ref.read(pushNotificationServiceProvider),
+      ),
+    );

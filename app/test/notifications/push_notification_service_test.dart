@@ -103,6 +103,31 @@ void main() {
     expect(repository.createCalls, isEmpty);
     expect(storage.saved, isEmpty);
   });
+
+  test('unregister deletes stored token id and clears storage', () async {
+    storage.registration = const StoredNotificationRegistration(
+      notificationTokenId: 'backend-id',
+      userId: 'user-id',
+    );
+
+    await sut.unregisterCurrentRegistration();
+
+    expect(repository.deleteCalls, ['backend-id']);
+    expect(storage.clearCalls, 1);
+  });
+
+  test('unregister clears storage when backend deletion fails', () async {
+    storage.registration = const StoredNotificationRegistration(
+      notificationTokenId: 'backend-id',
+      userId: 'user-id',
+    );
+    repository.deleteError = StateError('delete failed');
+
+    await expectLater(sut.unregisterCurrentRegistration(), completes);
+
+    expect(repository.deleteCalls, ['backend-id']);
+    expect(storage.clearCalls, 1);
+  });
 }
 
 Future<void> _flushEvents() => Future<void>.delayed(Duration.zero);
@@ -148,6 +173,8 @@ final class _FakeNotificationTokenRepository
     _notificationToken('default-id'),
   );
   final List<_CreateCall> createCalls = [];
+  final List<String> deleteCalls = [];
+  Object? deleteError;
 
   @override
   Future<AppResult<NotificationToken>> createNotificationToken({
@@ -159,19 +186,27 @@ final class _FakeNotificationTokenRepository
   }
 
   @override
-  Future<AppResult<void>> deleteNotificationToken(String tokenId) =>
-      throw UnimplementedError();
+  Future<AppResult<void>> deleteNotificationToken(String tokenId) async {
+    deleteCalls.add(tokenId);
+    if (deleteError case final error?) throw error;
+    return const AppSuccess(null);
+  }
 }
 
 final class _FakeNotificationRegistrationStorage
     implements NotificationRegistrationStorage {
   final List<StoredNotificationRegistration> saved = [];
+  StoredNotificationRegistration? registration;
+  int clearCalls = 0;
 
   @override
-  Future<void> clear() => throw UnimplementedError();
+  Future<void> clear() async {
+    clearCalls += 1;
+    registration = null;
+  }
 
   @override
-  Future<StoredNotificationRegistration?> read() => throw UnimplementedError();
+  Future<StoredNotificationRegistration?> read() async => registration;
 
   @override
   Future<void> save(StoredNotificationRegistration registration) async {

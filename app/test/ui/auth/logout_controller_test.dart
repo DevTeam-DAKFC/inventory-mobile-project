@@ -6,13 +6,30 @@ import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/auth_providers.dart';
+import 'package:inventory_mobile/data/providers/notification_providers.dart';
 import 'package:inventory_mobile/domain/models/app_user.dart';
 import 'package:inventory_mobile/domain/repositories/auth_repository.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
+import 'package:inventory_mobile/notifications/notification_session_coordinator.dart';
 import 'package:inventory_mobile/ui/auth/logout_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _FakeNotificationSessionCoordinator
+    implements NotificationSessionCoordinator {
+  int beforeLogoutCalls = 0;
+  Object? beforeLogoutError;
+
+  @override
+  Future<void> beforeLogout() async {
+    beforeLogoutCalls += 1;
+    if (beforeLogoutError case final error?) throw error;
+  }
+
+  @override
+  Future<void> onAuthenticated(String userId) async {}
+}
 
 AppUser _adminUser() => AppUser(
   id: 'admin_1',
@@ -27,11 +44,15 @@ AppUser _adminUser() => AppUser(
 ProviderContainer _container({
   required _MockAuthRepository repository,
   required AppSession session,
+  _FakeNotificationSessionCoordinator? notifications,
 }) {
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(repository),
       appSessionProvider.overrideWithValue(session),
+      notificationSessionCoordinatorProvider.overrideWithValue(
+        notifications ?? _FakeNotificationSessionCoordinator(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -58,11 +79,16 @@ void main() {
 
   test('successful logout calls AuthRepository.logout exactly once, signs out '
       'the AppSession and resets controller state', () async {
+    final notifications = _FakeNotificationSessionCoordinator();
     when(
       () => repository.logout(),
     ).thenAnswer((_) async => const AppSuccess<void>(null));
 
-    final container = _container(repository: repository, session: session);
+    final container = _container(
+      repository: repository,
+      session: session,
+      notifications: notifications,
+    );
     final controller = container.read(logoutControllerProvider.notifier);
 
     expect(session.isAuthenticated, isTrue);
@@ -70,12 +96,32 @@ void main() {
     await controller.logout();
 
     verify(() => repository.logout()).called(1);
+    expect(notifications.beforeLogoutCalls, 1);
     expect(session.isAuthenticated, isFalse);
     expect(session.user, isNull);
 
     final state = container.read(logoutControllerProvider);
     expect(state.isLoading, isFalse);
     expect(state.errorMessage, isNull);
+  });
+
+  test('logout continues when notification cleanup fails', () async {
+    final notifications = _FakeNotificationSessionCoordinator()
+      ..beforeLogoutError = StateError('delete failed');
+    when(
+      () => repository.logout(),
+    ).thenAnswer((_) async => const AppSuccess<void>(null));
+    final container = _container(
+      repository: repository,
+      session: session,
+      notifications: notifications,
+    );
+
+    await container.read(logoutControllerProvider.notifier).logout();
+
+    verify(() => repository.logout()).called(1);
+    expect(notifications.beforeLogoutCalls, 1);
+    expect(session.isAuthenticated, isFalse);
   });
 
   test(
@@ -110,6 +156,7 @@ void main() {
       final first = controller.logout();
       final second = controller.logout();
 
+      await Future<void>.delayed(Duration.zero);
       verify(() => repository.logout()).called(1);
 
       pending.complete(const AppSuccess<void>(null));

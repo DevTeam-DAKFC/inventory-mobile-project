@@ -6,13 +6,28 @@ import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/auth_providers.dart';
+import 'package:inventory_mobile/data/providers/notification_providers.dart';
 import 'package:inventory_mobile/domain/models/app_user.dart';
 import 'package:inventory_mobile/domain/repositories/auth_repository.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
+import 'package:inventory_mobile/notifications/notification_session_coordinator.dart';
 import 'package:inventory_mobile/ui/auth/register_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _FakeNotificationSessionCoordinator
+    implements NotificationSessionCoordinator {
+  final List<String> authenticatedUserIds = [];
+
+  @override
+  Future<void> beforeLogout() async {}
+
+  @override
+  Future<void> onAuthenticated(String userId) async {
+    authenticatedUserIds.add(userId);
+  }
+}
 
 AppUser _collaboratorUser() => AppUser(
   id: 'collab_1',
@@ -27,11 +42,15 @@ AppUser _collaboratorUser() => AppUser(
 ProviderContainer _container({
   required _MockAuthRepository repository,
   required AppSession session,
+  _FakeNotificationSessionCoordinator? notifications,
 }) {
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(repository),
       appSessionProvider.overrideWithValue(session),
+      notificationSessionCoordinatorProvider.overrideWithValue(
+        notifications ?? _FakeNotificationSessionCoordinator(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -63,6 +82,7 @@ void main() {
   test('submit success trims name and email, calls the repository exactly once '
       'and authenticates the AppSession', () async {
     final user = _collaboratorUser();
+    final notifications = _FakeNotificationSessionCoordinator();
     when(
       () => repository.register(
         name: any(named: 'name'),
@@ -71,7 +91,11 @@ void main() {
       ),
     ).thenAnswer((_) async => AppSuccess(user));
 
-    final container = _container(repository: repository, session: session);
+    final container = _container(
+      repository: repository,
+      session: session,
+      notifications: notifications,
+    );
     final controller = container.read(registerControllerProvider.notifier);
 
     await controller.submit(
@@ -90,6 +114,7 @@ void main() {
 
     expect(session.user, same(user));
     expect(session.isAuthenticated, isTrue);
+    expect(notifications.authenticatedUserIds, ['collab_1']);
 
     final finalState = container.read(registerControllerProvider);
     expect(finalState.isLoading, isFalse);
