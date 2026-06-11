@@ -5,15 +5,15 @@ enum PlatformType { android, ios, web, unknown }
 final class NotificationToken {
   const NotificationToken({
     required this.id,
-    required this.userId,
     required this.token,
     required this.platform,
     required this.createdAt,
+    this.userId,
     this.updatedAt,
   });
 
   final String id;
-  final String userId;
+  final String? userId;
   final String token;
   final PlatformType platform;
   final DateTime createdAt;
