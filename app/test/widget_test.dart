@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/app/app.dart';
+import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/data/providers/stock_providers.dart';
+import 'package:inventory_mobile/domain/models/stock_overview_item.dart';
+import 'package:inventory_mobile/domain/repositories/stock_repository.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
 import 'package:inventory_mobile/navigation/session_restore_controller.dart';
+
+import 'support/test_theme.dart';
 
 void main() {
   testWidgets('shows login as the public entry point', (tester) async {
@@ -144,10 +150,23 @@ class _RouterTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      overrides: [appSessionProvider.overrideWithValue(session)],
+      overrides: [
+        appSessionProvider.overrideWithValue(session),
+        stockRepositoryProvider.overrideWithValue(_FakeStockRepository()),
+      ],
       child: MaterialApp.router(
+        theme: buildTestTheme(),
         routerConfig: buildAppRouter(session, initialLocation: initialLocation),
       ),
     );
+  }
+}
+
+final class _FakeStockRepository implements StockRepository {
+  @override
+  Future<AppResult<List<StockOverviewItem>>> getStockByBranch(
+    String branchId,
+  ) async {
+    return const AppSuccess([]);
   }
 }

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/ui/auth/widgets/auth_primary_button.dart';
 
+import '../../../support/test_theme.dart';
+
 Widget _host(Widget child) {
   return MaterialApp(
+    theme: buildTestTheme(),
     home: Scaffold(
       body: Padding(padding: const EdgeInsets.all(16), child: child),
     ),

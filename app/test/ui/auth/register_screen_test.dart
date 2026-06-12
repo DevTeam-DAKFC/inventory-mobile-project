@@ -15,6 +15,8 @@ import 'package:inventory_mobile/ui/auth/register_screen.dart';
 import 'package:inventory_mobile/ui/auth/widgets/auth_primary_button.dart';
 import 'package:mocktail/mocktail.dart';
 
+import '../../support/test_theme.dart';
+
 class _MockAuthRepository extends Mock implements AuthRepository {}
 
 AppUser _collaboratorUser() => AppUser(
@@ -90,7 +92,7 @@ Widget _harness({
       authRepositoryProvider.overrideWithValue(repository),
       appSessionProvider.overrideWithValue(session),
     ],
-    child: MaterialApp.router(routerConfig: r),
+    child: MaterialApp.router(theme: buildTestTheme(), routerConfig: r),
   );
 }
 
