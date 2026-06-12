@@ -3,15 +3,27 @@ import 'package:flutter/foundation.dart';
 import '../../core/errors/app_error_code.dart';
 import '../../core/errors/app_exception.dart';
 import '../../core/result/app_result.dart';
+import '../../domain/models/external_product_suggestion.dart';
 import '../../domain/models/product.dart';
 import '../../domain/models/product_image_input.dart';
 import '../../domain/models/product_mutations.dart';
+import '../../domain/repositories/product_lookup_repository.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../domain/services/product_image_picker.dart';
+import '../../domain/services/product_suggestion_composer.dart';
 
 enum ProductFormMode { create, edit }
 
 enum ProductFormSaveOutcome { failed, success, imageUploadFailed }
+
+enum ProductLookupStatus {
+  idle,
+  loading,
+  found,
+  confirmationRequired,
+  notFound,
+  error,
+}
 
 final class ProductFormState {
   const ProductFormState({
@@ -33,6 +45,10 @@ final class ProductFormState {
     this.isUploadingImage = false,
     this.savedProduct,
     this.imageUploadFailed = false,
+    this.lookupStatus = ProductLookupStatus.idle,
+    this.lookupMessage,
+    this.pendingSuggestion,
+    this.suggestedImageUrl,
   });
 
   final ProductFormMode mode;
@@ -53,13 +69,20 @@ final class ProductFormState {
   final bool isUploadingImage;
   final Product? savedProduct;
   final bool imageUploadFailed;
+  final ProductLookupStatus lookupStatus;
+  final String? lookupMessage;
+  final ExternalProductSuggestion? pendingSuggestion;
+  final String? suggestedImageUrl;
 
   bool get isEditing => mode == ProductFormMode.edit;
 
-  bool get isBusy => isLoading || isSaving || isUploadingImage;
+  bool get isBusy => isLoading || isSaving || isUploadingImage || isLookingUp;
 
-  String? get existingImageUrl =>
-      removeExistingImage ? null : originalProduct?.imageUrl;
+  bool get isLookingUp => lookupStatus == ProductLookupStatus.loading;
+
+  String? get existingImageUrl => removeExistingImage
+      ? null
+      : originalProduct?.imageUrl ?? suggestedImageUrl;
 
   ProductFormState copyWith({
     Product? originalProduct,
@@ -78,9 +101,16 @@ final class ProductFormState {
     bool? isUploadingImage,
     Product? savedProduct,
     bool? imageUploadFailed,
+    ProductLookupStatus? lookupStatus,
+    String? lookupMessage,
+    ExternalProductSuggestion? pendingSuggestion,
+    String? suggestedImageUrl,
     bool clearGeneralError = false,
     bool clearSelectedImage = false,
     bool clearSavedProduct = false,
+    bool clearLookupMessage = false,
+    bool clearPendingSuggestion = false,
+    bool clearSuggestedImage = false,
   }) {
     return ProductFormState(
       mode: mode,
@@ -107,6 +137,16 @@ final class ProductFormState {
           ? null
           : savedProduct ?? this.savedProduct,
       imageUploadFailed: imageUploadFailed ?? this.imageUploadFailed,
+      lookupStatus: lookupStatus ?? this.lookupStatus,
+      lookupMessage: clearLookupMessage
+          ? null
+          : lookupMessage ?? this.lookupMessage,
+      pendingSuggestion: clearPendingSuggestion
+          ? null
+          : pendingSuggestion ?? this.pendingSuggestion,
+      suggestedImageUrl: clearSuggestedImage
+          ? null
+          : suggestedImageUrl ?? this.suggestedImageUrl,
     );
   }
 }
@@ -114,21 +154,29 @@ final class ProductFormState {
 final class ProductFormController extends ChangeNotifier {
   ProductFormController(
     this._repository,
+    this._lookupRepository,
     this._imagePicker, {
     String? productId,
     Product? product,
+    ProductSuggestionComposer suggestionComposer =
+        const ProductSuggestionComposer(),
   }) : _state = ProductFormState(
          mode: productId == null && product == null
              ? ProductFormMode.create
              : ProductFormMode.edit,
          productId: productId ?? product?.id,
        ) {
+    _suggestionComposer = suggestionComposer;
     if (product != null) _setProduct(product, notify: false);
   }
 
   final ProductRepository _repository;
+  final ProductLookupRepository _lookupRepository;
   final ProductImagePicker _imagePicker;
+  late final ProductSuggestionComposer _suggestionComposer;
   ProductFormState _state;
+  bool _hasEditedSuggestedFields = false;
+  String? _lastAppliedSuggestionBarcode;
 
   ProductFormState get state => _state;
 
@@ -158,18 +206,104 @@ final class ProductFormController extends ChangeNotifier {
     );
   }
 
-  void setName(String value) => _setField('name', name: value);
+  void setName(String value) {
+    _hasEditedSuggestedFields = true;
+    _setField('name', name: value);
+  }
 
-  void setSku(String value) => _setField('sku', sku: value);
+  void setSku(String value) {
+    _hasEditedSuggestedFields = true;
+    _setField('sku', sku: value);
+  }
 
   void setBarcode(String value) => _setField('barcode', barcode: value);
 
-  void setCategory(String value) => _setField('category', category: value);
+  void setCategory(String value) {
+    _hasEditedSuggestedFields = true;
+    _setField('category', category: value);
+  }
 
   void setDescription(String value) =>
       _setField('description', description: value);
 
   void setMinStock(String value) => _setField('minStock', minStock: value);
+
+  Future<void> lookupByBarcode() async {
+    if (_state.isEditing || _state.isBusy || _state.isLookingUp) return;
+    final barcode = _state.barcode.trim();
+    if (barcode.isEmpty) {
+      final errors = Map<String, String>.from(_state.fieldErrors)
+        ..['barcode'] = 'Ingresa un código de barras.';
+      _setState(
+        _state.copyWith(
+          fieldErrors: errors,
+          lookupStatus: ProductLookupStatus.idle,
+          clearLookupMessage: true,
+          clearPendingSuggestion: true,
+        ),
+      );
+      return;
+    }
+
+    _setState(
+      _state.copyWith(
+        lookupStatus: ProductLookupStatus.loading,
+        lookupMessage: 'Buscando producto...',
+        clearPendingSuggestion: true,
+      ),
+    );
+    final result = await _lookupRepository.lookupByBarcode(barcode);
+    final suggestion = result.dataOrNull;
+    if (suggestion != null) {
+      final replacesPreviousSuggestion =
+          _lastAppliedSuggestionBarcode != null &&
+          barcode != _lastAppliedSuggestionBarcode;
+      if (_hasEditedSuggestedFields && !replacesPreviousSuggestion) {
+        _setState(
+          _state.copyWith(
+            lookupStatus: ProductLookupStatus.confirmationRequired,
+            lookupMessage:
+                'Se encontró información. Confirma si deseas reemplazar '
+                'los campos que ya editaste.',
+            pendingSuggestion: suggestion,
+          ),
+        );
+      } else {
+        _applySuggestion(
+          suggestion,
+          clearSelectedImage: replacesPreviousSuggestion,
+        );
+      }
+      return;
+    }
+
+    final error = result.exceptionOrNull!;
+    if (error.code == AppErrorCode.notFound ||
+        error.code == AppErrorCode.productNotFound) {
+      _setState(
+        _state.copyWith(
+          lookupStatus: ProductLookupStatus.notFound,
+          lookupMessage:
+              'No se encontró información para este código. '
+              'Puedes continuar creando el producto manualmente.',
+        ),
+      );
+      return;
+    }
+    _setState(
+      _state.copyWith(
+        lookupStatus: ProductLookupStatus.error,
+        lookupMessage:
+            'No se pudo consultar el producto. '
+            'Puedes continuar creando el producto manualmente.',
+      ),
+    );
+  }
+
+  void applyPendingSuggestion() {
+    final suggestion = _state.pendingSuggestion;
+    if (suggestion != null) _applySuggestion(suggestion);
+  }
 
   Future<void> selectImage() async {
     if (_state.isBusy) return;
@@ -197,6 +331,7 @@ final class ProductFormController extends ChangeNotifier {
       _state.copyWith(
         clearSelectedImage: true,
         removeExistingImage: _state.originalProduct?.imageUrl != null,
+        clearSuggestedImage: true,
         clearGeneralError: true,
         imageUploadFailed: false,
       ),
@@ -299,6 +434,7 @@ final class ProductFormController extends ChangeNotifier {
     barcode: _optional(_state.barcode),
     category: _state.category.trim(),
     description: _optional(_state.description),
+    imageUrl: _state.suggestedImageUrl,
     minStock: int.parse(_state.minStock.trim()),
   );
 
@@ -411,6 +547,40 @@ final class ProductFormController extends ChangeNotifier {
       clearGeneralError: true,
     );
     if (notify) notifyListeners();
+  }
+
+  void _applySuggestion(
+    ExternalProductSuggestion suggestion, {
+    bool clearSelectedImage = false,
+  }) {
+    _hasEditedSuggestedFields = false;
+    _lastAppliedSuggestionBarcode = suggestion.barcode;
+    final formSuggestion = _suggestionComposer.compose(suggestion);
+    final errors = Map<String, String>.from(_state.fieldErrors)
+      ..remove('barcode')
+      ..remove('name')
+      ..remove('sku')
+      ..remove('category');
+    _setState(
+      _state.copyWith(
+        barcode: suggestion.barcode,
+        name: suggestion.name?.trim().isNotEmpty == true
+            ? suggestion.name!.trim()
+            : _state.name,
+        sku: formSuggestion.sku,
+        category: suggestion.category?.trim().isNotEmpty == true
+            ? suggestion.category!.trim()
+            : _state.category,
+        clearSelectedImage: clearSelectedImage,
+        removeExistingImage: false,
+        suggestedImageUrl: suggestion.imageUrl,
+        clearSuggestedImage: suggestion.imageUrl == null,
+        fieldErrors: errors,
+        lookupStatus: ProductLookupStatus.found,
+        lookupMessage: 'Producto encontrado. Revisa y edita los datos.',
+        clearPendingSuggestion: true,
+      ),
+    );
   }
 
   void _setField(

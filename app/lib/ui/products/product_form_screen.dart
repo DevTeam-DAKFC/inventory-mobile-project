@@ -31,6 +31,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     super.initState();
     _controller = ProductFormController(
       ref.read(productRepositoryProvider),
+      ref.read(productLookupRepositoryProvider),
       ref.read(productImagePickerProvider),
       productId: widget.productId,
       product: widget.product,
@@ -55,7 +56,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
   void _onStateChanged() {
     if (!mounted) return;
-    _syncProduct();
+    _syncFormValues();
     setState(() {});
   }
 
@@ -69,6 +70,25 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     _category.text = product.category;
     _description.text = product.description ?? '';
     _minStock.text = product.minStock.toString();
+  }
+
+  void _syncFormValues() {
+    _syncProduct();
+    final state = _controller.state;
+    _syncText(_name, state.name);
+    _syncText(_sku, state.sku);
+    _syncText(_barcode, state.barcode);
+    _syncText(_category, state.category);
+    _syncText(_description, state.description);
+    _syncText(_minStock, state.minStock);
+  }
+
+  void _syncText(TextEditingController controller, String value) {
+    if (controller.text == value) return;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
   }
 
   Future<void> _save() async {
@@ -118,6 +138,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            if (!state.isEditing) ...[
+                              _LookupSection(
+                                state: state,
+                                barcodeController: _barcode,
+                                onBarcodeChanged: _controller.setBarcode,
+                                onLookup: _controller.lookupByBarcode,
+                                onApply: _controller.applyPendingSuggestion,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
                             _ImageField(
                               state: state,
                               resolver: ref.watch(
@@ -152,16 +182,18 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                               onChanged: _controller.setSku,
                             ),
                             const SizedBox(height: 24),
-                            _FormField(
-                              fieldKey: const Key('product-barcode-field'),
-                              label: 'Código de barras',
-                              placeholder: 'Ej: 744100100001',
-                              controller: _barcode,
-                              error: state.fieldErrors['barcode'],
-                              keyboardType: TextInputType.number,
-                              onChanged: _controller.setBarcode,
-                            ),
-                            const SizedBox(height: 24),
+                            if (state.isEditing) ...[
+                              _FormField(
+                                fieldKey: const Key('product-barcode-field'),
+                                label: 'Código de barras',
+                                placeholder: 'Ej: 744100100001',
+                                controller: _barcode,
+                                error: state.fieldErrors['barcode'],
+                                keyboardType: TextInputType.number,
+                                onChanged: _controller.setBarcode,
+                              ),
+                              const SizedBox(height: 24),
+                            ],
                             _FormField(
                               fieldKey: const Key('product-category-field'),
                               label: 'Categoría *',
@@ -207,6 +239,123 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LookupSection extends StatelessWidget {
+  const _LookupSection({
+    required this.state,
+    required this.barcodeController,
+    required this.onBarcodeChanged,
+    required this.onLookup,
+    required this.onApply,
+  });
+
+  final ProductFormState state;
+  final TextEditingController barcodeController;
+  final ValueChanged<String> onBarcodeChanged;
+  final VoidCallback onLookup;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final status = state.lookupStatus;
+    final isSuccess = status == ProductLookupStatus.found;
+    final needsConfirmation =
+        status == ProductLookupStatus.confirmationRequired;
+    final isError =
+        status == ProductLookupStatus.notFound ||
+        status == ProductLookupStatus.error;
+    final color = isSuccess
+        ? _Colors.success
+        : isError
+        ? _Colors.warning
+        : _Colors.accent;
+
+    return Container(
+      key: const Key('product-lookup-section'),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _Colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Buscar por código de barras',
+            style: TextStyle(
+              color: _Colors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _FormField(
+            fieldKey: const Key('product-barcode-field'),
+            label: 'Código de barras',
+            placeholder: 'Ej: 3017624010701',
+            controller: barcodeController,
+            error: state.fieldErrors['barcode'],
+            keyboardType: TextInputType.number,
+            onChanged: onBarcodeChanged,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 44,
+            child: OutlinedButton.icon(
+              key: const Key('lookup-product-button'),
+              onPressed: state.isLookingUp ? null : onLookup,
+              icon: state.isLookingUp
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: _Colors.textMuted,
+                      ),
+                    )
+                  : const Icon(Icons.search, size: 18),
+              label: Text(
+                state.isLookingUp ? 'Buscando producto...' : 'Buscar producto',
+              ),
+            ),
+          ),
+          if (state.lookupMessage != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              key: const Key('product-lookup-message'),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    state.lookupMessage!,
+                    style: TextStyle(color: color, fontSize: 12),
+                  ),
+                  if (needsConfirmation) ...[
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        key: const Key('apply-product-suggestion-button'),
+                        onPressed: onApply,
+                        child: const Text('Aplicar sugerencia'),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -623,4 +772,5 @@ abstract final class _Colors {
   static const accentBorder = Color(0x5214B8A6);
   static const danger = Color(0xFFEF4444);
   static const warning = Color(0xFFF59E0B);
+  static const success = Color(0xFF22C55E);
 }

@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/app/app.dart';
+import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/data/providers/product_providers.dart';
+import 'package:inventory_mobile/domain/models/paginated_products.dart';
+import 'package:inventory_mobile/domain/models/product.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
+import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_mutations.dart';
+import 'package:inventory_mobile/domain/repositories/product_repository.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
@@ -20,10 +28,14 @@ void main() {
     expect(_richTextPlain('Inicio de sesión'), findsOneWidget);
   });
 
-  testWidgets('redirects unauthenticated users away from private routes', (tester) async {
+  testWidgets('redirects unauthenticated users away from private routes', (
+    tester,
+  ) async {
     final session = AppSession();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Iniciar sesión'), findsOneWidget);
@@ -33,7 +45,9 @@ void main() {
   testWidgets('authenticated users reach the main app shell', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Resumen de inventario'), findsOneWidget);
@@ -47,7 +61,9 @@ void main() {
   testWidgets('navigates between core shell screens', (tester) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(_navigationDestination('Productos'));
@@ -68,10 +84,14 @@ void main() {
     expect(find.text('Alertas'), findsWidgets);
   });
 
-  testWidgets('shows role state without exposing feature-specific entries', (tester) async {
+  testWidgets('shows role state without exposing feature-specific entries', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoCollaborator();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Import products'), findsNothing);
@@ -79,10 +99,14 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
-  testWidgets('logout returns the user to the public auth flow', (tester) async {
+  testWidgets('logout returns the user to the public auth flow', (
+    tester,
+  ) async {
     final session = AppSession()..signInAsDemoAdmin();
 
-    await tester.pumpWidget(_RouterTestApp(session: session, initialLocation: AppRoutes.home));
+    await tester.pumpWidget(
+      _RouterTestApp(session: session, initialLocation: AppRoutes.home),
+    );
     await tester.pumpAndSettle();
 
     session.signOut();
@@ -112,10 +136,56 @@ class _RouterTestApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProviderScope(
-      overrides: [appSessionProvider.overrideWithValue(session)],
+      overrides: [
+        appSessionProvider.overrideWithValue(session),
+        productRepositoryProvider.overrideWithValue(
+          const _EmptyProductRepository(),
+        ),
+      ],
       child: MaterialApp.router(
         routerConfig: buildAppRouter(session, initialLocation: initialLocation),
       ),
     );
   }
+}
+
+final class _EmptyProductRepository implements ProductRepository {
+  const _EmptyProductRepository();
+
+  @override
+  Future<AppResult<PaginatedProducts>> listProducts(
+    ProductListQuery query,
+  ) async => const AppSuccess(
+    PaginatedProducts(
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      hasNextPage: false,
+    ),
+  );
+
+  @override
+  Future<AppResult<Product>> createProduct(CreateProductInput input) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<void>> deactivateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> getProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> updateProduct(
+    String productId,
+    UpdateProductInput input,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  ) => throw UnimplementedError();
 }

@@ -4,12 +4,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/domain/models/external_product_suggestion.dart';
 import 'package:inventory_mobile/domain/models/paginated_products.dart';
 import 'package:inventory_mobile/domain/models/product.dart';
 import 'package:inventory_mobile/domain/models/product_image_input.dart';
 import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:inventory_mobile/domain/repositories/product_repository.dart';
+import 'package:inventory_mobile/domain/repositories/product_lookup_repository.dart';
 import 'package:inventory_mobile/domain/services/product_image_picker.dart';
 import 'package:inventory_mobile/ui/products/product_form_controller.dart';
 
@@ -87,6 +89,178 @@ void main() {
       expect(repository.createdInput?.name, 'Arroz');
       expect(repository.createdInput?.minStock, 10);
     });
+
+    test('does not lookup an empty barcode', () async {
+      final lookupRepository = _FakeProductLookupRepository();
+      final controller = _controller(lookupRepository: lookupRepository);
+      addTearDown(controller.dispose);
+
+      await controller.lookupByBarcode();
+
+      expect(lookupRepository.calls, 0);
+      expect(controller.state.fieldErrors['barcode'], contains('código'));
+    });
+
+    test('lookup prefills fields but does not create until save', () async {
+      final repository = _FakeProductRepository();
+      final lookupRepository = _FakeProductLookupRepository();
+      final controller = _controller(
+        repository: repository,
+        lookupRepository: lookupRepository,
+      );
+      addTearDown(controller.dispose);
+      controller.setBarcode('3017624010701');
+
+      await controller.lookupByBarcode();
+
+      expect(controller.state.name, 'Nutella');
+      expect(controller.state.sku, 'NUT-010701');
+      expect(controller.state.category, 'Spreads');
+      expect(controller.state.description, isEmpty);
+      expect(
+        controller.state.suggestedImageUrl,
+        'https://example.com/nutella.jpg',
+      );
+      expect(repository.createCalls, 0);
+
+      controller
+        ..setName('Nutella editada')
+        ..setSku('NUT-MANUAL')
+        ..setDescription('Descripción editada')
+        ..setMinStock('5');
+      await controller.save();
+
+      expect(repository.createCalls, 1);
+      expect(repository.createdInput?.name, 'Nutella editada');
+      expect(repository.createdInput?.sku, 'NUT-MANUAL');
+      expect(repository.createdInput?.description, 'Descripción editada');
+      expect(
+        repository.createdInput?.imageUrl,
+        'https://example.com/nutella.jpg',
+      );
+    });
+
+    test('lookup keeps a manually entered description', () async {
+      final lookupRepository = _FakeProductLookupRepository();
+      final controller = _controller(lookupRepository: lookupRepository);
+      addTearDown(controller.dispose);
+      controller
+        ..setDescription('Descripción escrita por el usuario')
+        ..setBarcode('3017624010701');
+
+      await controller.lookupByBarcode();
+
+      expect(controller.state.lookupStatus, ProductLookupStatus.found);
+      expect(
+        controller.state.description,
+        'Descripción escrita por el usuario',
+      );
+    });
+
+    test('a new barcode replaces the previous suggested product', () async {
+      final lookupRepository = _FakeProductLookupRepository();
+      final picker = _FakeProductImagePicker()
+        ..results.add(AppSuccess(_image()));
+      final controller = _controller(
+        lookupRepository: lookupRepository,
+        picker: picker,
+      );
+      addTearDown(controller.dispose);
+      controller.setBarcode('3017624010701');
+      await controller.lookupByBarcode();
+
+      controller
+        ..setName('Nombre editado')
+        ..setSku('SKU-EDITADO')
+        ..setCategory('Categoría editada')
+        ..setDescription('Descripción manual');
+      await controller.selectImage();
+
+      lookupRepository.result = const AppSuccess(
+        ExternalProductSuggestion(
+          barcode: '5449000000996',
+          name: 'Coca-Cola',
+          brand: 'Coca-Cola',
+          category: 'Bebidas',
+          imageUrl: 'https://example.com/coca-cola.jpg',
+          source: 'open_food_facts',
+        ),
+      );
+      controller.setBarcode('5449000000996');
+      await controller.lookupByBarcode();
+
+      expect(controller.state.lookupStatus, ProductLookupStatus.found);
+      expect(controller.state.name, 'Coca-Cola');
+      expect(controller.state.sku, 'COC-000996');
+      expect(controller.state.category, 'Bebidas');
+      expect(controller.state.description, 'Descripción manual');
+      expect(
+        controller.state.suggestedImageUrl,
+        'https://example.com/coca-cola.jpg',
+      );
+      expect(controller.state.selectedImage, isNull);
+    });
+
+    test(
+      'not found and network failures keep manual creation available',
+      () async {
+        final repository = _FakeProductRepository();
+        final lookupRepository = _FakeProductLookupRepository()
+          ..result = const AppFailure(
+            AppException(
+              code: AppErrorCode.productNotFound,
+              message: 'Not found',
+            ),
+          );
+        final controller = _controller(
+          repository: repository,
+          lookupRepository: lookupRepository,
+        );
+        addTearDown(controller.dispose);
+        controller.setBarcode('00000000');
+
+        await controller.lookupByBarcode();
+        expect(controller.state.lookupStatus, ProductLookupStatus.notFound);
+
+        controller
+          ..setName('Manual')
+          ..setSku('MAN-001')
+          ..setCategory('Otros')
+          ..setMinStock('0');
+        expect(await controller.save(), ProductFormSaveOutcome.success);
+
+        lookupRepository.result = const AppFailure(
+          AppException(code: AppErrorCode.networkError, message: 'Network'),
+        );
+        controller.setBarcode('11111111');
+        await controller.lookupByBarcode();
+        expect(controller.state.lookupStatus, ProductLookupStatus.error);
+        expect(repository.createCalls, 1);
+      },
+    );
+
+    test(
+      'requires confirmation before replacing manually edited fields',
+      () async {
+        final lookupRepository = _FakeProductLookupRepository();
+        final controller = _controller(lookupRepository: lookupRepository);
+        addTearDown(controller.dispose);
+        controller
+          ..setName('Mi nombre')
+          ..setBarcode('3017624010701');
+
+        await controller.lookupByBarcode();
+
+        expect(
+          controller.state.lookupStatus,
+          ProductLookupStatus.confirmationRequired,
+        );
+        expect(controller.state.name, 'Mi nombre');
+
+        controller.applyPendingSuggestion();
+        expect(controller.state.name, 'Nutella');
+      },
+    );
 
     test('edits with a partial PATCH and omits unchanged fields', () async {
       final repository = _FakeProductRepository()
@@ -275,11 +449,13 @@ void main() {
 
 ProductFormController _controller({
   _FakeProductRepository? repository,
+  _FakeProductLookupRepository? lookupRepository,
   _FakeProductImagePicker? picker,
   String? productId,
   Product? product,
 }) => ProductFormController(
   repository ?? _FakeProductRepository(),
+  lookupRepository ?? _FakeProductLookupRepository(),
   picker ?? _FakeProductImagePicker(),
   productId: productId,
   product: product,
@@ -357,6 +533,28 @@ final class _FakeProductImagePicker implements ProductImagePicker {
   @override
   Future<AppResult<ProductImageInput?>> pickFromGallery() async =>
       results.removeAt(0);
+}
+
+final class _FakeProductLookupRepository implements ProductLookupRepository {
+  AppResult<ExternalProductSuggestion> result = const AppSuccess(
+    ExternalProductSuggestion(
+      barcode: '3017624010701',
+      name: 'Nutella',
+      brand: 'Ferrero',
+      category: 'Spreads',
+      imageUrl: 'https://example.com/nutella.jpg',
+      source: 'open_food_facts',
+    ),
+  );
+  int calls = 0;
+
+  @override
+  Future<AppResult<ExternalProductSuggestion>> lookupByBarcode(
+    String barcode,
+  ) async {
+    calls++;
+    return result;
+  }
 }
 
 Product _product({String name = 'Arroz', String? imageUrl}) => Product(
