@@ -8,12 +8,14 @@ import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/product_providers.dart';
+import 'package:inventory_mobile/domain/models/external_product_suggestion.dart';
 import 'package:inventory_mobile/domain/models/paginated_products.dart';
 import 'package:inventory_mobile/domain/models/product.dart';
 import 'package:inventory_mobile/domain/models/product_image_input.dart';
 import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:inventory_mobile/domain/repositories/product_repository.dart';
+import 'package:inventory_mobile/domain/repositories/product_lookup_repository.dart';
 import 'package:inventory_mobile/domain/services/product_image_picker.dart';
 import 'package:inventory_mobile/ui/products/product_form_screen.dart';
 
@@ -28,6 +30,47 @@ void main() {
     expect(find.text('Categoría *'), findsOneWidget);
     expect(find.text('Stock mínimo *'), findsOneWidget);
     expect(find.text('Crear producto'), findsOneWidget);
+    expect(find.text('Buscar por código de barras'), findsOneWidget);
+  });
+
+  testWidgets('validates empty lookup and prefills a successful suggestion', (
+    tester,
+  ) async {
+    await _pumpForm(tester);
+
+    await tester.tap(find.byKey(const Key('lookup-product-button')));
+    await tester.pump();
+    expect(find.text('Ingresa un código de barras.'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('product-barcode-field')),
+      '3017624010701',
+    );
+    await tester.tap(find.byKey(const Key('lookup-product-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Producto encontrado'), findsOneWidget);
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('product-name-field')))
+          .controller
+          ?.text,
+      'Nutella',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('product-sku-field')))
+          .controller
+          ?.text,
+      'NUT-010701',
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('product-description-field')))
+          .controller
+          ?.text,
+      isEmpty,
+    );
   });
 
   testWidgets('renders edit values and existing image', (tester) async {
@@ -190,6 +233,9 @@ Future<void> _pumpForm(
         productRepositoryProvider.overrideWithValue(
           repository ?? _FakeProductRepository(),
         ),
+        productLookupRepositoryProvider.overrideWithValue(
+          _FakeProductLookupRepository(),
+        ),
         productImagePickerProvider.overrideWithValue(
           picker ??
               _FakeProductImagePicker(
@@ -280,6 +326,22 @@ final class _FakeProductImagePicker implements ProductImagePicker {
 
   @override
   Future<AppResult<ProductImageInput?>> pickFromGallery() async => result;
+}
+
+final class _FakeProductLookupRepository implements ProductLookupRepository {
+  @override
+  Future<AppResult<ExternalProductSuggestion>> lookupByBarcode(
+    String barcode,
+  ) async => AppSuccess(
+    ExternalProductSuggestion(
+      barcode: barcode,
+      name: 'Nutella',
+      brand: 'Ferrero',
+      category: 'Spreads',
+      imageUrl: 'https://example.com/nutella.jpg',
+      source: 'open_food_facts',
+    ),
+  );
 }
 
 Product _product({String? imageUrl}) => Product(

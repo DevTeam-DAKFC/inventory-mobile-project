@@ -3,6 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:inventory_mobile/app/app.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
+import 'package:inventory_mobile/data/providers/product_providers.dart';
+import 'package:inventory_mobile/domain/models/paginated_products.dart';
+import 'package:inventory_mobile/domain/models/product.dart';
+import 'package:inventory_mobile/domain/models/product_image_input.dart';
+import 'package:inventory_mobile/domain/models/product_list_query.dart';
+import 'package:inventory_mobile/domain/models/product_mutations.dart';
+import 'package:inventory_mobile/domain/repositories/product_repository.dart';
 import 'package:inventory_mobile/data/providers/stock_providers.dart';
 import 'package:inventory_mobile/domain/models/stock_overview_item.dart';
 import 'package:inventory_mobile/domain/repositories/stock_repository.dart';
@@ -152,6 +159,9 @@ class _RouterTestApp extends StatelessWidget {
     return ProviderScope(
       overrides: [
         appSessionProvider.overrideWithValue(session),
+        productRepositoryProvider.overrideWithValue(
+          const _EmptyProductRepository(),
+        ),
         stockRepositoryProvider.overrideWithValue(_FakeStockRepository()),
       ],
       child: MaterialApp.router(
@@ -160,6 +170,51 @@ class _RouterTestApp extends StatelessWidget {
       ),
     );
   }
+}
+
+final class _EmptyProductRepository implements ProductRepository {
+  const _EmptyProductRepository();
+
+  @override
+  Future<AppResult<PaginatedProducts>> listProducts(
+    ProductListQuery query,
+  ) async => const AppSuccess(
+    PaginatedProducts(
+      items: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      hasNextPage: false,
+    ),
+  );
+
+  @override
+  Future<AppResult<Product>> createProduct(CreateProductInput input) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<void>> deactivateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> getProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> updateProduct(
+    String productId,
+    UpdateProductInput input,
+  ) => throw UnimplementedError();
+
+  @override
+  Future<AppResult<Product>> uploadProductImage(
+    String productId,
+    ProductImageInput image,
+  ) => throw UnimplementedError();
 }
 
 final class _FakeStockRepository implements StockRepository {
