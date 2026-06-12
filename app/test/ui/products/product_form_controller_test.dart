@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +102,19 @@ void main() {
       expect(controller.state.fieldErrors['barcode'], contains('código'));
     });
 
+    test('does not lookup an invalid barcode', () async {
+      final lookupRepository = _FakeProductLookupRepository();
+      final controller = _controller(lookupRepository: lookupRepository);
+      addTearDown(controller.dispose);
+      controller.setBarcode('ABC-123');
+
+      await controller.lookupByBarcode();
+
+      expect(lookupRepository.calls, 0);
+      expect(controller.state.fieldErrors['barcode'], contains('8 a 14'));
+      expect(controller.state.lookupStatus, ProductLookupStatus.idle);
+    });
+
     test('lookup prefills fields but does not create until save', () async {
       final repository = _FakeProductRepository();
       final lookupRepository = _FakeProductLookupRepository();
@@ -202,31 +216,63 @@ void main() {
     });
 
     test(
-      'not found and network failures keep manual creation available',
+      'a successful lookup always replaces edited suggested fields',
+      () async {
+        final lookupRepository = _FakeProductLookupRepository();
+        final controller = _controller(lookupRepository: lookupRepository);
+        addTearDown(controller.dispose);
+        controller
+          ..setName('Nombre manual')
+          ..setSku('SKU-MANUAL')
+          ..setCategory('Categoría manual')
+          ..setDescription('Descripción manual')
+          ..setBarcode('3017624010701');
+
+        await controller.lookupByBarcode();
+
+        expect(controller.state.lookupStatus, ProductLookupStatus.found);
+        expect(controller.state.name, 'Nutella');
+        expect(controller.state.sku, 'NUT-010701');
+        expect(controller.state.category, 'Spreads');
+        expect(controller.state.description, 'Descripción manual');
+      },
+    );
+
+    test(
+      'lookup failures preserve current data and keep manual creation available',
       () async {
         final repository = _FakeProductRepository();
-        final lookupRepository = _FakeProductLookupRepository()
-          ..result = const AppFailure(
-            AppException(
-              code: AppErrorCode.productNotFound,
-              message: 'Not found',
-            ),
-          );
+        final lookupRepository = _FakeProductLookupRepository();
         final controller = _controller(
           repository: repository,
           lookupRepository: lookupRepository,
         );
         addTearDown(controller.dispose);
+        controller
+          ..setDescription('Descripción manual')
+          ..setBarcode('3017624010701');
+        await controller.lookupByBarcode();
+
+        lookupRepository.result = const AppFailure(
+          AppException(
+            code: AppErrorCode.productNotFound,
+            message: 'Not found',
+          ),
+        );
         controller.setBarcode('00000000');
 
         await controller.lookupByBarcode();
         expect(controller.state.lookupStatus, ProductLookupStatus.notFound);
+        expect(controller.state.name, 'Nutella');
+        expect(controller.state.sku, 'NUT-010701');
+        expect(controller.state.category, 'Spreads');
+        expect(controller.state.description, 'Descripción manual');
+        expect(
+          controller.state.suggestedImageUrl,
+          'https://example.com/nutella.jpg',
+        );
 
-        controller
-          ..setName('Manual')
-          ..setSku('MAN-001')
-          ..setCategory('Otros')
-          ..setMinStock('0');
+        controller.setMinStock('0');
         expect(await controller.save(), ProductFormSaveOutcome.success);
 
         lookupRepository.result = const AppFailure(
@@ -239,28 +285,49 @@ void main() {
       },
     );
 
-    test(
-      'requires confirmation before replacing manually edited fields',
-      () async {
-        final lookupRepository = _FakeProductLookupRepository();
-        final controller = _controller(lookupRepository: lookupRepository);
-        addTearDown(controller.dispose);
-        controller
-          ..setName('Mi nombre')
-          ..setBarcode('3017624010701');
+    test('ignores a stale lookup response after barcode changes', () async {
+      final firstResponse = Completer<AppResult<ExternalProductSuggestion>>();
+      final lookupRepository = _FakeProductLookupRepository()
+        ..onLookup = (_) => firstResponse.future;
+      final controller = _controller(lookupRepository: lookupRepository);
+      addTearDown(controller.dispose);
+      controller.setBarcode('3017624010701');
+      final firstLookup = controller.lookupByBarcode();
+      await Future<void>.delayed(Duration.zero);
 
-        await controller.lookupByBarcode();
+      lookupRepository.onLookup = (_) async => const AppSuccess(
+        ExternalProductSuggestion(
+          barcode: '5449000000996',
+          name: 'Coca-Cola',
+          category: 'Bebidas',
+          imageUrl: 'https://example.com/coca-cola.jpg',
+          source: 'open_food_facts',
+        ),
+      );
+      controller.setBarcode('5449000000996');
+      await controller.lookupByBarcode();
 
-        expect(
-          controller.state.lookupStatus,
-          ProductLookupStatus.confirmationRequired,
-        );
-        expect(controller.state.name, 'Mi nombre');
+      firstResponse.complete(
+        const AppSuccess(
+          ExternalProductSuggestion(
+            barcode: '3017624010701',
+            name: 'Nutella',
+            category: 'Spreads',
+            imageUrl: 'https://example.com/nutella.jpg',
+            source: 'open_food_facts',
+          ),
+        ),
+      );
+      await firstLookup;
 
-        controller.applyPendingSuggestion();
-        expect(controller.state.name, 'Nutella');
-      },
-    );
+      expect(controller.state.barcode, '5449000000996');
+      expect(controller.state.name, 'Coca-Cola');
+      expect(controller.state.category, 'Bebidas');
+      expect(
+        controller.state.suggestedImageUrl,
+        'https://example.com/coca-cola.jpg',
+      );
+    });
 
     test('edits with a partial PATCH and omits unchanged fields', () async {
       final repository = _FakeProductRepository()
@@ -550,6 +617,8 @@ final class _FakeProductLookupRepository implements ProductLookupRepository {
       source: 'open_food_facts',
     ),
   );
+  Future<AppResult<ExternalProductSuggestion>> Function(String barcode)?
+      onLookup;
   int calls = 0;
 
   @override
@@ -557,6 +626,8 @@ final class _FakeProductLookupRepository implements ProductLookupRepository {
     String barcode,
   ) async {
     calls++;
+    final lookup = onLookup;
+    if (lookup != null) return lookup(barcode);
     return result;
   }
 }

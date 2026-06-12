@@ -144,7 +144,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                 barcodeController: _barcode,
                                 onBarcodeChanged: _controller.setBarcode,
                                 onLookup: _controller.lookupByBarcode,
-                                onApply: _controller.applyPendingSuggestion,
                               ),
                               const SizedBox(height: 24),
                             ],
@@ -250,21 +249,17 @@ class _LookupSection extends StatelessWidget {
     required this.barcodeController,
     required this.onBarcodeChanged,
     required this.onLookup,
-    required this.onApply,
   });
 
   final ProductFormState state;
   final TextEditingController barcodeController;
   final ValueChanged<String> onBarcodeChanged;
   final VoidCallback onLookup;
-  final VoidCallback onApply;
 
   @override
   Widget build(BuildContext context) {
     final status = state.lookupStatus;
     final isSuccess = status == ProductLookupStatus.found;
-    final needsConfirmation =
-        status == ProductLookupStatus.confirmationRequired;
     final isError =
         status == ProductLookupStatus.notFound ||
         status == ProductLookupStatus.error;
@@ -340,17 +335,6 @@ class _LookupSection extends StatelessWidget {
                     state.lookupMessage!,
                     style: TextStyle(color: color, fontSize: 12),
                   ),
-                  if (needsConfirmation) ...[
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        key: const Key('apply-product-suggestion-button'),
-                        onPressed: onApply,
-                        child: const Text('Aplicar sugerencia'),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
