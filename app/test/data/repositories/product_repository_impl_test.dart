@@ -97,6 +97,16 @@ void main() {
     expect(result, isA<AppSuccess<void>>());
   });
 
+  test('activates product successfully', () async {
+    when(
+      () => dataSource.activateProduct('product_1'),
+    ).thenAnswer((_) async {});
+
+    final result = await sut.activateProduct('product_1');
+
+    expect(result, isA<AppSuccess<void>>());
+  });
+
   test('uploads validated product image successfully', () async {
     when(
       () => dataSource.uploadProductImage('product_1', any()),

@@ -161,7 +161,8 @@ class RestApiAuthDataSource {
       'serverBody': ?body,
     };
     final code = _statusToCode(statusCode, serverCode);
-    final message = serverMessage ??
+    final message =
+        serverMessage ??
         'Backend returned status ${statusCode ?? 'unknown'} for $endpoint.';
     return AppException(
       code: code,

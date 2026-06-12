@@ -4,10 +4,7 @@ import '../../core/errors/app_exception.dart';
 /// Wire-level representation of the `GET /health` response from the inventory
 /// backend. Lives in the data layer so the domain model stays free of JSON.
 final class BackendHealthRestDto {
-  const BackendHealthRestDto({
-    required this.status,
-    required this.service,
-  });
+  const BackendHealthRestDto({required this.status, required this.service});
 
   final String status;
   final String service;
@@ -34,8 +31,5 @@ final class BackendHealthRestDto {
     return BackendHealthRestDto(status: status, service: service);
   }
 
-  Map<String, dynamic> toJson() => {
-        'status': status,
-        'service': service,
-      };
+  Map<String, dynamic> toJson() => {'status': status, 'service': service};
 }

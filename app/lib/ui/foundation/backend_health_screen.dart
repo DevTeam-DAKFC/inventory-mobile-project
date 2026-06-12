@@ -79,15 +79,9 @@ class _SuccessView extends StatelessWidget {
           color: color,
         ),
         const SizedBox(height: 16),
-        Text(
-          'Status: ${health.status}',
-          style: theme.textTheme.titleMedium,
-        ),
+        Text('Status: ${health.status}', style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),
-        Text(
-          'Service: ${health.service}',
-          style: theme.textTheme.bodyLarge,
-        ),
+        Text('Service: ${health.service}', style: theme.textTheme.bodyLarge),
       ],
     );
   }
@@ -111,11 +105,7 @@ class _FailureView extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          Icons.error_outline,
-          size: 72,
-          color: theme.colorScheme.error,
-        ),
+        Icon(Icons.error_outline, size: 72, color: theme.colorScheme.error),
         const SizedBox(height: 16),
         Text(title, style: theme.textTheme.titleMedium),
         const SizedBox(height: 8),

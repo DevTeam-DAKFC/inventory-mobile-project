@@ -78,9 +78,10 @@ void main() {
     });
 
     test('treats expiresAt equal to now as expired', () async {
-      when(
-        () => tokenStorage.readToken(),
-      ).thenAnswer((_) async => StoredAuthToken(accessToken: 'edge-tok', expiresAt: fixedNow));
+      when(() => tokenStorage.readToken()).thenAnswer(
+        (_) async =>
+            StoredAuthToken(accessToken: 'edge-tok', expiresAt: fixedNow),
+      );
       when(() => tokenStorage.clear()).thenAnswer((_) async {});
 
       await buildSut().restore();
@@ -94,10 +95,14 @@ void main() {
     test('admin user authenticates the session with admin role', () async {
       final admin = _user(role: UserRole.admin);
       when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
+        (_) async => StoredAuthToken(
+          accessToken: 'tok',
+          expiresAt: fixedNow.add(const Duration(hours: 1)),
+        ),
       );
-      when(() => authRepository.currentUser()).thenAnswer((_) async => AppSuccess(admin));
+      when(
+        () => authRepository.currentUser(),
+      ).thenAnswer((_) async => AppSuccess(admin));
 
       await buildSut().restore();
 
@@ -111,10 +116,14 @@ void main() {
     test('collaborator user authenticates as collaborator', () async {
       final collaborator = _user(role: UserRole.collaborator);
       when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
+        (_) async => StoredAuthToken(
+          accessToken: 'tok',
+          expiresAt: fixedNow.add(const Duration(hours: 1)),
+        ),
       );
-      when(() => authRepository.currentUser()).thenAnswer((_) async => AppSuccess(collaborator));
+      when(
+        () => authRepository.currentUser(),
+      ).thenAnswer((_) async => AppSuccess(collaborator));
 
       await buildSut().restore();
 
@@ -127,66 +136,69 @@ void main() {
   });
 
   group('restore — valid token, currentUser fails', () {
-    test('unauthorized clears token and leaves session unauthenticated', () async {
-      when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
-      );
-      when(() => authRepository.currentUser()).thenAnswer(
-        (_) async => const AppFailure(
-          AppException(code: AppErrorCode.unauthorized, message: 'expired session'),
-        ),
-      );
-      when(() => tokenStorage.clear()).thenAnswer((_) async {});
+    test(
+      'unauthorized clears token and leaves session unauthenticated',
+      () async {
+        when(() => tokenStorage.readToken()).thenAnswer(
+          (_) async => StoredAuthToken(
+            accessToken: 'tok',
+            expiresAt: fixedNow.add(const Duration(hours: 1)),
+          ),
+        );
+        when(() => authRepository.currentUser()).thenAnswer(
+          (_) async => const AppFailure(
+            AppException(
+              code: AppErrorCode.unauthorized,
+              message: 'expired session',
+            ),
+          ),
+        );
+        when(() => tokenStorage.clear()).thenAnswer((_) async {});
 
-      await buildSut().restore();
+        await buildSut().restore();
 
-      expect(appSession.isAuthenticated, isFalse);
-      expect(appSession.user, isNull);
-      verify(() => tokenStorage.clear()).called(1);
-    });
+        expect(appSession.isAuthenticated, isFalse);
+        expect(appSession.user, isNull);
+        verify(() => tokenStorage.clear()).called(1);
+      },
+    );
 
-    test('networkError keeps token and leaves session unauthenticated', () async {
-      when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
-      );
-      when(() => authRepository.currentUser()).thenAnswer(
-        (_) async =>
-            const AppFailure(AppException(code: AppErrorCode.networkError, message: 'no network')),
-      );
+    test(
+      'networkError keeps token and leaves session unauthenticated',
+      () async {
+        when(() => tokenStorage.readToken()).thenAnswer(
+          (_) async => StoredAuthToken(
+            accessToken: 'tok',
+            expiresAt: fixedNow.add(const Duration(hours: 1)),
+          ),
+        );
+        when(() => authRepository.currentUser()).thenAnswer(
+          (_) async => const AppFailure(
+            AppException(
+              code: AppErrorCode.networkError,
+              message: 'no network',
+            ),
+          ),
+        );
 
-      await buildSut().restore();
+        await buildSut().restore();
 
-      expect(appSession.isAuthenticated, isFalse);
-      expect(appSession.user, isNull);
-      verifyNever(() => tokenStorage.clear());
-    });
+        expect(appSession.isAuthenticated, isFalse);
+        expect(appSession.user, isNull);
+        verifyNever(() => tokenStorage.clear());
+      },
+    );
 
     test('timeout keeps token and leaves session unauthenticated', () async {
       when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
-      );
-      when(() => authRepository.currentUser()).thenAnswer(
-        (_) async =>
-            const AppFailure(AppException(code: AppErrorCode.timeout, message: 'timed out')),
-      );
-
-      await buildSut().restore();
-
-      expect(appSession.isAuthenticated, isFalse);
-      verifyNever(() => tokenStorage.clear());
-    });
-
-    test('serviceUnavailable keeps token and leaves session unauthenticated', () async {
-      when(() => tokenStorage.readToken()).thenAnswer(
-        (_) async =>
-            StoredAuthToken(accessToken: 'tok', expiresAt: fixedNow.add(const Duration(hours: 1))),
+        (_) async => StoredAuthToken(
+          accessToken: 'tok',
+          expiresAt: fixedNow.add(const Duration(hours: 1)),
+        ),
       );
       when(() => authRepository.currentUser()).thenAnswer(
         (_) async => const AppFailure(
-          AppException(code: AppErrorCode.serviceUnavailable, message: 'unavailable'),
+          AppException(code: AppErrorCode.timeout, message: 'timed out'),
         ),
       );
 
@@ -195,5 +207,30 @@ void main() {
       expect(appSession.isAuthenticated, isFalse);
       verifyNever(() => tokenStorage.clear());
     });
+
+    test(
+      'serviceUnavailable keeps token and leaves session unauthenticated',
+      () async {
+        when(() => tokenStorage.readToken()).thenAnswer(
+          (_) async => StoredAuthToken(
+            accessToken: 'tok',
+            expiresAt: fixedNow.add(const Duration(hours: 1)),
+          ),
+        );
+        when(() => authRepository.currentUser()).thenAnswer(
+          (_) async => const AppFailure(
+            AppException(
+              code: AppErrorCode.serviceUnavailable,
+              message: 'unavailable',
+            ),
+          ),
+        );
+
+        await buildSut().restore();
+
+        expect(appSession.isAuthenticated, isFalse);
+        verifyNever(() => tokenStorage.clear());
+      },
+    );
   });
 }

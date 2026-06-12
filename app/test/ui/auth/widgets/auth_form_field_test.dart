@@ -32,12 +32,7 @@ void main() {
     final controller = TextEditingController(text: 'visible-text');
 
     await tester.pumpWidget(
-      _host(
-        AuthFormField(
-          label: 'Correo electrónico',
-          controller: controller,
-        ),
-      ),
+      _host(AuthFormField(label: 'Correo electrónico', controller: controller)),
     );
 
     final editable = tester.widget<EditableText>(find.byType(EditableText));

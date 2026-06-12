@@ -20,26 +20,26 @@ void main() {
   });
 
   group('HealthRepositoryImpl.checkBackendHealth', () {
-    test('returns AppSuccess<BackendHealth> on a successful response',
-        () async {
-      when(() => dataSource.checkBackendHealth()).thenAnswer(
-        (_) async => const BackendHealthRestDto(
-          status: 'ok',
-          service: 'Inventory.Api',
-        ),
-      );
+    test(
+      'returns AppSuccess<BackendHealth> on a successful response',
+      () async {
+        when(() => dataSource.checkBackendHealth()).thenAnswer(
+          (_) async => const BackendHealthRestDto(
+            status: 'ok',
+            service: 'Inventory.Api',
+          ),
+        );
 
-      final result = await sut.checkBackendHealth();
+        final result = await sut.checkBackendHealth();
 
-      expect(result, isA<AppSuccess<BackendHealth>>());
-    });
+        expect(result, isA<AppSuccess<BackendHealth>>());
+      },
+    );
 
     test('maps status and service correctly on success', () async {
       when(() => dataSource.checkBackendHealth()).thenAnswer(
-        (_) async => const BackendHealthRestDto(
-          status: 'ok',
-          service: 'Inventory.Api',
-        ),
+        (_) async =>
+            const BackendHealthRestDto(status: 'ok', service: 'Inventory.Api'),
       );
 
       final result = await sut.checkBackendHealth();
@@ -51,35 +51,38 @@ void main() {
       expect(data.isOk, isTrue);
     });
 
-    test('returns AppFailure preserving the AppException thrown by the source',
-        () async {
-      const exception = AppException(
-        code: AppErrorCode.unexpected,
-        message: 'malformed health payload',
-      );
-      when(() => dataSource.checkBackendHealth()).thenThrow(exception);
+    test(
+      'returns AppFailure preserving the AppException thrown by the source',
+      () async {
+        const exception = AppException(
+          code: AppErrorCode.unexpected,
+          message: 'malformed health payload',
+        );
+        when(() => dataSource.checkBackendHealth()).thenThrow(exception);
 
-      final result = await sut.checkBackendHealth();
+        final result = await sut.checkBackendHealth();
 
-      expect(result, isA<AppFailure<BackendHealth>>());
-      expect(result.exceptionOrNull, same(exception));
-    });
-
-    test('returns AppFailure with code timeout when the source times out',
-        () async {
-      const exception = AppException(
-        code: AppErrorCode.timeout,
-        message: 'timed out',
-      );
-      when(() => dataSource.checkBackendHealth()).thenThrow(exception);
-
-      final result = await sut.checkBackendHealth();
-
-      expect(result.exceptionOrNull?.code, AppErrorCode.timeout);
-    });
+        expect(result, isA<AppFailure<BackendHealth>>());
+        expect(result.exceptionOrNull, same(exception));
+      },
+    );
 
     test(
-        'returns AppFailure with code serviceUnavailable when the source '
+      'returns AppFailure with code timeout when the source times out',
+      () async {
+        const exception = AppException(
+          code: AppErrorCode.timeout,
+          message: 'timed out',
+        );
+        when(() => dataSource.checkBackendHealth()).thenThrow(exception);
+
+        final result = await sut.checkBackendHealth();
+
+        expect(result.exceptionOrNull?.code, AppErrorCode.timeout);
+      },
+    );
+
+    test('returns AppFailure with code serviceUnavailable when the source '
         'reports 503', () async {
       const exception = AppException(
         code: AppErrorCode.serviceUnavailable,
@@ -92,8 +95,7 @@ void main() {
       expect(result.exceptionOrNull?.code, AppErrorCode.serviceUnavailable);
     });
 
-    test(
-        'returns AppFailure with code networkError when the source reports '
+    test('returns AppFailure with code networkError when the source reports '
         'a network failure', () async {
       const exception = AppException(
         code: AppErrorCode.networkError,
@@ -106,11 +108,9 @@ void main() {
       expect(result.exceptionOrNull?.code, AppErrorCode.networkError);
     });
 
-    test(
-        'returns AppFailure with code unexpected when the source throws a '
+    test('returns AppFailure with code unexpected when the source throws a '
         'non-AppException error', () async {
-      when(() => dataSource.checkBackendHealth())
-          .thenThrow(StateError('boom'));
+      when(() => dataSource.checkBackendHealth()).thenThrow(StateError('boom'));
 
       final result = await sut.checkBackendHealth();
 

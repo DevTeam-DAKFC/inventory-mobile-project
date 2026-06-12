@@ -10,10 +10,15 @@ import 'package:inventory_mobile/domain/models/product_image_input.dart';
 import 'package:inventory_mobile/domain/models/product_list_query.dart';
 import 'package:inventory_mobile/domain/models/product_mutations.dart';
 import 'package:inventory_mobile/domain/repositories/product_repository.dart';
+import 'package:inventory_mobile/data/providers/stock_providers.dart';
+import 'package:inventory_mobile/domain/models/stock_overview_item.dart';
+import 'package:inventory_mobile/domain/repositories/stock_repository.dart';
 import 'package:inventory_mobile/navigation/app_router.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/routes.dart';
 import 'package:inventory_mobile/navigation/session_restore_controller.dart';
+
+import 'support/test_theme.dart';
 
 void main() {
   testWidgets('shows login as the public entry point', (tester) async {
@@ -99,6 +104,22 @@ void main() {
     expect(session.canViewAdminEntries, isFalse);
   });
 
+  testWidgets('authenticated admin can reach CSV import flow', (tester) async {
+    final session = AppSession()..signInAsDemoAdmin();
+
+    await tester.pumpWidget(
+      _RouterTestApp(
+        session: session,
+        initialLocation: AppRoutes.productImport,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Importar productos'), findsOneWidget);
+    expect(find.text('Seleccionar archivo'), findsOneWidget);
+    expect(find.text('Formato esperado'), findsOneWidget);
+  });
+
   testWidgets('logout returns the user to the public auth flow', (
     tester,
   ) async {
@@ -141,8 +162,10 @@ class _RouterTestApp extends StatelessWidget {
         productRepositoryProvider.overrideWithValue(
           const _EmptyProductRepository(),
         ),
+        stockRepositoryProvider.overrideWithValue(_FakeStockRepository()),
       ],
       child: MaterialApp.router(
+        theme: buildTestTheme(),
         routerConfig: buildAppRouter(session, initialLocation: initialLocation),
       ),
     );
@@ -188,4 +211,11 @@ final class _EmptyProductRepository implements ProductRepository {
     String productId,
     ProductImageInput image,
   ) => throw UnimplementedError();
+final class _FakeStockRepository implements StockRepository {
+  @override
+  Future<AppResult<List<StockOverviewItem>>> getStockByBranch(
+    String branchId,
+  ) async {
+    return const AppSuccess([]);
+  }
 }

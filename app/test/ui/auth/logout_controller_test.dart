@@ -56,64 +56,66 @@ void main() {
     expect(state.errorMessage, isNull);
   });
 
+  test('successful logout calls AuthRepository.logout exactly once, signs out '
+      'the AppSession and resets controller state', () async {
+    when(
+      () => repository.logout(),
+    ).thenAnswer((_) async => const AppSuccess<void>(null));
+
+    final container = _container(repository: repository, session: session);
+    final controller = container.read(logoutControllerProvider.notifier);
+
+    expect(session.isAuthenticated, isTrue);
+
+    await controller.logout();
+
+    verify(() => repository.logout()).called(1);
+    expect(session.isAuthenticated, isFalse);
+    expect(session.user, isNull);
+
+    final state = container.read(logoutControllerProvider);
+    expect(state.isLoading, isFalse);
+    expect(state.errorMessage, isNull);
+  });
+
   test(
-    'successful logout calls AuthRepository.logout exactly once, signs out '
-    'the AppSession and resets controller state',
+    'logout toggles isLoading while the repository future is pending',
     () async {
-      when(() => repository.logout())
-          .thenAnswer((_) async => const AppSuccess<void>(null));
+      final pending = Completer<AppResult<void>>();
+      when(() => repository.logout()).thenAnswer((_) => pending.future);
 
       final container = _container(repository: repository, session: session);
       final controller = container.read(logoutControllerProvider.notifier);
 
-      expect(session.isAuthenticated, isTrue);
+      final future = controller.logout();
 
-      await controller.logout();
+      expect(container.read(logoutControllerProvider).isLoading, isTrue);
 
-      verify(() => repository.logout()).called(1);
-      expect(session.isAuthenticated, isFalse);
-      expect(session.user, isNull);
+      pending.complete(const AppSuccess<void>(null));
+      await future;
 
-      final state = container.read(logoutControllerProvider);
-      expect(state.isLoading, isFalse);
-      expect(state.errorMessage, isNull);
+      expect(container.read(logoutControllerProvider).isLoading, isFalse);
     },
   );
 
-  test('logout toggles isLoading while the repository future is pending',
-      () async {
-    final pending = Completer<AppResult<void>>();
-    when(() => repository.logout()).thenAnswer((_) => pending.future);
+  test(
+    'duplicate logout while loading does not call the repository twice',
+    () async {
+      final pending = Completer<AppResult<void>>();
+      when(() => repository.logout()).thenAnswer((_) => pending.future);
 
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(logoutControllerProvider.notifier);
+      final container = _container(repository: repository, session: session);
+      final controller = container.read(logoutControllerProvider.notifier);
 
-    final future = controller.logout();
+      final first = controller.logout();
+      final second = controller.logout();
 
-    expect(container.read(logoutControllerProvider).isLoading, isTrue);
+      verify(() => repository.logout()).called(1);
 
-    pending.complete(const AppSuccess<void>(null));
-    await future;
-
-    expect(container.read(logoutControllerProvider).isLoading, isFalse);
-  });
-
-  test('duplicate logout while loading does not call the repository twice',
-      () async {
-    final pending = Completer<AppResult<void>>();
-    when(() => repository.logout()).thenAnswer((_) => pending.future);
-
-    final container = _container(repository: repository, session: session);
-    final controller = container.read(logoutControllerProvider.notifier);
-
-    final first = controller.logout();
-    final second = controller.logout();
-
-    verify(() => repository.logout()).called(1);
-
-    pending.complete(const AppSuccess<void>(null));
-    await Future.wait([first, second]);
-  });
+      pending.complete(const AppSuccess<void>(null));
+      await Future.wait([first, second]);
+    },
+  );
 
   test(
     'AppFailure(networkError) still signs out locally and clears state',
@@ -162,10 +164,7 @@ void main() {
     () async {
       when(() => repository.logout()).thenAnswer(
         (_) async => const AppFailure<void>(
-          AppException(
-            code: AppErrorCode.serviceUnavailable,
-            message: 'down',
-          ),
+          AppException(code: AppErrorCode.serviceUnavailable, message: 'down'),
         ),
       );
 

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../data/providers/product_providers.dart';
 import '../../domain/models/product.dart';
+import '../../navigation/app_session.dart';
 import '../../navigation/routes.dart';
 import 'product_catalog_controller.dart';
 
@@ -85,6 +86,7 @@ class _CatalogHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(productCatalogProvider.notifier);
+    final session = ref.watch(appSessionProvider);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
@@ -96,16 +98,39 @@ class _CatalogHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Productos',
-                style: TextStyle(
-                  color: _Colors.textPrimary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w500,
+              const Expanded(
+                child: Text(
+                  'Productos',
+                  style: TextStyle(
+                    color: _Colors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
+              if (session.canViewAdminEntries) ...[
+                InkWell(
+                  key: const Key('import-products-button'),
+                  onTap: () => context.go(AppRoutes.productImport),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _Colors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: _Colors.border),
+                    ),
+                    child: const Icon(
+                      Icons.upload_file,
+                      color: _Colors.accent,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               InkWell(
                 key: const Key('add-product-button'),
                 onTap: () async {
@@ -129,8 +154,6 @@ class _CatalogHeader extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const _BranchSelector(),
           const SizedBox(height: 12),
           SizedBox(
             height: 40,
@@ -184,44 +207,10 @@ class _CatalogHeader extends ConsumerWidget {
                   onTap: () =>
                       controller.setFilter(ProductCatalogFilter.lowStock),
                 ),
-                const SizedBox(width: 8),
-                const _FilterChip(text: 'Agotados'),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BranchSelector extends StatelessWidget {
-  const _BranchSelector();
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        key: const Key('branch-selector'),
-        height: 36,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        decoration: BoxDecoration(
-          color: _Colors.surfaceSoft,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _Colors.border),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Tienda Central',
-              style: TextStyle(color: _Colors.textPrimary, fontSize: 14),
-            ),
-            SizedBox(width: 8),
-            Icon(Icons.keyboard_arrow_down, color: _Colors.textMuted, size: 16),
-          ],
-        ),
       ),
     );
   }

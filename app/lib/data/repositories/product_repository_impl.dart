@@ -62,6 +62,11 @@ final class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
+  Future<AppResult<void>> activateProduct(String productId) {
+    return _guard(() => _dataSource.activateProduct(productId));
+  }
+
+  @override
   Future<AppResult<Product>> uploadProductImage(
     String productId,
     ProductImageInput image,

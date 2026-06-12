@@ -15,7 +15,9 @@ class LoginState extends Equatable {
   LoginState copyWith({bool? isLoading, Object? errorMessage = _unset}) {
     return LoginState(
       isLoading: isLoading ?? this.isLoading,
-      errorMessage: identical(errorMessage, _unset) ? this.errorMessage : errorMessage as String?,
+      errorMessage: identical(errorMessage, _unset)
+          ? this.errorMessage
+          : errorMessage as String?,
     );
   }
 
@@ -71,5 +73,5 @@ class LoginController extends Notifier<LoginState> {
 
 final loginControllerProvider =
     NotifierProvider.autoDispose<LoginController, LoginState>(
-  LoginController.new,
-);
+      LoginController.new,
+    );
