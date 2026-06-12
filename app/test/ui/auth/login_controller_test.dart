@@ -6,13 +6,30 @@ import 'package:inventory_mobile/core/errors/app_error_code.dart';
 import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/auth_providers.dart';
+import 'package:inventory_mobile/data/providers/notification_providers.dart';
 import 'package:inventory_mobile/domain/models/app_user.dart';
 import 'package:inventory_mobile/domain/repositories/auth_repository.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
+import 'package:inventory_mobile/notifications/notification_session_coordinator.dart';
 import 'package:inventory_mobile/ui/auth/login_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _FakeNotificationSessionCoordinator
+    implements NotificationSessionCoordinator {
+  final List<String> authenticatedUserIds = [];
+  Object? authenticatedError;
+
+  @override
+  Future<void> beforeLogout() async {}
+
+  @override
+  Future<void> onAuthenticated(String userId) async {
+    authenticatedUserIds.add(userId);
+    if (authenticatedError case final error?) throw error;
+  }
+}
 
 AppUser _adminUser() => AppUser(
   id: 'admin_1',
@@ -27,11 +44,15 @@ AppUser _adminUser() => AppUser(
 ProviderContainer _container({
   required _MockAuthRepository repository,
   required AppSession session,
+  _FakeNotificationSessionCoordinator? notifications,
 }) {
   final container = ProviderContainer(
     overrides: [
       authRepositoryProvider.overrideWithValue(repository),
       appSessionProvider.overrideWithValue(session),
+      notificationSessionCoordinatorProvider.overrideWithValue(
+        notifications ?? _FakeNotificationSessionCoordinator(),
+      ),
     ],
   );
   addTearDown(container.dispose);
@@ -63,6 +84,7 @@ void main() {
   test('submit success trims the email, calls the repository once and '
       'authenticates the AppSession', () async {
     final user = _adminUser();
+    final notifications = _FakeNotificationSessionCoordinator();
     when(
       () => repository.login(
         email: any(named: 'email'),
@@ -70,7 +92,11 @@ void main() {
       ),
     ).thenAnswer((_) async => AppSuccess(user));
 
-    final container = _container(repository: repository, session: session);
+    final container = _container(
+      repository: repository,
+      session: session,
+      notifications: notifications,
+    );
     final controller = container.read(loginControllerProvider.notifier);
 
     await controller.submit(
@@ -85,11 +111,39 @@ void main() {
 
     expect(session.user, same(user));
     expect(session.isAuthenticated, isTrue);
+    expect(notifications.authenticatedUserIds, ['admin_1']);
 
     final finalState = container.read(loginControllerProvider);
     expect(finalState.isLoading, isFalse);
     expect(finalState.errorMessage, isNull);
   });
+
+  test(
+    'submit remains successful when notification registration fails',
+    () async {
+      final user = _adminUser();
+      final notifications = _FakeNotificationSessionCoordinator()
+        ..authenticatedError = StateError('notification failure');
+      when(
+        () => repository.login(
+          email: any(named: 'email'),
+          password: any(named: 'password'),
+        ),
+      ).thenAnswer((_) async => AppSuccess(user));
+      final container = _container(
+        repository: repository,
+        session: session,
+        notifications: notifications,
+      );
+
+      await container
+          .read(loginControllerProvider.notifier)
+          .submit(email: 'user@example.com', password: 'password123');
+
+      expect(session.isAuthenticated, isTrue);
+      expect(container.read(loginControllerProvider).errorMessage, isNull);
+    },
+  );
 
   test(
     'submit toggles isLoading while the repository call is pending',

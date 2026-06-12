@@ -7,11 +7,25 @@ import 'package:inventory_mobile/domain/models/app_user.dart';
 import 'package:inventory_mobile/domain/repositories/auth_repository.dart';
 import 'package:inventory_mobile/navigation/app_session.dart';
 import 'package:inventory_mobile/navigation/session_restore_controller.dart';
+import 'package:inventory_mobile/notifications/notification_session_coordinator.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockTokenStorage extends Mock implements AuthTokenStorage {}
 
 class _MockAuthRepository extends Mock implements AuthRepository {}
+
+class _FakeNotificationSessionCoordinator
+    implements NotificationSessionCoordinator {
+  final List<String> authenticatedUserIds = [];
+
+  @override
+  Future<void> beforeLogout() async {}
+
+  @override
+  Future<void> onAuthenticated(String userId) async {
+    authenticatedUserIds.add(userId);
+  }
+}
 
 AppUser _user({required UserRole role}) {
   return AppUser(
@@ -29,6 +43,7 @@ void main() {
   late _MockTokenStorage tokenStorage;
   late _MockAuthRepository authRepository;
   late AppSession appSession;
+  late _FakeNotificationSessionCoordinator notifications;
   final fixedNow = DateTime.utc(2026, 6, 2, 20, 0, 0);
 
   SessionRestoreController buildSut() {
@@ -36,6 +51,7 @@ void main() {
       tokenStorage: tokenStorage,
       authRepository: authRepository,
       appSession: appSession,
+      notificationSessionCoordinator: notifications,
       now: () => fixedNow,
     );
   }
@@ -44,6 +60,7 @@ void main() {
     tokenStorage = _MockTokenStorage();
     authRepository = _MockAuthRepository();
     appSession = AppSession();
+    notifications = _FakeNotificationSessionCoordinator();
   });
 
   group('restore — no token', () {
@@ -110,6 +127,7 @@ void main() {
       expect(appSession.user, same(admin));
       expect(appSession.role, SessionRole.admin);
       expect(appSession.canViewAdminEntries, isTrue);
+      expect(notifications.authenticatedUserIds, ['admin_1']);
       verifyNever(() => tokenStorage.clear());
     });
 

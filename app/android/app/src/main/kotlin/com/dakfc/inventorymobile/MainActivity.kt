@@ -1,4 +1,4 @@
-package com.example.inventory_mobile
+package com.dakfc.inventorymobile
 
 import io.flutter.embedding.android.FlutterActivity
 

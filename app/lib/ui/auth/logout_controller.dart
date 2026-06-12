@@ -2,6 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/providers/auth_providers.dart';
+import '../../data/providers/notification_providers.dart';
 import '../../navigation/app_session.dart';
 
 class LogoutState extends Equatable {
@@ -25,14 +26,23 @@ class LogoutController extends Notifier<LogoutState> {
 
     state = const LogoutState(isLoading: true);
 
+    final notifications = ref.read(notificationSessionCoordinatorProvider);
+    final repository = ref.read(authRepositoryProvider);
+    final appSession = ref.read(appSessionProvider);
+
     try {
-      await ref.read(authRepositoryProvider).logout();
-      ref.read(appSessionProvider).signOut();
-      state = const LogoutState();
+      await notifications.beforeLogout();
+    } catch (_) {}
+
+    try {
+      await repository.logout();
+      appSession.signOut();
+      if (ref.mounted) state = const LogoutState();
     } catch (_) {
       try {
-        ref.read(appSessionProvider).signOut();
+        appSession.signOut();
       } catch (_) {}
+      if (!ref.mounted) return;
       state = const LogoutState(
         errorMessage:
             'No pudimos cerrar sesión completamente. Inténtalo de nuevo.',

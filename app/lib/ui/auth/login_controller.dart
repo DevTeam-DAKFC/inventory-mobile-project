@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/errors/app_error_code.dart';
 import '../../core/errors/app_exception.dart';
 import '../../data/providers/auth_providers.dart';
+import '../../data/providers/notification_providers.dart';
 import '../../navigation/app_session.dart';
 
 class LoginState extends Equatable {
@@ -39,18 +40,28 @@ class LoginController extends Notifier<LoginState> {
     state = const LoginState(isLoading: true);
 
     final trimmedEmail = email.trim();
-    final result = await ref
-        .read(authRepositoryProvider)
-        .login(email: trimmedEmail, password: password);
+    final repository = ref.read(authRepositoryProvider);
+    final appSession = ref.read(appSessionProvider);
+    final result = await repository.login(
+      email: trimmedEmail,
+      password: password,
+    );
 
     final user = result.dataOrNull;
     if (user != null) {
-      ref.read(appSessionProvider).setAuthenticatedUser(user);
-      state = const LoginState();
+      appSession.setAuthenticatedUser(user);
+      try {
+        await ref
+            .read(notificationSessionCoordinatorProvider)
+            .onAuthenticated(user.id);
+      } catch (_) {}
+      if (ref.mounted) state = const LoginState();
       return;
     }
 
-    state = LoginState(errorMessage: _messageFor(result.exceptionOrNull));
+    if (ref.mounted) {
+      state = LoginState(errorMessage: _messageFor(result.exceptionOrNull));
+    }
   }
 
   String _messageFor(AppException? exception) {
