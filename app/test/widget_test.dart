@@ -197,6 +197,10 @@ final class _EmptyProductRepository implements ProductRepository {
       throw UnimplementedError();
 
   @override
+  Future<AppResult<void>> activateProduct(String productId) =>
+      throw UnimplementedError();
+
+  @override
   Future<AppResult<Product>> getProduct(String productId) =>
       throw UnimplementedError();
 
@@ -211,6 +215,8 @@ final class _EmptyProductRepository implements ProductRepository {
     String productId,
     ProductImageInput image,
   ) => throw UnimplementedError();
+}
+
 final class _FakeStockRepository implements StockRepository {
   @override
   Future<AppResult<List<StockOverviewItem>>> getStockByBranch(
