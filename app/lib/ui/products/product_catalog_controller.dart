@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/errors/app_error_code.dart';
 import '../../core/errors/app_exception.dart';
+import '../../core/result/app_result.dart';
 import '../../data/providers/product_providers.dart';
+import '../../domain/models/paginated_products.dart';
 import '../../domain/models/product.dart';
 import '../../domain/models/product_list_query.dart';
 
@@ -114,9 +117,7 @@ final class ProductCatalogController extends Notifier<ProductCatalogState> {
     final nextPage = state.page + 1;
     state = state.copyWith(isLoadingMore: true, clearLoadMoreError: true);
 
-    final result = await ref
-        .read(productRepositoryProvider)
-        .listProducts(_buildQuery(nextPage));
+    final result = await _listProductsSafely(_buildQuery(nextPage));
 
     if (generation != _requestGeneration) return;
 
@@ -152,9 +153,7 @@ final class ProductCatalogController extends Notifier<ProductCatalogState> {
       clearLoadMoreError: true,
     );
 
-    final result = await ref
-        .read(productRepositoryProvider)
-        .listProducts(_buildQuery(1));
+    final result = await _listProductsSafely(_buildQuery(1));
 
     if (generation != _requestGeneration) return;
 
@@ -183,5 +182,24 @@ final class ProductCatalogController extends Notifier<ProductCatalogState> {
       page: page,
       pageSize: pageSize,
     );
+  }
+
+  Future<AppResult<PaginatedProducts>> _listProductsSafely(
+    ProductListQuery query,
+  ) async {
+    try {
+      return await ref.read(productRepositoryProvider).listProducts(query);
+    } on AppException catch (exception) {
+      return AppFailure(exception);
+    } catch (error, stack) {
+      return AppFailure(
+        AppException(
+          code: AppErrorCode.unexpected,
+          message: 'Unexpected error loading products.',
+          cause: error,
+          stackTrace: stack,
+        ),
+      );
+    }
   }
 }

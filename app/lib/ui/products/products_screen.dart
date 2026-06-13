@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/errors/app_error_code.dart';
+import '../../core/errors/app_exception.dart';
 import '../../data/providers/product_providers.dart';
 import '../../domain/models/product.dart';
 import '../../navigation/app_session.dart';
@@ -232,7 +234,7 @@ class _CatalogContent extends ConsumerWidget {
     if (state.error != null) {
       return _ScrollableCentered(
         child: _ErrorView(
-          message: state.error!.message,
+          message: _ProductCatalogErrorMessage.fromException(state.error!),
           onRetry: ref.read(productCatalogProvider.notifier).reload,
         ),
       );
@@ -275,6 +277,21 @@ class _CatalogContent extends ConsumerWidget {
         return const SizedBox.shrink();
       },
     );
+  }
+}
+
+abstract final class _ProductCatalogErrorMessage {
+  static String fromException(AppException exception) {
+    return switch (exception.code) {
+      AppErrorCode.networkError => 'No fue posible conectar con el servidor.',
+      AppErrorCode.timeout =>
+        'La solicitud tardó demasiado. Inténtalo de nuevo.',
+      AppErrorCode.unauthorized => 'Tu sesión expiró. Inicia sesión nuevamente.',
+      AppErrorCode.forbidden => 'No tienes permisos para consultar productos.',
+      AppErrorCode.serviceUnavailable =>
+        'El servicio no está disponible. Inténtalo más tarde.',
+      _ => 'No fue posible cargar los productos. Inténtalo nuevamente.',
+    };
   }
 }
 
