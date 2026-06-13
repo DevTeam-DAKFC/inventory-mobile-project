@@ -1,203 +1,322 @@
 # Inventory Mobile Project
 
-Aplicación móvil desarrollada con **Flutter** para la gestión de inventario multiusuario en una pequeña cadena de tiendas locales.
+Aplicación móvil Flutter para gestión de inventario multiusuario. Este repositorio contiene la app mobile, documentación técnica, contratos REST de referencia y pruebas mobile. El backend no vive en este repositorio.
 
-El proyecto forma parte del curso **Diseño y Programación de Plataformas Móviles** y busca resolver una problemática de control de inventario entre sucursales, donde actualmente se utilizan registros manuales y hojas de cálculo que generan inconsistencias, pérdidas de productos y poca trazabilidad de movimientos.
-
----
-
-## 1. Descripción del proyecto
-
-La aplicación permitirá que usuarios autenticados puedan gestionar productos, visualizar existencias por sucursal, registrar entradas y salidas de inventario, consultar historial de movimientos y recibir alertas relacionadas con bajo stock.
-
-El enfoque del proyecto es construir un **MVP académico-profesional**, de alcance controlado, pero con buena calidad técnica, documentación clara, pruebas automatizadas e integración continua.
-
-No se busca construir un sistema ERP completo. El alcance se centra en:
-
-- Productos.
-- Sucursales.
-- Stock.
-- Movimientos de inventario.
-- Historial.
-- Búsqueda y filtros.
-- Autenticación.
-- Imágenes.
-- API externa.
-- Notificaciones.
-- Testing.
-- CI/CD.
+Estado verificado contra el código actual: la app implementa arquitectura por capas con Riverpod, Dio, repositorios, data sources REST y pantallas funcionales para autenticación, productos, sucursales, stock, movimientos, importación CSV y registro de tokens de notificación. Algunas vistas siguen siendo parciales o placeholders y dependen del backend externo para funcionar end to end.
 
 ---
 
-## 2. Problemática
+## 1. Alcance Actual
 
-Una pequeña cadena de tiendas locales presenta problemas en el control de inventario entre sus sucursales.
+### Implementado en `app/`
 
-Actualmente usan hojas de cálculo y registros manuales, lo que provoca:
+- Proyecto Flutter/Dart.
+- Arquitectura MVVM por capas con Repository Pattern.
+- Estado e inyección de dependencias con Riverpod.
+- Navegación con GoRouter y rutas protegidas por sesión.
+- Cliente HTTP Dio con `Authorization: Bearer <token>`.
+- Registro, login, logout y restauración de sesión con `/auth/me`.
+- Almacenamiento seguro del token con `flutter_secure_storage`.
+- Catálogo de productos con búsqueda, filtros, paginación y detalle.
+- Crear/editar productos, activar/desactivar y cargar imagen.
+- Autocompletado de productos por código de barras vía endpoint backend `/product-lookup/{barcode}`.
+- Gestión de sucursales con listado, filtros, creación, edición, desactivación y reactivación.
+- Pantalla de stock por sucursal con búsqueda y filtros.
+- Historial de movimientos, filtros por tipo y creación de entradas/salidas.
+- Importación CSV de productos y consulta de importaciones recientes.
+- Firebase Core, Firebase Messaging y notificaciones locales.
+- Registro/eliminación de tokens FCM contra el backend.
+- Health check contra `/health`.
+- Unit tests y widget tests en `app/test`.
+- GitHub Actions para `flutter pub get`, `flutter analyze` y `flutter test`.
 
-- Inconsistencias en existencias.
-- Pérdidas de productos.
-- Falta de trazabilidad sobre movimientos.
-- Dificultad para saber qué colaborador realizó una entrada o salida.
-- Baja eficiencia para consultar inventario disponible.
+### Parcial, demo o pendiente de integración
 
-La solución propuesta es una aplicación móvil que permita centralizar y organizar el control de inventario desde dispositivos móviles.
+- La pantalla `Alertas` existe, pero es un placeholder.
+- El dashboard mezcla datos reales parciales con tarjetas demo/pendientes. Actualmente consulta métricas de productos activos y bajo stock, pero disponibilidad, agotados, movimientos de hoy y últimos movimientos no están completamente conectados.
+- El detalle de producto muestra explícitamente como pendientes las secciones "Stock por sucursal" y "Últimos movimientos".
+- La pantalla de stock usa una lista temporal de sucursales de desarrollo en `app/lib/core/constants/stock_config.dart`; no usa todavía el selector real de sucursales del módulo Branches.
+- La importación CSV está implementada como flujo de subida/resultado contra endpoints del backend, no como parser local completo.
+- FCM está integrado en la app, pero la entrega real de push notifications requiere configuración Firebase válida y soporte server-side en el backend. No se confirmó en este repositorio un envío automático de notificaciones.
+- Firebase Storage está mencionado como opción, pero no hay implementación confirmada de subida a Firebase Storage en la app. La subida de imágenes usa el endpoint backend `/products/{id}/image`.
+- No hay `integration_test/` confirmado en el código actual.
 
----
+### Fuera de este repositorio
 
-## 3. Funcionalidades principales
-
-### Funcionalidades del MVP
-
-- Autenticación de usuarios.
-- Registro e inicio de sesión.
-- Roles básicos: `admin` y `collaborator`.
-- Gestión completa de productos.
-- Registro manual de productos.
-- Autocompletado de productos usando API externa.
-- Carga de imagen de producto.
-- Gestión simple de sucursales.
-- Visualización de stock por sucursal.
-- Registro de entradas de inventario.
-- Registro de salidas de inventario.
-- Validación de stock insuficiente.
-- Historial de movimientos.
-- Búsqueda y filtros.
-- Alertas o notificaciones relacionadas con bajo stock.
-- Almacenamiento local básico para preferencias.
-- Testing automatizado.
-- GitHub Actions.
-
-### Funcionalidades complementarias
-
-- Importación inicial de productos desde archivo CSV.
-- Vista previa y validación básica de importación.
-- Registro de movimiento inicial cuando se importe stock.
-
-### Fuera de alcance del MVP
-
-- ERP completo.
-- Facturación.
-- Gestión de proveedores.
-- Reportes estadísticos complejos.
-- Panel web administrativo.
-- Permisos granulares avanzados.
-- Inventario offline completo.
-- Transferencias complejas entre sucursales.
-- Automatización completa de push notifications mediante Cloud Functions.
-- Importación avanzada de Excel `.xlsx`.
+- Implementación del backend ASP.NET Core Web API.
+- SQL Server, migraciones, EF Core, Docker Compose y pruebas backend.
+- Envío automático server-side de push notifications.
+- Login social, Firebase Auth y recuperación de contraseña.
+- ERP, facturación, proveedores, reportes avanzados y panel web administrativo.
 
 ---
 
-## 4. Stack técnico
+## 2. Stack Técnico Verificado
 
-| Área | Tecnología |
+| Área | Tecnología / estado |
 |---|---|
-| Framework móvil | Flutter |
+| Framework mobile | Flutter |
 | Lenguaje | Dart |
-| Arquitectura | MVVM |
+| Arquitectura | MVVM por capas + Repository Pattern |
 | Estado / DI | Riverpod |
-| Backend principal | Firebase |
-| Autenticación | Firebase Auth |
-| Base de datos | Cloud Firestore |
-| Imágenes | Firebase Storage |
-| Notificaciones | Firebase Cloud Messaging |
-| API externa | Open Food Facts API |
+| Navegación | GoRouter |
 | HTTP client | Dio |
-| Almacenamiento local | Shared Preferences |
-| Testing | Flutter test, widget tests, integration tests |
-| CI/CD | GitHub Actions |
+| Auth mobile | Bearer token del backend + `flutter_secure_storage` |
+| Backend esperado | `inventory-backend` externo |
+| Contrato REST | `docs/api-contracts/openapi.inventory-api.yaml` |
+| Firebase | Firebase Core, Firebase Messaging, notificaciones locales |
+| Imágenes | `image_picker` + upload al backend |
+| CSV | `file_picker`; subida del archivo al backend |
+| Almacenamiento local | `flutter_secure_storage`; `shared_preferences` está en dependencias, pero no se confirmó uso funcional en `lib/` |
+| Testing | `flutter_test`, `mocktail`, tests unit/widget |
+| CI | `.github/workflows/flutter-ci.yml` |
 
 ---
 
-## 5. Decisiones técnicas principales
+## 3. Arquitectura Mobile
 
-- Firebase será el backend principal.
-- No se construirá una API REST propia para el MVP.
-- La API externa se usará únicamente para autocompletar productos por código de barras.
-- La sucursal es una entidad obligatoria del dominio.
-- El stock se maneja por combinación `productId + branchId`.
-- El stock no se edita directamente desde el producto.
-- El stock cambia mediante movimientos de inventario.
-- Los movimientos son la fuente de trazabilidad.
-- Riverpod se usará para estado e inyección de dependencias.
-- La UI no accederá directamente a Firebase ni a APIs externas.
-- El acceso a datos pasará por repositorios y data sources.
+La estructura real de `app/lib` está alineada con una arquitectura por capas:
 
----
-
-## 6. Arquitectura
-
-La aplicación seguirá una arquitectura por capas con MVVM y Repository Pattern.
+```text
+app/lib/
+├── app/                 # App root y tema
+├── core/                # Configuración, errores, result, storage, validaciones
+├── data/                # DTOs, mappers, REST data sources, providers, repos impl
+├── domain/              # Modelos, repositorios abstractos, servicios de dominio
+├── navigation/          # GoRouter, rutas, sesión, restauración de sesión
+├── notifications/       # FCM, notificaciones locales, coordinadores
+└── ui/                  # Pantallas y view models/controllers por módulo
+```
 
 Flujo general:
 
 ```text
 UI
-→ ViewModel
+→ Controller / ViewModel / Provider
 → Repository
-→ Data Source
-→ Firebase / API externa / almacenamiento local
+→ RestApiDataSource
+→ Dio autenticado
+→ inventory-backend
 ```
 
-Principio base:
-
-```text
-La UI no debe conocer detalles de Firebase, Firestore, Storage, FCM, Dio ni almacenamiento local.
-```
-
-Estructura esperada dentro de `app/lib`:
-
-```text
-lib/
-├── app/
-├── core/
-├── data/
-├── domain/
-├── navigation/
-├── notifications/
-└── ui/
-```
+La UI no accede directamente al backend. El acceso a datos pasa por repositorios y data sources REST.
 
 ---
 
-## 7. Estructura del repositorio
+## 4. Módulos y Pantallas
 
-```text
-inventory-mobile-project/
-├── .github/
-│   └── workflows/
-├── app/
-├── docs/
-│   ├── api-contracts/
-│   ├── architecture/
-│   ├── research/
-│   ├── screenshots/
-│   ├── video/
-│   └── workshop/
-├── tests/
-└── README.md
-```
-
-### Carpetas principales
-
-| Carpeta | Propósito |
+| Módulo | Estado actual |
 |---|---|
-| `.github/workflows` | Workflows de GitHub Actions. |
-| `app` | Proyecto Flutter. |
-| `docs/architecture` | Alcance, arquitectura, modelo de datos y navegación. |
-| `docs/contracts` | Contratos de Firestore, API externa y mock data. |
-| `docs/research` | Informe de investigación sobre Flutter en PDF. |
-| `docs/screenshots` | Evidencia visual del proyecto. |
-| `docs/video` | Guion o apoyo para video técnico. |
-| `docs/workshop` | Guía del workshop y live coding. |
-| `tests` | Plan de pruebas y casos manuales. |
+| Auth | Login, registro, logout, restauración de sesión y rutas protegidas implementadas. |
+| Home | Dashboard implementado con métricas parciales; varios indicadores siguen pendientes/demo. |
+| Products | Listado, búsqueda, filtros, detalle, crear, editar, activar/desactivar, imagen y lookup por barcode implementados. |
+| Branches | Listado, filtros, selección, crear, editar, desactivar/reactivar implementados. |
+| Stock | Vista de existencias por sucursal implementada, pero usa sucursales temporales hardcodeadas. |
+| Movements | Historial, filtro por tipo, búsqueda local y formulario de entrada/salida implementados. |
+| Imports | Selección y subida de CSV, resultado, errores y últimas importaciones implementados contra backend. |
+| Alerts | Placeholder; no hay listado real de alertas en la UI actual. |
+| Notifications | FCM/local notifications y registro de token implementados; requiere backend/Firebase configurados para validación end to end. |
 
 ---
 
-## 8. Documentación disponible
+## 5. Backend y Endpoints Usados
 
-### Arquitectura
+La app consume un backend externo llamado `inventory-backend`. La implementación de endpoints no está en este repositorio.
+
+La URL base se configura en `app/lib/core/constants/api_config.dart`.
+
+- Android: `http://10.0.2.2:5225`
+- iOS simulator, desktop y tests locales: `http://localhost:5225`
+- Override: `--dart-define=BACKEND_BASE_URL=<url>`
+
+Ejemplo:
+
+```powershell
+cd .\app
+flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:5225
+```
+
+Endpoints usados por el código mobile:
+
+```text
+GET  /health
+POST /auth/register
+POST /auth/login
+GET  /auth/me
+POST /auth/logout
+GET  /products
+POST /products
+GET  /products/{productId}
+PATCH /products/{productId}
+PATCH /products/{productId}/deactivate
+PATCH /products/{productId}/activate
+POST /products/{productId}/image
+GET  /product-lookup/{barcode}
+GET  /branches
+POST /branches
+PATCH /branches/{branchId}
+PATCH /branches/{branchId}/deactivate
+PATCH /branches/{branchId}/activate
+GET  /stock?branchId={branchId}
+GET  /inventory-movements
+POST /inventory-movements
+GET  /inventory-movements/{movementId}
+GET  /import-batches
+POST /import-batches/products
+GET  /import-batches/{batchId}
+GET  /import-batches/{batchId}/errors
+POST /notification-tokens
+DELETE /notification-tokens/{tokenId}
+```
+
+Open Food Facts no se consume directamente desde la app actual. La app llama al backend en `/product-lookup/{barcode}`; el backend es quien debería resolver la integración externa.
+
+---
+
+## 6. Autenticación y Roles
+
+La autenticación mobile implementada espera respuestas del backend para:
+
+- Registro.
+- Login.
+- Usuario actual (`/auth/me`).
+- Logout.
+
+El token se guarda en secure storage y el interceptor agrega:
+
+```text
+Authorization: Bearer <token>
+```
+
+Los roles soportados por el modelo mobile son:
+
+```text
+admin
+collaborator
+```
+
+El rol `admin` habilita acciones administrativas visibles, como importación de productos y acciones administrativas sobre sucursales. La autorización real debe validarse en el backend.
+
+Nota: `DEV_ACCESS_TOKEN` existe en `core/auth/access_token_provider.dart`, pero los providers actuales usan principalmente el almacenamiento seguro y el interceptor de auth. Su uso en ejecución normal no está confirmado como flujo principal.
+
+---
+
+## 7. Instalación y Ejecución
+
+Requisitos:
+
+- Git.
+- Flutter SDK compatible con Dart `^3.12.1`.
+- Android Studio / Android SDK para Android.
+- Emulador o dispositivo físico.
+- Backend `inventory-backend` corriendo si se quieren probar flujos reales.
+- Configuración Firebase válida para validar FCM en dispositivo.
+
+Comandos desde la raíz:
+
+```powershell
+cd .\app
+flutter pub get
+flutter run
+```
+
+Con backend local en emulador Android:
+
+```powershell
+flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:5225
+```
+
+Con dispositivo Android físico y backend local en la PC:
+
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb reverse tcp:5225 tcp:5225
+flutter run --dart-define=BACKEND_BASE_URL=http://127.0.0.1:5225
+```
+
+Un cambio en `--dart-define` requiere detener y volver a lanzar la app; hot reload no alcanza.
+
+---
+
+## 8. Validación Local
+
+Desde `app/`:
+
+```powershell
+flutter pub get
+flutter analyze
+flutter test
+```
+
+Build Android debug:
+
+```powershell
+flutter build apk --debug
+```
+
+Integration tests:
+
+```powershell
+flutter test integration_test
+```
+
+Nota: no se confirmó una carpeta `app/integration_test/` en el código actual, por lo que ese comando aplica solo si se agregan integration tests.
+
+---
+
+## 9. Tests Existentes
+
+La carpeta `app/test` contiene cobertura para:
+
+- Validadores de auth, productos y movimientos.
+- Modelos de dominio.
+- DTOs y mappers.
+- Data sources REST.
+- Repositorios.
+- Providers.
+- Auth token storage y notification registration storage.
+- Configuración de API.
+- Navegación y restauración de sesión.
+- Pantallas y controllers de auth.
+- Pantallas/controllers de productos.
+- Sucursales.
+- Stock.
+- Movimientos.
+- Importación.
+- Notificaciones.
+- Health screen.
+
+El plan de pruebas vive en:
+
+```text
+tests/test-plan.md
+```
+
+Ese plan incluye algunos escenarios deseados que pueden ser más amplios que el estado actual de implementación. Para evidencia real, usar los tests existentes en `app/test`.
+
+---
+
+## 10. GitHub Actions
+
+Workflow confirmado:
+
+```text
+.github/workflows/flutter-ci.yml
+```
+
+Ejecuta en `main` y `dev`:
+
+```text
+flutter pub get
+flutter analyze
+flutter test
+```
+
+No ejecuta actualmente `flutter build apk --debug`.
+
+---
+
+## 11. Documentación Disponible
 
 ```text
 docs/architecture/project-scope.md
@@ -206,343 +325,30 @@ docs/architecture/data-model.md
 docs/architecture/system-architecture.md
 docs/architecture/navigation-map.md
 docs/architecture/layers-explanation.md
-```
-
-### API contracts
-
-```text
-docs/contracts/README.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
-docs/contracts/mock-data.md
-```
-
-### Testing
-
-```text
+docs/api-contracts/README.md
+docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/external-product-api.md
+docs/api-contracts/mock-data.md
 tests/test-plan.md
+app/README.md
 ```
 
-### Investigación
-
-```text
-docs/research/flutter-research.pdf
-```
+Algunos documentos usan lenguaje de planificación. El estado más confiable para implementación mobile actual es este README, `app/README.md` y el código en `app/lib` + `app/test`.
 
 ---
 
-## 9. Instalación del proyecto
+## 12. Limitaciones Conocidas
 
-> Estado actual: el repositorio contiene la estructura base y documentación inicial. El proyecto Flutter debe crearse dentro de la carpeta `app`.
-
-### Requisitos
-
-- Git.
-- Flutter SDK.
-- Android Studio.
-- Android SDK.
-- Emulador Android o dispositivo físico.
-- Firebase project configurado.
-
-### Verificar Flutter
-
-```powershell
-flutter --version
-flutter doctor
-```
-
-### Crear proyecto Flutter dentro de `/app`
-
-Desde la raíz del repositorio:
-
-```powershell
-cd C:\dev\inventory-mobile-project
-
-flutter create --project-name inventory_mobile app
-```
-
-### Entrar al proyecto Flutter
-
-```powershell
-cd .\app
-```
-
-### Instalar dependencias
-
-```powershell
-flutter pub get
-```
-
-### Ejecutar aplicación
-
-```powershell
-flutter run
-```
+- El backend debe existir y respetar los contratos esperados; este repo no puede validar reglas backend ni persistencia SQL Server.
+- La app no implementa modo offline completo.
+- La selección de sucursal en Stock todavía es temporal y hardcodeada.
+- Alertas no está implementada como módulo funcional.
+- Push notifications requieren Firebase y backend server-side para validación real.
+- La carga de imágenes depende del endpoint backend, no de Firebase Storage.
+- Open Food Facts está abstraído detrás del backend; no hay llamada directa desde Flutter.
+- No se confirmó integración end to end con un backend real durante esta revisión.
+- No se confirmó carpeta de integration tests.
+- Variables o secretos de backend/Firebase no deben commitearse. Usar `--dart-define` para `BACKEND_BASE_URL`.
 
 ---
-
-## 10. Validaciones locales
-
-Desde la carpeta `app`:
-
-```powershell
-flutter pub get
-flutter analyze
-flutter test
-```
-
-Cuando el entorno Android esté configurado:
-
-```powershell
-flutter build apk --debug
-```
-
-Si se agregan integration tests:
-
-```powershell
-flutter test integration_test
-```
-
----
-
-## 11. GitHub Actions
-
-El proyecto deberá incluir un workflow para validar pushes y pull requests.
-
-Archivo esperado:
-
-```text
-.github/workflows/flutter-ci.yml
-```
-
-Validaciones mínimas:
-
-```text
-flutter pub get
-flutter analyze
-flutter test
-```
-
-Validación recomendada:
-
-```text
-flutter build apk --debug
-```
-
----
-
-## 12. Datos de prueba
-
-Los datos de prueba están documentados en:
-
-```text
-docs/contracts/mock-data.md
-```
-
-Incluyen:
-
-- Usuarios demo.
-- Sucursales demo.
-- Productos demo.
-- Stock inicial.
-- Movimientos de ejemplo.
-- Casos de bajo stock.
-- Casos de salida con stock insuficiente.
-- Ejemplos de CSV válido e inválido.
-
----
-
-## 13. API externa
-
-La aplicación consumirá **Open Food Facts API** para buscar información de productos por código de barras.
-
-Uso esperado:
-
-```text
-Usuario ingresa código de barras
-→ App consulta API externa
-→ API devuelve datos sugeridos
-→ Usuario revisa y corrige
-→ Producto se guarda en Firestore
-```
-
-La API externa no reemplaza el registro manual.
-
-Contrato documentado en:
-
-```text
-docs/contracts/external-product-api.md
-```
-
----
-
-## 14. Firebase
-
-Firebase se utilizará para:
-
-- Autenticación.
-- Persistencia.
-- Imágenes.
-- Notificaciones.
-
-Servicios esperados:
-
-```text
-Firebase Auth
-Cloud Firestore
-Firebase Storage
-Firebase Cloud Messaging
-```
-
-La configuración específica de Firebase se agregará durante la implementación del proyecto Flutter.
-
----
-
-## 15. Testing
-
-El plan de pruebas está documentado en:
-
-```text
-tests/test-plan.md
-```
-
-Tipos de pruebas contemplados:
-
-- Unit tests.
-- Widget tests.
-- Integration tests.
-- Casos positivos.
-- Casos negativos.
-- Pruebas manuales documentadas.
-
----
-
-## 16. Flujo de trabajo
-
-El equipo trabajará usando GitHub de forma profesional.
-
-Se espera:
-
-- Uso de ramas.
-- Pull Requests.
-- Code Reviews.
-- GitHub Projects.
-- Issues o tickets.
-- Commits distribuidos entre integrantes.
-- Evidencia de validación por PR.
-
-Convención sugerida de ramas:
-
-```text
-feature/INV-001-short-description
-fix/INV-002-short-description
-docs/INV-003-short-description
-test/INV-004-short-description
-```
-
-Convención sugerida de commits:
-
-```text
-feat(products): add product form
-fix(stock): prevent outgoing movement with insufficient stock
-docs(architecture): add data model
-test(movements): add stock validation tests
-```
-
----
-
-## 17. Estado actual del proyecto
-
-### Completado
-
-- Estructura base del repositorio.
-- Documentación inicial de arquitectura.
-- Contratos de Firestore.
-- Contrato de API externa.
-- Mock data.
-- Plan de pruebas.
-
-### Pendiente
-
-- Crear proyecto Flutter dentro de `app`.
-- Configurar Firebase.
-- Configurar dependencias Flutter.
-- Implementar arquitectura base.
-- Implementar navegación.
-- Implementar módulos funcionales.
-- Crear GitHub Actions.
-- Completar informe de investigación en PDF.
-- Preparar video técnico.
-- Preparar workshop.
-
----
-
-## 18. Integrantes
-
-| Integrante | Rol / Responsabilidad |
-|---|---|
-| Pendiente | Pendiente |
-| Pendiente | Pendiente |
-| Pendiente | Pendiente |
-| Pendiente | Pendiente |
-
----
-
-## 19. Video técnico
-
-El video técnico deberá explicar:
-
-- Arquitectura del proyecto.
-- Decisiones técnicas.
-- Flujo funcional.
-- Testing.
-- Integración continua.
-- Problemas encontrados y soluciones.
-
-Enlace pendiente:
-
-```text
-Pendiente
-```
-
----
-
-## 20. Workshop técnico
-
-El workshop deberá incluir:
-
-- Explicación del framework.
-- Explicación de arquitectura.
-- Actividad práctica guiada.
-- Live coding.
-- Participación de la clase.
-- Defensa técnica individual.
-
-Guía pendiente:
-
-```text
-docs/workshop/workshop-guide.md
-```
-
----
-
-## 21. Uso responsable de IA
-
-El uso de IA puede apoyar planificación, documentación, revisión y generación de ideas.
-
-Sin embargo:
-
-- El equipo debe comprender todo el código entregado.
-- Cada integrante debe poder explicar su parte.
-- Las decisiones técnicas deben ser justificables.
-- El código generado o asistido debe revisarse críticamente.
-- La IA no reemplaza el dominio técnico esperado del curso.
-
----
-
-## 22. Licencia
-
-Proyecto académico desarrollado para el curso Diseño y Programación de Plataformas Móviles.
-
-La licencia formal queda pendiente de definición por el equipo.
 

@@ -22,6 +22,9 @@ app/build/
 app/.flutter-plugins
 app/.flutter-plugins-dependencies
 
+# Prototypes / design drafts
+prototypes/
+
 # Android
 app/android/.gradle/
 app/android/local.properties
@@ -38,8 +41,16 @@ app/ios/Flutter/Flutter.podspec
 .env
 *.env
 .env.*
+!.env.example
 google-services.json
 GoogleService-Info.plist
 
 # Logs
 *.log
+
+/Protipo Investigación
+docs/prototype/
+
+google-services.json
+!app/android/app/google-services.json
+GoogleService-Info.plist

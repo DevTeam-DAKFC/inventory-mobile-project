@@ -1,0 +1,32 @@
+class AppRoutes {
+  const AppRoutes._();
+
+  static const splash = '/splash';
+  static const login = '/login';
+  static const register = '/register';
+
+  static const home = '/home';
+  static const branches = '/branches';
+  static const products = '/products';
+  static const productImport = '/products/import';
+  static const productNew = '/products/new';
+  static const stock = '/stock';
+  static const movements = '/movements';
+  static const alerts = '/alerts';
+
+  static String productDetail(String productId) => '/products/$productId';
+
+  static String productEdit(String productId) => '/products/$productId/edit';
+}
+
+enum AppShellTab {
+  home(AppRoutes.home),
+  products(AppRoutes.products),
+  stock(AppRoutes.stock),
+  movements(AppRoutes.movements),
+  alerts(AppRoutes.alerts);
+
+  const AppShellTab(this.path);
+
+  final String path;
+}

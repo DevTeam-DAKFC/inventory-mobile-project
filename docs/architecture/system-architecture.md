@@ -1,10 +1,10 @@
-# System Architecture - Sistema de Gestión de Inventario Multiusuario
+# System Architecture - Sistema de Gestion de Inventario Multiusuario
 
-## 1. Propósito del documento
+## 1. Proposito del documento
 
-Este documento describe la arquitectura general del sistema de gestión de inventario multiusuario desarrollado con Flutter.
+Este documento describe la arquitectura general del sistema de gestion de inventario multiusuario desarrollado con Flutter en `inventory-mobile-project`.
 
-Su objetivo es explicar cómo se organizan los componentes principales de la aplicación, cómo se comunican las capas internas, cómo se integran Firebase y la API externa, y cómo se mantiene la separación de responsabilidades dentro del proyecto.
+Su objetivo es explicar como se organizan los componentes principales, como se comunican las capas internas, como se consume el backend externo y como se mantienen aisladas las fuentes externas de datos.
 
 Este documento se basa en:
 
@@ -12,42 +12,61 @@ Este documento se basa en:
 docs/architecture/project-scope.md
 docs/architecture/technical-decisions.md
 docs/architecture/data-model.md
-docs/contracts/firestore-collections.md
-docs/contracts/external-product-api.md
+docs/api-contracts/openapi.inventory-api.yaml
+docs/api-contracts/external-product-api.md
 ```
+
+La documentación de esquema SQL Server pertenece al repositorio separado `inventory-backend`. No implica que SQL Server, Docker Compose, EF Core o migraciones vivan en este repositorio movil.
 
 ---
 
-## 2. Visión general del sistema
+## 2. Vision general del sistema
 
-El sistema será una aplicación móvil Flutter orientada a la gestión de inventario en una pequeña cadena de tiendas locales.
+El sistema sera una aplicacion movil Flutter orientada a la gestion de inventario en una pequena cadena de tiendas locales.
 
-La aplicación permitirá:
+La aplicacion permitira:
 
-- Autenticación de usuarios.
-- Gestión de productos.
-- Gestión simple de sucursales.
+- Autenticacion de usuarios.
+- Gestion de productos.
+- Gestion simple de sucursales.
 - Consulta de stock por sucursal.
 - Registro de entradas y salidas de inventario.
 - Historial de movimientos.
-- Búsqueda y filtros.
-- Manejo de imágenes de productos.
+- Busqueda y filtros.
+- Manejo de imagenes de productos.
 - Alertas y notificaciones relacionadas con bajo stock.
 - Consumo de API externa para autocompletar productos.
 - Almacenamiento local limitado para preferencias.
 
-El backend principal será Firebase.
-
-Servicios utilizados:
+La direccion de arquitectura planificada es:
 
 ```text
-Firebase Auth
-Cloud Firestore
-Firebase Storage
-Firebase Cloud Messaging
+Flutter
+→ Dio / HttpClient
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
 
-La aplicación no usará una API REST propia como backend principal.
+El backend ASP.NET Core Web API pertenece al repositorio separado `inventory-backend` y expondra endpoints REST consumidos por Flutter mediante Dio / HttpClient. SQL Server y Docker Compose tambien pertenecen a `inventory-backend`.
+
+`inventory-mobile-project` no contiene codigo fuente backend, configuracion SQL Server, Docker Compose, EF Core, migraciones ni pruebas backend.
+
+Firebase no sera el backend principal ni la base de datos principal. Se mantiene para:
+
+- Firebase Cloud Messaging para notificaciones push.
+- Firebase Storage como opcion para imagenes de productos, pendiente de decision final.
+
+El contrato REST principal vive en:
+
+```text
+docs/api-contracts/openapi.inventory-api.yaml
+```
+
+Los datos de demostracion descritos en `docs/api-contracts/mock-data.md` se utilizan en desarrollo, pruebas y demos, y permiten alimentar implementaciones mock de los data sources.
+
+La documentación de persistencia SQL Server pertenece a `inventory-backend`. No implica que SQL Server, Docker Compose, migraciones o backend existan en `inventory-mobile-project`.
+
+La UI y los ViewModels no deben depender directamente del backend, SQL Server, Firebase, un cliente REST ni cualquier otra fuente concreta de datos.
 
 ---
 
@@ -57,58 +76,66 @@ La aplicación no usará una API REST propia como backend principal.
 flowchart TD
     User[Usuario] --> UI[Flutter UI]
 
-    UI --> VM[ViewModel / Controller]
+    UI --> VM[ViewModel / State]
     VM --> Repo[Repository Layer]
 
-    Repo --> FirebaseDS[Firebase Data Sources]
-    Repo --> ExternalDS[External API Data Source]
-    Repo --> LocalDS[Local Storage Data Source]
+    Repo --> RestDS[RestApiDataSource]
+    Repo --> MockDS[MockDataSource]
+    Repo --> ExternalDS[External Product Lookup DataSource]
+    Repo --> FirebaseDS[FirebaseDataSource para servicios Firebase]
+    Repo --> LocalDS[Local Storage DataSource]
 
-    FirebaseDS --> Auth[Firebase Auth]
-    FirebaseDS --> Firestore[Cloud Firestore]
-    FirebaseDS --> Storage[Firebase Storage]
+    RestDS --> Dio[Dio / HttpClient]
+    Dio --> Api[inventory-backend / ASP.NET Core Web API]
+    Api --> Sql[(SQL Server en inventory-backend)]
+
+    Api -. proxy opcional .-> ProductAPI[Open Food Facts]
+    ExternalDS -. opcion directa .-> ProductAPI
+
     FirebaseDS --> FCM[Firebase Cloud Messaging]
+    FirebaseDS --> Storage[Firebase Storage opcional]
 
-    ExternalDS --> ProductAPI[External Product API]
-    LocalDS --> Preferences[Local Preferences]
-
-    Firestore --> Collections[Users / Branches / Products / Stocks / Movements]
+    LocalDS --> Preferences[Preferencias locales]
+    MockDS --> MockSet[Mock data set]
 ```
+
+El flujo principal de datos del MVP sera `RestApiDataSource → inventory-backend / ASP.NET Core Web API → SQL Server en inventory-backend`. `MockDataSource` se mantiene para pruebas, demos y trabajo temprano de UI. `FirebaseDataSource` solo debe aplicarse a servicios Firebase, como FCM u opcion de Storage, no a persistencia de inventario.
 
 ---
 
-## 4. Principio arquitectónico principal
+## 4. Principio arquitectonico principal
 
-El principio central será:
+El principio central sera:
 
 ```text
-La UI no debe conocer detalles de Firebase, Firestore, Storage, FCM, almacenamiento local ni APIs externas.
+La UI no debe conocer detalles del backend, SQL Server, Firebase, Storage, FCM, almacenamiento local ni APIs externas.
 ```
 
-La comunicación debe pasar por capas:
+La comunicacion principal debe pasar por capas:
 
 ```text
 UI
 → ViewModel
 → Repository
-→ Data Source
-→ Firebase / API externa / almacenamiento local
+→ RestApiDataSource
+→ inventory-backend / ASP.NET Core Web API
+→ SQL Server en inventory-backend
 ```
 
-Esto permite mantener separación de responsabilidades, mejorar la mantenibilidad y facilitar pruebas.
+Esto permite mantener separacion de responsabilidades, mejorar la mantenibilidad y facilitar pruebas.
 
 ---
 
 ## 5. Arquitectura interna
 
-La aplicación usará una arquitectura basada en:
+La aplicacion usara una arquitectura basada en:
 
 ```text
 MVVM
 Repository Pattern
 Layer-first structure
 Riverpod
-Firebase-first backend
+REST API backend planificado
 ```
 
 Flujo interno:
@@ -123,9 +150,30 @@ Screen / Widget
 
 ---
 
+## 5A. Backend-swappable data sources
+
+La aplicacion se disena para ser independiente del proveedor concreto de backend.
+
+Los contratos de repositorio definidos en `domain/repositories/` son la frontera estable. Detras de cada repositorio puede vivir mas de una implementacion de data source, sin que la UI ni los ViewModels deban cambiar.
+
+Implementaciones previstas:
+
+- `RestApiDataSource` — familia principal de data sources para datos del MVP. Consume el backend externo ASP.NET Core Web API mediante Dio.
+- `MockDataSource` — implementacion en memoria alineada con `docs/api-contracts/mock-data.md`. Soporta pruebas unitarias, widget tests, desarrollo temprano de UI y demos.
+- `FirebaseDataSource` — implementacion limitada a servicios Firebase, como FCM y Storage opcional. No debe usarse para persistencia de inventario.
+
+Reglas:
+
+- Los repositorios son agnosticos del backend.
+- La UI y los ViewModels nunca dependen de un proveedor concreto de datos.
+- El intercambio de data source ocurre en la composicion de dependencias con Riverpod, no dentro de las pantallas.
+- `RestApiDataSource` es el camino principal para datos de aplicacion del MVP.
+
+---
+
 ## 6. Estructura de carpetas propuesta
 
-Dentro de `app/lib`, la estructura base será:
+Dentro de `app/lib`, la estructura base sera:
 
 ```text
 lib/
@@ -145,8 +193,10 @@ lib/
 │
 ├── data/
 │   ├── datasources/
-│   │   ├── firebase/
+│   │   ├── rest/
+│   │   ├── mock/
 │   │   ├── external/
+│   │   ├── firebase/
 │   │   └── local/
 │   ├── dto/
 │   ├── mappers/
@@ -177,29 +227,28 @@ lib/
     └── settings/
 ```
 
+Enfasis de data sources:
+
+- `data/datasources/rest/` sera el camino principal para datos de aplicacion.
+- `data/datasources/mock/` se mantiene para pruebas y demos.
+- `data/datasources/external/` se mantiene para Open Food Facts si se consume directamente desde Flutter.
+- `data/datasources/firebase/` solo debe cubrir servicios Firebase, como FCM o Storage opcional, no persistencia de inventario.
+
 ---
 
 ## 7. Responsabilidades por capa
 
 ## 7.1 App
 
-La carpeta `app/` contiene la configuración inicial de la aplicación.
+La carpeta `app/` contiene la configuracion inicial de la aplicacion.
 
 Responsabilidades:
 
-- Inicializar Firebase.
+- Inicializar servicios requeridos.
 - Inicializar providers globales.
 - Configurar tema visual.
 - Configurar router principal.
-- Exponer el widget raíz de la app.
-
-Ejemplos:
-
-```text
-app.dart
-bootstrap.dart
-theme.dart
-```
+- Exponer el widget raiz de la app.
 
 ---
 
@@ -210,31 +259,18 @@ La carpeta `core/` contiene utilidades compartidas y elementos reutilizables.
 Responsabilidades:
 
 - Manejo de errores comunes.
-- Resultado estándar de operaciones.
+- Resultado estandar de operaciones.
 - Validaciones reutilizables.
 - Widgets compartidos.
 - Constantes.
 - Helpers.
 - Almacenamiento local simple.
 
-Ejemplos:
-
-```text
-AppResult
-AppException
-AuthValidators
-ProductValidators
-MovementValidators
-LoadingState
-EmptyState
-ErrorState
-```
-
 ---
 
 ## 7.3 Domain
 
-La carpeta `domain/` contiene modelos y contratos independientes de Firebase o cualquier infraestructura externa.
+La carpeta `domain/` contiene modelos y contratos independientes de infraestructura externa.
 
 Responsabilidades:
 
@@ -242,34 +278,10 @@ Responsabilidades:
 - Definir contratos de repositorios.
 - Definir reglas o casos de uso cuando sea necesario.
 
-Ejemplos de modelos:
-
-```text
-User
-Branch
-Product
-Stock
-InventoryMovement
-NotificationToken
-ImportBatch
-ExternalProductSuggestion
-```
-
-Ejemplos de contratos:
-
-```text
-AuthRepository
-ProductRepository
-StockRepository
-InventoryMovementRepository
-BranchRepository
-ProductLookupRepository
-```
-
 Regla:
 
 ```text
-domain/ no debe importar Firebase, Firestore, Dio, Storage ni paquetes de UI.
+domain/ no debe importar Firebase, Dio, Storage ni paquetes de UI.
 ```
 
 ---
@@ -281,89 +293,59 @@ La carpeta `data/` contiene implementaciones concretas de acceso a datos.
 Responsabilidades:
 
 - Implementar repositorios.
-- Comunicarse con Firebase.
-- Consumir API externa.
+- Consumir el backend externo ASP.NET Core Web API mediante Dio.
+- Consumir API externa si aplica.
+- Integrarse con servicios Firebase especificos.
 - Leer almacenamiento local.
 - Mapear datos remotos a modelos de dominio.
-- Manejar errores técnicos.
-
-Subcarpetas esperadas:
-
-```text
-data/datasources/firebase/
-data/datasources/external/
-data/datasources/local/
-data/dto/
-data/mappers/
-data/repositories/
-```
+- Manejar errores tecnicos.
 
 Ejemplos:
 
 ```text
-FirebaseProductDataSource
-FirebaseStockDataSource
-FirebaseInventoryMovementDataSource
+RestApiAuthDataSource
+RestApiProductDataSource
+RestApiStockDataSource
+RestApiInventoryMovementDataSource
+RestApiNotificationTokenDataSource
 OpenFoodFactsDataSource
+FirebaseMessagingDataSource
+FirebaseStorageDataSource
 LocalPreferencesDataSource
+MockProductDataSource
+MockInventoryMovementDataSource
 ProductRepositoryImpl
 StockRepositoryImpl
 ```
+
+Los `RestApi*DataSource` consumen el contrato definido en `docs/api-contracts/openapi.inventory-api.yaml`. Los `Mock*DataSource` se alimentan de `docs/api-contracts/mock-data.md` y se utilizan en pruebas y demos.
 
 ---
 
 ## 7.5 UI
 
-La carpeta `ui/` contiene pantallas, componentes específicos de pantalla y ViewModels.
+La carpeta `ui/` contiene pantallas, componentes especificos de pantalla y ViewModels.
 
 Responsabilidades:
 
 - Renderizar interfaz.
 - Capturar acciones del usuario.
-- Mostrar estados de carga, vacío, éxito y error.
+- Mostrar estados de carga, vacio, exito y error.
 - Delegar acciones al ViewModel.
-- No acceder directamente a Firebase ni APIs externas.
-
-Módulos de UI esperados:
-
-```text
-ui/auth/
-ui/products/
-ui/branches/
-ui/stock/
-ui/movements/
-ui/history/
-ui/import/
-ui/settings/
-```
+- No acceder directamente al backend, SQL Server, Firebase ni APIs externas.
 
 ---
 
 ## 7.6 Navigation
 
-La carpeta `navigation/` centraliza rutas y navegación.
+La carpeta `navigation/` centraliza rutas y navegacion.
 
 Responsabilidades:
 
 - Definir rutas.
 - Proteger rutas privadas.
-- Redirigir según estado de autenticación.
-- Separar flujo público y privado.
-
-Ejemplos:
-
-```text
-/login
-/register
-/home
-/products
-/products/:id
-/products/new
-/stock
-/movements/new
-/history
-/settings
-```
+- Redirigir segun estado de autenticacion.
+- Separar flujo publico y privado.
 
 ---
 
@@ -373,15 +355,15 @@ La carpeta `notifications/` contiene servicios relacionados con FCM y notificaci
 
 Responsabilidades:
 
-- Solicitar permisos de notificación.
+- Solicitar permisos de notificacion.
 - Obtener token FCM.
-- Guardar token en Firestore.
+- Enviar token al backend mediante Dio.
 - Manejar mensajes recibidos.
 - Mostrar notificaciones locales o alertas de bajo stock.
 
 ---
 
-## 8. Flujo de autenticación
+## 8. Flujo de autenticacion
 
 ```mermaid
 sequenceDiagram
@@ -389,30 +371,30 @@ sequenceDiagram
     participant UI as LoginScreen
     participant VM as AuthViewModel
     participant R as AuthRepository
-    participant DS as FirebaseAuthDataSource
-    participant FA as Firebase Auth
-    participant FS as Firestore
+    participant DS as RestApiAuthDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
-    U->>UI: Ingresa email y contraseña
+    U->>UI: Ingresa email y contrasena
     UI->>VM: login(email, password)
     VM->>R: login(email, password)
-    R->>DS: signIn(email, password)
-    DS->>FA: signInWithEmailAndPassword
-    FA-->>DS: Firebase user
-    DS-->>R: userId
-    R->>FS: get users/{userId}
-    FS-->>R: User profile
-    R-->>VM: AppResult<User>
+    R->>DS: login(email, password)
+    DS->>API: POST /auth/login
+    API->>SQL: validar usuario y rol
+    SQL-->>API: User profile
+    API-->>DS: JWT + User profile
+    DS-->>R: AppResult<AuthSession>
+    R-->>VM: AppResult<AuthSession>
     VM-->>UI: Authenticated state
 ```
 
 ### Regla
 
-La UI no debe llamar a Firebase Auth directamente.
+La UI no debe llamar directamente al backend ni manejar validacion de JWT. La autenticacion pasa por `AuthRepository` y `RestApiAuthDataSource`.
 
 ---
 
-## 9. Flujo de creación manual de producto
+## 9. Flujo de creacion o actualizacion de producto
 
 ```mermaid
 sequenceDiagram
@@ -420,24 +402,27 @@ sequenceDiagram
     participant UI as ProductFormScreen
     participant VM as ProductFormViewModel
     participant R as ProductRepository
-    participant DS as FirebaseProductDataSource
-    participant FS as Firestore
+    participant DS as RestApiProductDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Llena formulario
     UI->>VM: submitProduct(form)
     VM->>VM: valida datos
-    VM->>R: createProduct(product)
-    R->>DS: createProduct(product)
-    DS->>FS: add products/{productId}
-    FS-->>DS: success
-    DS-->>R: success
+    VM->>R: createOrUpdateProduct(product)
+    R->>DS: saveProduct(product)
+    DS->>API: POST/PUT /products
+    API->>SQL: guardar producto
+    SQL-->>API: producto persistido
+    API-->>DS: Product response
+    DS-->>R: AppResult<Product>
     R-->>VM: AppResult<Product>
     VM-->>UI: success feedback
 ```
 
 ---
 
-## 10. Flujo de creación asistida por API externa
+## 10. Flujo de creacion asistida por API externa
 
 ```mermaid
 sequenceDiagram
@@ -445,21 +430,24 @@ sequenceDiagram
     participant UI as ProductFormScreen
     participant VM as ProductFormViewModel
     participant R as ProductLookupRepository
-    participant API as External Product API
+    participant DS as ProductLookupDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant EXT as Open Food Facts
 
-    U->>UI: Ingresa código de barras
+    U->>UI: Ingresa codigo de barras
     UI->>VM: searchByBarcode(barcode)
     VM->>R: findByBarcode(barcode)
-    R->>API: GET product by barcode
-    API-->>R: External product data
+    R->>DS: findByBarcode(barcode)
+    DS->>API: GET /product-lookup/{barcode}
+    API->>EXT: consulta producto
+    EXT-->>API: datos sugeridos
+    API-->>DS: ExternalProductSuggestion
+    DS-->>R: ExternalProductSuggestion
     R-->>VM: ExternalProductSuggestion
     VM-->>UI: muestra datos sugeridos
-    U->>UI: revisa y confirma
 ```
 
-### Regla
-
-Los datos externos son sugerencias. El usuario debe revisar antes de guardar.
+El backend externo puede actuar como proxy de Open Food Facts. Si se decide consumo directo desde Flutter, `OpenFoodFactsDataSource` sera una opcion de implementacion movil, no el camino de persistencia de inventario.
 
 ---
 
@@ -471,20 +459,24 @@ sequenceDiagram
     participant UI as MovementFormScreen
     participant VM as MovementViewModel
     participant R as InventoryMovementRepository
-    participant FS as Firestore
+    participant DS as RestApiInventoryMovementDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Ingresa producto, sucursal, tipo y cantidad
     UI->>VM: submitMovement(form)
     VM->>VM: valida campos
     VM->>R: registerMovement(request)
-    R->>FS: start transaction
-    FS->>FS: read product
-    FS->>FS: read branch
-    FS->>FS: read stock
-    FS->>FS: validate quantity
-    FS->>FS: update stock
-    FS->>FS: create movement
-    FS-->>R: transaction success
+    R->>DS: registerMovement(request)
+    DS->>API: POST /inventory-movements
+    API->>SQL: iniciar transaccion
+    SQL->>SQL: leer stock
+    SQL->>SQL: validar cantidad
+    SQL->>SQL: actualizar Stock
+    SQL->>SQL: crear InventoryMovement
+    SQL-->>API: confirmar transaccion
+    API-->>DS: InventoryMovement response
+    DS-->>R: AppResult<InventoryMovement>
     R-->>VM: AppResult<InventoryMovement>
     VM-->>UI: success / low stock alert
 ```
@@ -496,10 +488,11 @@ sequenceDiagram
 - Una salida no puede superar el stock disponible.
 - Todo movimiento debe quedar en historial.
 - El stock no se edita directamente.
+- La consistencia debe resolverse con transaccion en el backend.
 
 ---
 
-## 12. Flujo de importación CSV
+## 12. Flujo de importacion CSV
 
 ```mermaid
 sequenceDiagram
@@ -507,122 +500,123 @@ sequenceDiagram
     participant UI as ImportScreen
     participant VM as ImportViewModel
     participant R as ImportRepository
-    participant FS as Firestore
+    participant DS as RestApiImportDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
 
     U->>UI: Selecciona archivo CSV
     UI->>VM: parseCsv(file)
     VM->>R: validateCsv(file)
     R-->>VM: preview + validation errors
     VM-->>UI: muestra vista previa
-    U->>UI: confirma importación
+    U->>UI: confirma importacion
     UI->>VM: confirmImport()
     VM->>R: importProducts(validRows)
-    R->>FS: create products/stocks/movements
-    FS-->>R: success
+    R->>DS: importProducts(validRows)
+    DS->>API: POST /import-batches
+    API->>SQL: crear productos, stocks y movimientos
+    SQL-->>API: resultado
+    API-->>DS: ImportBatch response
+    DS-->>R: AppResult<ImportBatch>
     R-->>VM: AppResult<ImportBatch>
-    VM-->>UI: resultado de importación
+    VM-->>UI: resultado de importacion
 ```
 
 ### Regla
 
-La importación es complementaria. El registro manual sigue siendo obligatorio.
+La importacion es complementaria. El registro manual sigue siendo obligatorio.
 
 ---
 
-## 13. Flujo de notificaciones
+## 13. Flujo de historial
+
+```mermaid
+sequenceDiagram
+    participant UI as HistoryScreen
+    participant VM as HistoryViewModel
+    participant R as InventoryMovementRepository
+    participant DS as RestApiInventoryMovementDataSource
+    participant API as inventory-backend / ASP.NET Core Web API
+    participant SQL as SQL Server en inventory-backend
+
+    UI->>VM: loadHistory(filters)
+    VM->>R: getHistory(filters)
+    R->>DS: getHistory(filters)
+    DS->>API: GET /inventory-movements
+    API->>SQL: consultar movimientos
+    SQL-->>API: movimientos filtrados
+    API-->>DS: paginated response
+    DS-->>R: AppResult<List<InventoryMovement>>
+    R-->>VM: AppResult<List<InventoryMovement>>
+    VM-->>UI: render history
+```
+
+---
+
+## 14. Flujo de notificaciones
 
 ```mermaid
 flowchart TD
     App[Flutter App] --> Permission[Solicitar permiso]
     Permission --> Token[Obtener FCM token]
-    Token --> SaveToken[Guardar token en Firestore]
-    SaveToken --> Console[Firebase Console puede enviar push de prueba]
+    Token --> Repo[NotificationRepository]
+    Repo --> RestDS[RestApiNotificationTokenDataSource]
+    RestDS --> Api[inventory-backend / ASP.NET Core Web API]
+    Api --> Sql[(SQL Server en inventory-backend)]
+    Api -. usa FCM si hay emisor server-side .-> FCM[Firebase Cloud Messaging]
 
-    Movement[Movimiento de inventario] --> LowStock{¿Bajo stock?}
-    LowStock -->|Sí| LocalAlert[Mostrar alerta local / in-app]
+    Movement[Movimiento de inventario] --> LowStock{Bajo stock}
+    LowStock -->|Si| LocalAlert[Mostrar alerta local / in-app]
     LowStock -->|No| End[Continuar]
 ```
 
-### Decisión MVP
+### Decision MVP
 
 Para el MVP:
 
-- Se registra el token FCM.
-- Se demuestra recepción de push desde Firebase Console.
-- Se muestra alerta local o in-app por bajo stock.
+- Flutter obtiene el token FCM.
+- Flutter envia el token al backend externo mediante Dio.
+- El backend externo almacena el token en SQL Server cuando se implemente.
+- Flutter puede recibir push mediante Firebase Messaging.
+- Se puede mostrar alerta local o in-app por bajo stock.
 
 ### Mejora futura
 
-- Cloud Functions para enviar push automática por bajo stock.
+- Envio server-side de push automatica por bajo stock desde el backend u otro servicio compatible.
 
 ---
 
-## 14. Integración con Firebase
+## 15. Integracion con Firebase
 
-## 14.1 Firebase Auth
+Firebase se mantiene para servicios especificos. No sera el backend principal ni la persistencia principal del inventario.
 
-Uso:
-
-- Registro.
-- Login.
-- Logout.
-- Persistencia de sesión.
-- Identificación del usuario actual.
-
-No se maneja JWT propio.
-
----
-
-## 14.2 Cloud Firestore
-
-Uso:
-
-- Usuarios.
-- Sucursales.
-- Productos.
-- Stock.
-- Movimientos.
-- Tokens de notificación.
-- Importaciones, si aplica.
-
-Colecciones documentadas en:
-
-```text
-docs/contracts/firestore-collections.md
-```
-
----
-
-## 14.3 Firebase Storage
-
-Uso:
-
-- Guardar imágenes de productos.
-- Obtener `downloadURL`.
-- Guardar `imageUrl` en `products`.
-
-Ruta sugerida:
-
-```text
-product-images/{productId}/{fileName}
-```
-
----
-
-## 14.4 Firebase Cloud Messaging
+## 15.1 Firebase Cloud Messaging
 
 Uso:
 
 - Obtener token del dispositivo.
-- Guardar token.
-- Recibir push de prueba.
+- Recibir push.
 - Preparar infraestructura para notificaciones futuras.
+
+El token FCM se enviara al backend externo mediante Dio para que pueda almacenarse en SQL Server desde `inventory-backend` cuando se implemente el endpoint correspondiente.
 
 ---
 
-## 15. Integración con API externa
+## 15.2 Firebase Storage opcional
 
-La API externa se usa únicamente para autocompletar productos.
+Uso posible:
+
+- Guardar imagenes de productos.
+- Obtener una URL o referencia de imagen.
+- Persistir `imageUrl` mediante el backend.
+
+La decision final puede ser Firebase Storage o un flujo gestionado por backend. Firebase Storage no implica persistencia de inventario.
+
+---
+
+## 16. Integracion con API externa
+
+La API externa se usa unicamente para autocompletar productos.
 
 Fuente principal:
 
@@ -633,20 +627,24 @@ Open Food Facts API
 Contrato documentado en:
 
 ```text
-docs/contracts/external-product-api.md
+docs/api-contracts/external-product-api.md
 ```
 
-Dio se usará solo para esta integración.
+El backend externo puede enrutar la busqueda mediante el endpoint `GET /product-lookup/{barcode}` definido en `docs/api-contracts/openapi.inventory-api.yaml`. En ese caso, el backend actua como proxy del proveedor externo.
+
+Tambien puede existir consumo directo desde Flutter mediante `OpenFoodFactsDataSource`, si se decide por simplicidad. Esa opcion no reemplaza al backend como camino de persistencia.
+
+Dio se usa para consumir el backend externo y para integraciones HTTP. Dio nunca se usa para conectar directamente a SQL Server.
 
 ---
 
-## 16. Almacenamiento local
+## 17. Almacenamiento local
 
-El almacenamiento local será limitado.
+El almacenamiento local sera limitado.
 
 Uso previsto:
 
-- Última sucursal seleccionada.
+- Ultima sucursal seleccionada.
 - Filtros recientes.
 - Preferencia de tema.
 - Preferencias simples de usuario.
@@ -655,20 +653,20 @@ No se promete modo offline completo.
 
 ---
 
-## 17. Manejo de errores
+## 18. Manejo de errores
 
-La arquitectura deberá manejar errores de forma uniforme.
+La arquitectura debera manejar errores de forma uniforme.
 
 Ejemplos de errores:
 
-- Error de autenticación.
+- Error de autenticacion.
 - Producto duplicado.
 - Stock insuficiente.
 - Producto inactivo.
 - Sucursal inactiva.
 - API externa no disponible.
 - Error de red.
-- Archivo CSV inválido.
+- Archivo CSV invalido.
 - Error al subir imagen.
 
 Los repositorios deben devolver resultados controlados, por ejemplo:
@@ -682,9 +680,9 @@ La UI debe mostrar mensajes claros y permitir reintento cuando aplique.
 
 ---
 
-## 18. Estados de UI
+## 19. Estados de UI
 
-Las pantallas deben contemplar estados explícitos:
+Las pantallas deben contemplar estados explicitos:
 
 ```text
 initial
@@ -694,17 +692,9 @@ empty
 error
 ```
 
-Ejemplos:
-
-- Productos sin registros → empty state.
-- Historial sin movimientos → empty state.
-- Búsqueda externa en proceso → loading.
-- API externa no disponible → error controlado.
-- Movimiento registrado → success feedback.
-
 ---
 
-## 19. Testing dentro de la arquitectura
+## 20. Testing dentro de la arquitectura
 
 La arquitectura debe facilitar pruebas.
 
@@ -716,7 +706,7 @@ Para:
 - Reglas de stock.
 - Mapeadores.
 - Casos de uso.
-- Repositorios con mocks.
+- Repositorios usando `MockDataSource` u otros fakes en memoria.
 
 ### Widget tests
 
@@ -724,9 +714,13 @@ Para:
 
 - Formularios.
 - Estados de carga.
-- Estados vacíos.
+- Estados vacios.
 - Mensajes de error.
 - Componentes reutilizables.
+
+`MockDataSource` resulta util en widget tests y pruebas de ViewModel porque permite controlar respuestas, simular errores como `insufficient_stock` o `product_not_found` y mantener tiempos de ejecucion cortos sin depender de un backend real ni de la red.
+
+Flutter tests deben mockear `RestApiDataSource` o repositorios por defecto. No deben depender de un backend real para pruebas unitarias o widget tests.
 
 ### Integration tests
 
@@ -739,13 +733,15 @@ Para:
 - Validar stock insuficiente.
 - Consultar historial.
 
+Las pruebas de integracion backend pertenecen a `inventory-backend`. En `inventory-mobile-project`, las pruebas Flutter deben usar mocks, fakes o clientes Dio controlados por defecto.
+
 ---
 
-## 20. Integración continua
+## 21. Integracion continua
 
-GitHub Actions ejecutará validaciones automáticas.
+GitHub Actions ejecutara validaciones automaticas.
 
-Validaciones mínimas:
+Validaciones minimas:
 
 ```text
 flutter analyze
@@ -761,90 +757,106 @@ flutter build apk --debug
 
 ---
 
-## 21. Ventajas de esta arquitectura
+## 22. Ventajas de esta arquitectura
 
 Esta arquitectura permite:
 
 - Separar UI de acceso a datos.
-- Mantener Firebase aislado en data sources.
+- Mantener el backend aislado en data sources.
+- Mantener Firebase limitado a servicios especificos.
 - Cambiar API externa sin afectar pantallas.
-- Probar lógica sin depender de servicios reales.
-- Escalar módulos sin volver monolítica la app.
+- Probar logica sin depender de servicios reales.
+- Escalar modulos sin volver monolitica la app.
 - Defender claramente responsabilidades por capa.
-- Cumplir arquitectura, modularidad, estado, navegación y reutilización.
 
 ---
 
-## 22. Riesgos arquitectónicos
+## 23. Riesgos arquitectonicos
 
-### 22.1 Lógica crítica en cliente
+### 23.1 Lógica critica en cliente
 
-Registrar movimientos con transacciones desde la app es aceptable para MVP, pero en producción sería mejor centralizarlo en Cloud Functions.
+Registrar movimientos desde la app sin transaccion backend generaria riesgo de inconsistencias.
 
-Mitigación:
+Mitigacion:
 
-Documentar esta limitación y dejar Cloud Functions como mejora futura.
+Centralizar los cambios de stock en `inventory-backend` con transacciones SQL Server o EF Core.
 
 ---
 
-### 22.2 Acoplar UI a Firebase
+### 23.2 Acoplar UI a infraestructura
 
-Si las pantallas llaman directamente a Firestore, se rompe la arquitectura.
+Si las pantallas llaman directamente a Dio, Firebase o almacenamiento local, se rompe la arquitectura.
 
-Mitigación:
+Mitigacion:
 
 Forzar acceso por repositorios y data sources.
 
 ---
 
-### 22.3 Crecimiento desordenado
+### 23.3 Crecimiento desordenado
 
-Si cada módulo crea sus propios patrones, la app se vuelve difícil de mantener.
+Si cada modulo crea sus propios patrones, la app se vuelve dificil de mantener.
 
-Mitigación:
+Mitigacion:
 
-Definir estructura común para ViewModels, estados, repositorios y validaciones.
+Definir estructura comun para ViewModels, estados, repositorios y validaciones.
 
 ---
 
-### 22.4 API externa inestable
+### 23.4 API externa inestable
 
 La API externa puede no responder o no encontrar productos.
 
-Mitigación:
+Mitigacion:
 
 Mantener registro manual como flujo principal.
 
 ---
 
-## 23. Criterio de aceptación de arquitectura
+## 24. Criterio de aceptacion de arquitectura
 
 La arquitectura se considera correcta si:
 
-- La UI no accede directamente a Firebase.
-- Los ViewModels no conocen detalles de Firestore ni Dio.
+- La UI no accede directamente al backend, SQL Server, Firebase ni APIs externas.
+- Los ViewModels no conocen detalles de Dio, SQL Server, FCM ni Storage.
 - Los repositorios encapsulan acceso a datos.
-- Las entidades principales están en dominio.
-- Firebase vive en data sources.
-- La API externa vive en data sources externos.
-- La navegación está centralizada.
+- `RestApiDataSource` es el camino principal para datos de aplicacion.
+- `MockDataSource` permite pruebas y demos.
+- `FirebaseDataSource` queda limitado a servicios Firebase.
+- Las entidades principales estan en dominio.
+- La API externa vive en data sources externos o en un proxy backend.
+- La navegacion esta centralizada.
 - Los errores se manejan de forma uniforme.
-- Los estados de UI están claramente definidos.
+- Los estados de UI estan claramente definidos.
 - El modelo soporta productos, sucursales, stock y movimientos.
 - La estructura permite testing.
 
 ---
 
-## 24. Estado del documento
+## 25. Estado del documento
+
+Pendiente de implementacion en `inventory-mobile-project`:
+
+- Conexion de Flutter con `RestApiDataSource` mediante Dio.
+- Configuracion de base URL del backend externo.
+- Integracion movil con autenticacion, productos, stock, movimientos e historial.
+- Configuracion FCM del lado movil.
+- Pruebas Flutter con `MockDataSource`, fakes o clientes Dio controlados.
+- Decision final de almacenamiento de imagenes desde la app.
+
+Responsabilidades de `inventory-backend`:
+
+- Implementacion ASP.NET Core Web API.
+- Endpoints backend segun `docs/api-contracts/openapi.inventory-api.yaml`.
+- SQL Server, EF Core, migraciones, Docker Compose y pruebas backend.
 
 Este documento debe actualizarse si cambian:
 
 - La estructura de carpetas.
 - El backend principal.
 - El enfoque de Firebase.
-- La integración con API externa.
+- La integracion con API externa.
 - La estrategia de notificaciones.
 - La estrategia de almacenamiento local.
-- El patrón de arquitectura.
+- El patron de arquitectura.
 - Las reglas de stock.
-

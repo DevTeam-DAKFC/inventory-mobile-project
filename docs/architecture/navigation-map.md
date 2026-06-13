@@ -19,7 +19,7 @@ docs/architecture/system-architecture.md
 
 ## 2. Principios de navegación
 
-La navegación debe ser clara, predecible y fácil de explicar durante la defensa técnica.
+La navegación debe ser clara, predecible y fácil de explicar durante revisiones técnicas.
 
 Principios:
 
@@ -247,7 +247,8 @@ flowchart TD
 ```text
 App inicia
 → SplashScreen
-→ Verificar sesión Firebase Auth
+→ AuthRepository valida sesión local/perfil
+→ RestApiAuthDataSource consume backend ASP.NET Core Web API mediante Dio cuando aplique
 → Si hay sesión: /home
 → Si no hay sesión: /login
 ```
@@ -257,8 +258,10 @@ App inicia
 ```text
 LoginScreen
 → AuthViewModel.login()
-→ Firebase Auth
-→ Obtener User profile en Firestore
+→ AuthRepository.login()
+→ RestApiAuthDataSource
+→ Backend ASP.NET Core Web API planificado
+→ Retorna datos de autenticación, token y perfil
 → /home
 ```
 
@@ -267,10 +270,25 @@ LoginScreen
 ```text
 SettingsScreen
 → Logout
-→ Firebase Auth signOut
+→ AuthRepository.logout()
+→ limpiar token/sesión local y preferencias necesarias
 → limpiar preferencias locales necesarias
 → /login
 ```
+
+### 11.4 Registro
+
+```text
+RegisterScreen
+→ AuthViewModel.register()
+→ AuthRepository.register()
+→ RestApiAuthDataSource
+→ Backend ASP.NET Core Web API planificado
+→ Retorna datos de autenticación, token y perfil cuando aplique
+→ /home o /login según decisión de producto
+```
+
+La navegación no debe depender de Firebase Auth. La validación de sesión, login, registro y logout se coordinan mediante `AuthRepository`; la implementación planificada usa `RestApiAuthDataSource` y endpoints REST del backend a través de Dio. El backend está pendiente de implementación.
 
 ---
 
@@ -386,8 +404,8 @@ Validar el estado inicial de la app.
 ### Comportamiento
 
 - Mostrar logo o loader.
-- Inicializar Firebase.
-- Revisar sesión.
+- Inicializar servicios requeridos.
+- Revisar sesión mediante AuthRepository.
 - Redirigir a `/home` o `/login`.
 
 ---
@@ -441,7 +459,7 @@ Permitir registro de usuario.
 
 ### Nota
 
-El rol inicial puede definirse como `collaborator` por defecto o asignarse manualmente en Firestore para el MVP.
+El rol inicial puede definirse como `collaborator` por defecto o asignarse desde el backend cuando se implemente el flujo de autenticación.
 
 ---
 
@@ -535,13 +553,15 @@ Buscar producto usando API externa.
 ### Acciones
 
 - Ingresar código de barras.
-- Consultar API externa.
+- Consultar búsqueda de producto.
 - Ver datos sugeridos.
 - Aplicar sugerencias al formulario.
 
 ### Nota
 
 Puede implementarse como pantalla separada o como sección dentro de `ProductFormScreen`.
+
+La búsqueda puede pasar por el endpoint backend `GET /product-lookup/{barcode}`. El consumo directo de Open Food Facts desde Flutter puede mantenerse como opción de implementación, pero la UI no debe depender de detalles del proveedor.
 
 ---
 
@@ -770,6 +790,19 @@ Mostrar alertas o notificaciones relacionadas con inventario.
 - Estado de permisos de notificación.
 - Token FCM registrado, solo para depuración si aplica.
 
+### Flujo de token FCM
+
+```text
+Flutter obtiene token FCM
+→ NotificationRepository
+→ RestApiNotificationTokenDataSource
+→ Dio
+→ Backend ASP.NET Core Web API en inventory-backend
+→ Persistencia gestionada por el backend
+```
+
+Firebase Messaging se mantiene como mecanismo de recepción de push notifications. El token no debe persistirse directamente desde Flutter; siempre se envía al backend a través de NotificationRepository.
+
 ---
 
 ## 14.17 SettingsScreen
@@ -924,7 +957,7 @@ El mapa de navegación se considera correcto si:
 - El historial permite llegar al detalle del movimiento.
 - Los roles pueden restringir pantallas sensibles.
 - No hay rutas duplicadas o ambiguas.
-- La navegación se puede explicar durante la defensa técnica.
+- La navegación se puede explicar durante revisiones técnicas.
 
 ---
 
