@@ -1,16 +1,33 @@
 # Aplicación móvil de inventario
 
-Esta carpeta contiene la aplicación móvil Flutter del sistema de gestión de inventario.
+Esta carpeta contiene la app Flutter del sistema de gestión de inventario. El backend vive en un repositorio separado (`inventory-backend`); esta app consume endpoints REST mediante Dio y no se conecta directamente a SQL Server.
 
-El backend vive fuera de esta carpeta y fuera de este repositorio móvil, en el repositorio separado `inventory-backend`. La aplicación consumirá la API REST externa expuesta por ASP.NET Core Web API usando Dio / HttpClient desde Flutter.
+## Stack y arquitectura
 
-La persistencia principal con SQL Server pertenece al backend externo, por lo que la aplicación móvil no se conectará directamente a la base de datos. Esta carpeta no contiene estructura backend inicial, configuración Docker Compose, migraciones EF Core ni pruebas backend.
+- Flutter / Dart.
+- Riverpod para estado e inyección de dependencias.
+- GoRouter para navegación.
+- Dio para llamadas REST.
+- Repository Pattern con data sources REST, DTOs y mappers.
+- `flutter_secure_storage` para token de autenticación.
+- Firebase Core, Firebase Messaging y notificaciones locales para FCM.
 
-Firebase no será el backend principal de la aplicación. Se utilizará para Firebase Cloud Messaging en notificaciones push y, si el equipo lo decide, Firebase Storage para imágenes de productos.
+Estructura principal:
+
+```text
+lib/
+├── app/
+├── core/
+├── data/
+├── domain/
+├── navigation/
+├── notifications/
+└── ui/
+```
 
 ## Comandos locales
 
-Ejecutar estos comandos desde la carpeta `app/`:
+Ejecutar desde `app/`:
 
 ```powershell
 flutter pub get
@@ -19,34 +36,62 @@ flutter test
 flutter run
 ```
 
-## Configuración del backend móvil
+## Configuración del backend
 
-La URL base de Dio se resuelve en `lib/core/constants/api_config.dart` y se inyecta mediante `apiConfigProvider`.
+La URL base se resuelve en `lib/core/constants/api_config.dart`.
 
-- Android emulator: `http://10.0.2.2:5225`
-- iOS simulator, desktop y pruebas locales: `http://localhost:5225`
-- Override para demos o dispositivos físicos:
+- Android: `http://10.0.2.2:5225`
+- iOS simulator, desktop y tests locales: `http://localhost:5225`
+- Override por ejecución: `--dart-define=BACKEND_BASE_URL=<url>`
 
-```powershell
-flutter run --dart-define=BACKEND_BASE_URL=http://<host>:5225
-```
-
-El valor se normaliza sin `/` final para que los data sources puedan usar rutas relativas como `/products` y `/stock`.
-
-## Autenticación y requests protegidos
-
-La app contiene pantallas de login/logout, almacenamiento seguro de token y un interceptor Dio que adjunta `Authorization: Bearer <token>` cuando existe una sesión guardada. Los providers de productos, stock, movimientos, sucursales, imports y notificaciones usan el Dio autenticado.
-
-Para pruebas manuales sin login real se puede pasar un token de desarrollo con:
+Ejemplo para emulador Android:
 
 ```powershell
-flutter run --dart-define=DEV_ACCESS_TOKEN=<token>
+flutter run --dart-define=BACKEND_BASE_URL=http://10.0.2.2:5225
 ```
 
-Si el backend usado en la demostración final no expone autenticación ni autorización por rol, validar login/logout, roles y requests protegidos como alcance no aplicable del backend final. No agregar flujos nuevos de autenticación para esta entrega.
+Ejemplo para dispositivo físico Android usando `adb reverse`:
 
-## Limitaciones conocidas para la validación final
+```powershell
+$adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+& $adb reverse tcp:5225 tcp:5225
+flutter run --dart-define=BACKEND_BASE_URL=http://127.0.0.1:5225
+```
 
-- El backend vive en el repositorio separado `inventory-backend`; esta app solo consume la API REST.
-- La configuración local asume el puerto `5225` salvo que se use `BACKEND_BASE_URL`.
-- Las secciones de stock por sucursal y últimos movimientos dentro del detalle de producto se muestran como pendientes de integración; el listado de productos y la pantalla principal de stock sí forman parte del demo móvil actual.
+Un cambio en `--dart-define` requiere reiniciar `flutter run`; hot reload no actualiza ese valor.
+
+## Autenticación
+
+La app implementa:
+
+- Registro.
+- Login.
+- Logout.
+- Restauración de sesión con `/auth/me`.
+- Token Bearer guardado en secure storage.
+- Interceptor Dio para `Authorization: Bearer <token>`.
+- Rutas protegidas.
+- Roles mobile `admin` y `collaborator`.
+
+La autorización definitiva debe validarse en el backend. Firebase Auth no se usa.
+
+## Funcionalidad implementada
+
+- Productos: catálogo, búsqueda, filtros, detalle, creación, edición, activar/desactivar, imagen y autocompletado por barcode vía `/product-lookup/{barcode}`.
+- Sucursales: listado, filtros, crear, editar, desactivar/reactivar.
+- Stock: consulta por sucursal, búsqueda y filtros.
+- Movimientos: historial, filtro por tipo, búsqueda local y formulario de entrada/salida.
+- Importación CSV: selección de archivo, subida, resultado, errores y últimas importaciones.
+- Notificaciones: FCM/local notifications y registro de token contra backend.
+- Health check: `/health`.
+
+## Limitaciones conocidas
+
+- `Alertas` es placeholder.
+- El dashboard tiene métricas parcialmente reales y elementos demo/pendientes.
+- El detalle de producto marca como pendientes "Stock por sucursal" y "Últimos movimientos".
+- Stock usa sucursales temporales hardcodeadas en `core/constants/stock_config.dart`.
+- Open Food Facts no se consume directamente desde Flutter; la app llama al backend.
+- La subida de imágenes usa el backend, no Firebase Storage.
+- FCM requiere configuración Firebase válida y soporte server-side para validación end to end.
+- No hay carpeta `integration_test/` confirmada en el código actual.
