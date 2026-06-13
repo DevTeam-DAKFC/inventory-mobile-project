@@ -67,7 +67,31 @@ void main() {
     await _pumpScreen(tester, failureRepository);
     await tester.pumpAndSettle();
     expect(find.text('No se pudieron cargar los productos'), findsOneWidget);
+    expect(
+      find.text('No fue posible conectar con el servidor.'),
+      findsOneWidget,
+    );
+    expect(find.text('Sin conexión'), findsNothing);
     expect(find.text('Reintentar'), findsOneWidget);
+  });
+
+  testWidgets('renders a friendly error when the repository throws', (
+    tester,
+  ) async {
+    final repository = _FakeProductRepository((_) {
+      throw StateError('DioException: connection reset by peer');
+    });
+
+    await _pumpScreen(tester, repository);
+    await tester.pumpAndSettle();
+
+    expect(find.text('No se pudieron cargar los productos'), findsOneWidget);
+    expect(
+      find.text('No fue posible cargar los productos. Inténtalo nuevamente.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('DioException'), findsNothing);
+    expect(find.textContaining('connection reset'), findsNothing);
   });
 
   testWidgets('debounces search and applies the active filter', (tester) async {

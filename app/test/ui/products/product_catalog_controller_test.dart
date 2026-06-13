@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:inventory_mobile/core/errors/app_error_code.dart';
+import 'package:inventory_mobile/core/errors/app_exception.dart';
 import 'package:inventory_mobile/core/result/app_result.dart';
 import 'package:inventory_mobile/data/providers/product_providers.dart';
 import 'package:inventory_mobile/domain/models/paginated_products.dart';
@@ -75,6 +77,43 @@ void main() {
 
       expect(container.read(productCatalogProvider).products.single.id, 'new');
     });
+
+    test('maps thrown repository errors to a stable error state', () async {
+      final repository = _FakeProductRepository()
+        ..thrownError = StateError('socket closed');
+      final container = ProviderContainer(
+        overrides: [productRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(productCatalogProvider.notifier);
+
+      await controller.loadInitial();
+
+      final state = container.read(productCatalogProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.error?.code, AppErrorCode.unexpected);
+      expect(state.error?.message, 'Unexpected error loading products.');
+    });
+
+    test('preserves thrown AppException details as a failure state', () async {
+      final repository = _FakeProductRepository()
+        ..thrownError = const AppException(
+          code: AppErrorCode.networkError,
+          message: 'Could not complete the backend request.',
+        );
+      final container = ProviderContainer(
+        overrides: [productRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(productCatalogProvider.notifier);
+
+      await controller.loadInitial();
+
+      final state = container.read(productCatalogProvider);
+      expect(state.isLoading, isFalse);
+      expect(state.error?.code, AppErrorCode.networkError);
+      expect(state.error?.message, 'Could not complete the backend request.');
+    });
   });
 }
 
@@ -82,10 +121,13 @@ final class _FakeProductRepository implements ProductRepository {
   final responses = <PaginatedProducts>[];
   final completers = <Completer<AppResult<PaginatedProducts>>>[];
   final queries = <ProductListQuery>[];
+  Object? thrownError;
 
   @override
   Future<AppResult<PaginatedProducts>> listProducts(ProductListQuery query) {
     queries.add(query);
+    final error = thrownError;
+    if (error != null) throw error;
     if (completers.isNotEmpty) return completers.removeAt(0).future;
     return Future.value(AppSuccess(responses.removeAt(0)));
   }
